@@ -59,7 +59,7 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
 
         $applicant = $this->applicant;
         $applicant = $applicantService->checkIfPaidEarlyBird($applicant);
-        $applicant->admitted_at = \Carbon\Carbon::now();    //MCH
+        $applicant->admitted_at = \Carbon\Carbon::now()->format('Y-m-d');    //MCH
         $applicant->save();
         $camp = $this->applicant->batch->camp;
 

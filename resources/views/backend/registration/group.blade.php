@@ -31,6 +31,7 @@
             <tr class="">
                 <th>報名序號</th>
                 <th>錄取編號</th>
+                <th>寄送錄取通知日期</th>
                 <th>姓名</th>
                 <th>生理性別</th>
                 @if($camp_data->table == "tcamp")
@@ -70,6 +71,7 @@
             <tr>
                 <td>{{ $applicant->sn }}</td>
                 <td>{{ $applicant->group }}{{ $applicant->number }}</td>
+                <td>{{ $applicant->admitted_at?? "-" }}</td>
                 <td>{{ $applicant->name }}</td>
                 <td>{{ $applicant->gender }}</td>
                 @if($camp_data->table == "tcamp")
