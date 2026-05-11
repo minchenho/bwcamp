@@ -379,15 +379,21 @@ class Applicant extends Model
     {
         return Attribute::make(
             set: function ($value) {
-                switch ($value) {
-                    case '不參加': return 0;
-                    case '參加': return 1;
-                    case '尚未決定': return 2;
-                    case '聯絡不上': return 3;
-                    case '無法全程': return 4;
-                    case '尚未聯絡': return 5;
-                    default: return null;
+                // 如果傳進來的值本來就是數字 (0-5)，就直接存入
+                if (is_numeric($value) && $value >= 0 && $value <= 5) {
+                    return (int) $value;
                 }
+
+                // 如果傳進來的是中文，則進行轉換
+                return match ($value) {
+                    '不參加'   => 0,
+                    '參加'     => 1,
+                    '尚未決定' => 2,
+                    '聯絡不上' => 3,
+                    '無法全程' => 4,
+                    '尚未聯絡' => 5,
+                    default    => null,
+                };
             },
             get: fn ($value) => $value
         );

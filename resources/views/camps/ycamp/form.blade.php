@@ -14,6 +14,13 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         您在本網站所填寫的個人資料，僅用於此次大專營的報名及活動聯絡之用。
     </div>
 @endif
+@if($errors->any())
+    @foreach ($errors->all() as $message)
+        <div class='alert alert-danger' role='alert'>
+            {{ $message }}
+        </div>
+    @endforeach
+@endif
 
 <div class='page-header form-group'>
     <h4>{{ $camp_info->fullName }}線上報名表</h4>

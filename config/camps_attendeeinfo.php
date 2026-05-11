@@ -547,7 +547,8 @@ return [
             'is_shown' => 1,
         ],
         'sec_file_upload' => [
-            'is_shown' => 0,
+            'is_shown' => 1,
+            'title' => '上傳學員照片',
         ],
         'sec_adv1' => [  //聯絡方式
             'is_shown' => 1,
@@ -1090,7 +1091,7 @@ return [
             'title' => '報到條碼',
         ],
         'sec_contact_log' => [
-            'is_shown' => 0,
+            'is_shown' => 1,
             'title' => '關懷記錄',
         ],
        'sec_ceovcamp_excel' => [

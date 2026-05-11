@@ -23,6 +23,8 @@ use App\Services\ApplicantService;
 use App\Services\BackendService;
 use App\Services\CampDataService;
 use App\Services\GSheetService;
+use App\Services\LodgingService;
+use App\Services\TrafficService;
 use App\Imports\ApplicantsImport;
 use App\Exports\ApplicantsExport;
 use App\Traits\EmailConfiguration;
@@ -67,13 +69,17 @@ class BackendController extends Controller
         ApplicantService $applicantService,
         BackendService $backendService,
         GSheetService $gsheetService,
-        Request $request
+        Request $request,
+        LodgingService $lodgingService, 
+        TrafficService $trafficService
     ) {
         $this->middleware('auth');
         $this->campDataService = $campDataService;
         $this->applicantService = $applicantService;
         $this->backendService = $backendService;
         $this->gsheetService = $gsheetService;
+        $this->lodgingService = $lodgingService;
+        $this->trafficService = $trafficService;
 
         $this->camp_id = $request->route()->parameter('camp_id') ?? null;
         $this->batch_id = $request->route()->parameter('batch_id') ?? null;
@@ -431,9 +437,14 @@ class BackendController extends Controller
             //checkPaymentStatus() 檢查完繳費狀況後會 return applicant
             $applicant = $this->applicantService->checkPaymentStatus($candidate);
             $camp_table = $applicant->batch->camp->table;
-            $fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
-            $fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
-            $fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
+
+            //$fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
+            //$fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
+            //$fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
+            $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
+            [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
+            //dd($fare_room);
+
             return view('backend.modifyAccounting', compact('applicant', 'fare_depart_from', 'fare_back_to', 'fare_room'));
         }
         //設定取消參加
@@ -1796,9 +1807,13 @@ class BackendController extends Controller
             }
         }
 
-        $lodgings = config('camps_payments.fare_room.' . $camp->table) ?? [];
-        $departfroms = config('camps_payments.fare_depart_from.' . $camp->table) ?? [];
-        $backtos = config('camps_payments.fare_back_to.' . $camp->table) ?? [];
+
+        //$lodgings = config('camps_payments.fare_room.' . $camp->table) ?? [];
+        //$departfroms = config('camps_payments.fare_depart_from.' . $camp->table) ?? [];
+        //$backtos = config('camps_payments.fare_back_to.' . $camp->table) ?? [];
+        $lodgings = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
+        [$departfroms, $backtos] = $this->trafficService->getTrafficFare($this->camp_info);
+        //dd($applicant->created_at);
 
         $qrcode = $this->generateQrCodeWithText($applicant);
 
@@ -2606,10 +2621,11 @@ class BackendController extends Controller
         if ($request->isMethod('POST')) {
             $applicant = Applicant::find($request->id);
             $admitted_sn = $applicant->group.$applicant->number;
-            $camp_table = $this->campFullData->table;
-            $fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
-            $fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
-            $fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
+            $camp_table = $this->camp_info->table;
+
+            $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
+            [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
+
             if ($camp_table == 'ycamp') {
                 $traffic = $applicant->traffic;
                 //尚未登記，建新的Traffic
@@ -2639,7 +2655,7 @@ class BackendController extends Controller
                 } else {
                     return view("backend.modifyAccounting", compact('applicant', 'message', 'fare_depart_from', 'fare_back_to', 'fare_room'));
                 }
-            } elseif ($camp_table == 'ceocamp') {
+            } elseif ($camp_table == 'ceocamp' || $camp_table == 'utcamp') {
                 $lodging = $applicant->lodging;
                 //尚未登記，建新的Lodging
                 if (!$lodging) {
@@ -2648,7 +2664,7 @@ class BackendController extends Controller
                 }
                 //更新房型、天數及應繳車資
                 $lodging->room_type = $request->room_type;
-                $lodging->nights = $request->nights;
+                $lodging->nights = $request->nights?? 1;
                 $lodging->fare = ($fare_room[$lodging->room_type] ?? 0) * ($lodging->nights ?? 0);
                 //更新現金繳費金額
                 if ($request->is_add == 'add') {
@@ -2662,24 +2678,6 @@ class BackendController extends Controller
                 //update barcode
                 $applicant = $this->applicantService->fillPaymentData($applicant);
                 $applicant->save();
-                $message = "修改完成。";
-                if ($request->page == "attendeeInfo") {
-                    return redirect()->back();
-                } else {
-                    return view("backend.modifyAccounting", compact('applicant', 'message', 'fare_depart_from', 'fare_back_to', 'fare_room'));
-                }
-            } elseif ($camp_table == 'utcamp') {
-                $applicant->fee = ($request->fee) ?? 0;
-
-                if ($request->is_add == 'add') {
-                    $applicant->deposit = $applicant->deposit + $request->cash;
-                } else {
-                    $applicant->deposit = $request->cash;
-                }
-
-                $applicant = $this->applicantService->fillPaymentData($applicant);
-                $applicant->save();
-                $applicant = $this->applicantService->checkPaymentStatus($applicant);
                 $message = "修改完成。";
                 if ($request->page == "attendeeInfo") {
                     return redirect()->back();

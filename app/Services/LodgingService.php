@@ -43,6 +43,7 @@ class LodgingService
     public function getLodgingFare(Camp $camp, Carbon $date)
     {
         $campTable = $camp->table;
+        $date = $date->startOfDay(); // 確保日期比較只考慮日期部分
         // 取得費率設定 (這部分邏輯建議也可以封裝)
         $fare_room = config('camps_payments.fare_room.' . $campTable) ?? [];
         $fare_room_early_bird = config('camps_payments.fare_room.' . $campTable . '_early_bird') ?? [];

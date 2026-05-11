@@ -1,6 +1,6 @@
 @extends('backend.master')
 @section('content')
-    <h2>{{ $campFullData->abbreviation }} 現場手動繳費 / 修改繳費資料</h2>
+    <h2>{{ $camp_info->abbreviation }} 現場手動繳費 / 修改繳費資料</h2>
     @if($applicant)
         @if(isset($message))
             <div class="alert alert-success" role="alert">
@@ -18,13 +18,19 @@
             分區：{{ $applicant->region }} <br>
             報名序號：{{ $applicant->id }} <br>
             錄取序號：{{ $applicant->group.$applicant->number }} <br>
-            @if($campFullData->table=='ycamp')
+            @if($camp_info->table=='ycamp')
                 去/回程交通：{{ $applicant->traffic->depart_from ?? "尚未登記" }}/{{ $applicant->traffic->back_to ?? "尚未登記" }}<br>
                 應繳金額：{{ $applicant->traffic->fare ?? 0 }} <br>
                 轉帳繳費：{{ $applicant->traffic->deposit ?? 0 }} <br>
                 現金繳費：{{ $applicant->traffic->cash ?? 0 }} <br>
-            @elseif($campFullData->table=='ceocamp')
-                房型/天數：{{ $applicant->lodging->room_type ?? "尚未登記" }}/{{ $applicant->lodging->nights ?? "尚未登記" }}<br>
+            @elseif($camp_info->table=='ceocamp')
+                房型：{{ $applicant->lodging->room_type ?? "尚未登記" }}<br>
+                應繳金額：{{ $applicant->lodging->fare ?? 0 }} <br>
+                轉帳繳費：{{ $applicant->lodging->deposit ?? 0 }} <br>
+                現金繳費：{{ $applicant->lodging->cash ?? 0 }} <br>
+            @elseif($camp_info->table=='utcamp')
+                報名日期：{{ $applicant->created_at->format('Y-m-d') }}<br>
+                房型：{{ $applicant->lodging->room_type ?? "尚未登記" }}<br>
                 應繳金額：{{ $applicant->lodging->fare ?? 0 }} <br>
                 轉帳繳費：{{ $applicant->lodging->deposit ?? 0 }} <br>
                 現金繳費：{{ $applicant->lodging->cash ?? 0 }} <br>
@@ -38,12 +44,12 @@
         @if(!$applicant->is_attend)
             學員參加意願：<label class="text-danger">不參加。</label>勿改。
             <br>
-            <a href="{{ route('modifyAccountingGET', $campFullData->id) }}" class="btn btn-primary">下一筆</a>
-        @elseif($campFullData->table=='ycamp')
+            <a href="{{ route('modifyAccountingGET', $camp_info->id) }}" class="btn btn-primary">下一筆</a>
+        @elseif($camp_info->table=='ycamp')
             @php 
                 $cash=0 
             @endphp
-            <form action="{{ route("modifyAccounting", $campFullData->id) }}" method="post" class="form-horizontal">
+            <form action="{{ route("modifyAccounting", $camp_info->id) }}" method="post" class="form-horizontal">
                 @csrf
                 <input type="hidden" name="id" value="{{ $applicant->id }}">
                 <div class='row form-group required'>
@@ -103,12 +109,12 @@
             <input type="submit" class="btn btn-success" id="confirmaccounting" value="確認修改">
             </form>
             <br>
-            <a href="{{ route('modifyAccountingGET', $campFullData->id) }}" class="btn btn-primary">下一筆</a>
-        @elseif($campFullData->table=='ceocamp')
+            <a href="{{ route('modifyAccountingGET', $camp_info->id) }}" class="btn btn-primary">下一筆</a>
+        @elseif($camp_info->table=='ceocamp' || $camp_info->table=='utcamp')
             @php 
                 $cash=0 
             @endphp
-            <form action="{{ route("modifyAccounting", $campFullData->id) }}" method="post" class="form-horizontal">
+            <form action="{{ route("modifyAccounting", $camp_info->id) }}" method="post" class="form-horizontal">
                 @csrf
                 <input type="hidden" name="id" value="{{ $applicant->id }}">
                 <input type="hidden" name="page" value="modifyAccounting">
@@ -126,6 +132,7 @@
                         </div>
                     </div>
                 </div>
+<!--
                 <div class='row form-group required'>
                     <label for='inputNights' class='col-md-2 control-label text-md-right'>修改天數</label>
                     <div class="col-md-4">
@@ -135,6 +142,7 @@
                         </div>
                     </div>
                 </div>
+-->
                 <div class='row form-group required'>
                     <label for='inputCash' class='col-md-2 control-label text-md-right'>修改現金繳費<br>金額</label>
                     <div class='col-md-10'>
@@ -164,71 +172,10 @@
             <input type="submit" class="btn btn-success" id="confirmaccounting" value="確認修改">
             </form>
             <br>
-            <a href="{{ route('modifyAccountingGET', $campFullData->id) }}" class="btn btn-primary">下一筆</a>
-        @elseif($campFullData->table=='utcamp')
-            @php 
-                $cash=0 
-            @endphp
-            <form action="{{ route("modifyAccounting", $campFullData->id) }}" method="post" class="form-horizontal">
-                @csrf
-                <input type="hidden" name="id" value="{{ $applicant->id }}">
-                <input type="hidden" name="page" value="modifyAccounting">
-                <div class='row form-group required'>
-                    <label for='inputFee' class='col-md-2 control-label text-md-right'>修改費用</label>
-                    <div class="col-md-4">
-                        <select required class='form-control' name='fee' id='inputFee'>
-                        <option value=''>- 請選擇 -</option>
-                            @foreach($fare_room as $key => $value)
-                            <option value='{{ $value }}' >{{ $key }}({{ $value }})</option>
-                            @endforeach
-                        </select>
-                        <div class="invalid-feedback">
-                            請選擇費用
-                        </div>
-                    </div>
-                </div>
-                <!--<div class='row form-group required'>
-                    <label for='inputNights' class='col-md-2 control-label text-md-right'>修改天數</label>
-                    <div class="col-md-4">
-                        <input type='number' required class='form-control' name='nights' min=0 max=1 value='' placeholder=''>
-                        <div class="invalid-feedback">
-                            請選擇天數
-                        </div>
-                    </div>
-                </div>-->
-                <div class='row form-group required'>
-                    <label for='inputCash' class='col-md-2 control-label text-md-right'>修改現金繳費<br>金額</label>
-                    <div class='col-md-10'>
-                        <input type="text" class="form-control" name="cash" value=0 placeholder="填寫現場手動（現金）繳費金額" required><br>
-                        <div class="invalid-feedback">
-                            請填寫輸入現場手動（現金）繳費金額
-                        </div>
-                    </div>
-                </div>
-                <div class='row form-group required'>
-                    <label for='inputModifyMethod' class='col-md-2 control-label text-md-right'>修改方式</label>
-                    <div class='col-md-10'>
-                        <label class=radio-inline>
-                            <input type=radio required name='is_add' value=replace checked> 覆寫現金繳費
-                            <div class="invalid-feedback">
-                                請選擇修改方式
-                            </div>
-                        </label> 
-                        <label class=radio-inline>
-                            <input type=radio required name='is_add' value=add > 加入現金繳費
-                            <div class="invalid-feedback">
-                                &nbsp;
-                            </div>
-                        </label> 
-                    </div>
-                </div>
-            <input type="submit" class="btn btn-success" id="confirmaccounting" value="確認修改">
-            </form>
-            <br>
-            <a href="{{ route('modifyAccountingGET', $campFullData->id) }}" class="btn btn-primary">下一筆</a>
+            <a href="{{ route('modifyAccountingGET', $camp_info->id) }}" class="btn btn-primary">下一筆</a>
         @else
             @if(!$applicant->showCheckInInfo || $applicant->deposit > $applicant->fee)
-                <form action="{{ route("modifyAccounting", $campFullData->id) }}" method="post" class="form-horizontal">
+                <form action="{{ route("modifyAccounting", $camp_info->id) }}" method="post" class="form-horizontal">
                     @csrf
                     <input type="hidden" name="id" value="{{ $applicant->applicant_id }}">
                     確認報名序號或錄取序號：<input type="text" class="form-control" name="double_check" placeholder="輸入報名序號或錄取序號" required><br>
@@ -238,7 +185,7 @@
         @endif
     @else
         <p>
-            查無資料，請 <a href="{{ route("modifyAccountingGET", $campFullData->id) }}" class="btn btn-primary">重新執行</a>。
+            查無資料，請 <a href="{{ route("modifyAccountingGET", $camp_info->id) }}" class="btn btn-primary">重新執行</a>。
         </p>
     @endif
 
@@ -277,7 +224,7 @@
                 field2[0].value = lodging_data[field2[0].name];
             })();
         @endif
-        @if(isset($applicant->fee) && ($campFullData->table=='utcamp'))
+        @if(isset($applicant->fee) && ($camp_info->table=='utcamp'))
             {{-- 回填費用選項 --}}
             (function() {
                 var selects = document.getElementsByTagName('select');

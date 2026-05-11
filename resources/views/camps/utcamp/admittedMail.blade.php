@@ -39,9 +39,10 @@
 
 @php
     $cancellation_add1_with_weekday = \Carbon\Carbon::parse($applicant->batch->camp->cancellation_deadline)->addDays(1)->isoFormat('YYYY-MM-DD(dd)');
-    if ($applicant->created_at->lte($applicant->batch->camp->early_bird_last_day)) {
+    $date = $applicant->created_at->startOfDay();
+    if ($date->lte($applicant->batch->camp->early_bird_last_day)) {
         $rate = "早鳥優惠、兩人同行優惠";
-    } elseif ($applicant->created_at->lte($applicant->batch->camp->discount_last_day)) {
+    } elseif ($date->lte($applicant->batch->camp->discount_last_day)) {
         $rate = "原價、兩人同行優惠";
     } else {
         $rate = "原價";

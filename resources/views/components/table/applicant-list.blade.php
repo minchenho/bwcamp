@@ -67,7 +67,7 @@
         $applicants = $applicants->load('contactlog');
         $applicants = $applicants->each(function ($applicant) use ($camp) {
             //$applicant->number = $applicant->number;
-            //$applicant->gender = $applicant->gender_zh_tw;
+            $applicant->gender = $applicant->gender_zh_tw;
             //$applicant->age = $applicant->age;
             /*match ($applicant->is_attend) {
                 0 => $applicant->is_attend = "不參加",
@@ -94,7 +94,7 @@
             foreach ($registeredVolunteers as &$v) {
                 if ($v->application_log) {
                     foreach ($v->application_log as $k => &$a) {
-                        //$a->gender = $a->gender_zh_tw;
+                        $a->gender = $a->gender_zh_tw;
                         $a->age = $a->age;
                         /*match ($a->is_attend) {
                             0 => $a->is_attend = "不參加",

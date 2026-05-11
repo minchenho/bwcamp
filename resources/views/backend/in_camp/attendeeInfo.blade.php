@@ -139,7 +139,7 @@
                 @foreach(\App\Enums\AttendanceStatus::cases() as $status)
                     <label class="ml-2 mr-2">
                         <input type="radio" name="is_attend" value="{{ $status->value }}"
-                            {{ $applicant->is_attend === $status ? 'checked' : '' }}>{{ $status->label() }}
+                            {{ $applicant->is_attend === $status->value? 'checked' : '' }}>{{ $status->label() }}
                     </label>
                 @endforeach
                 <div class="row d-flex justify-content-end">
@@ -156,6 +156,22 @@
         @endif
     </div>
     @endif
+    @if($layout['sec_file_upload']['is_shown'])
+    <div class="container alert alert-primary">
+        <div class="row d-flex">
+            <div class="ml-2 mb-2 font-weight-bold">{{ $layout['sec_file_upload']['title'] ?? '上傳學員照片' }}</div>
+        </div>
+        <div class="row d-flex">
+            <form class="ml-2 mr-4 mb-2" method="POST" class="" name="filesForm" enctype="multipart/form-data">
+                @csrf
+                <input type="file" name="file1" id="">
+                <input type="button" class="btn btn-success" value="上傳" onclick="document.filesForm.submit()">
+                <button type="reset" class="btn btn-danger">重設</button>
+            </form>
+        </div>
+    </div>
+    @endif
+
     <div class="container">
         <div class="row">
             <div class="col-md-4 container" >

@@ -170,7 +170,7 @@
                         style="background: rgba(202,203,161,0.56);border-radius: 30px;border-style: none;box-shadow: 0px 0px 5px rgba(0,0,0,0.15);height: 100%;text-align: left;">
                         <h1 style="font-size: x-large;color: rgb(67,36,18);"><span
                                 style="color: rgb(30,70,90);" class="required">推薦理由</span></h1>
-                        <textarea name='reasons_recommend' style="width: 98%;height: 300px;border-style: none;border-radius: 10px;" required></textarea>
+                        <textarea name='reasons_recommend' style="width: 98%;height: 300px;border-style: none;border-radius: 10px;" required placeholder='推薦理由建議50字以上'></textarea>
                     </div>
                 </div>
             </div>

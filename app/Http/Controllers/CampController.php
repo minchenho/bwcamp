@@ -166,6 +166,39 @@ class CampController extends Controller
 
     public function campRegistrationFormSubmitted(Request $request)
     {
+
+        try {
+            $request->validate([
+                'name' => [
+                    'required',
+                    'string',
+                    'max:27', // 限制長度，SQL 注入代碼通常很長
+                    // 加上了 \- 來代表連字號
+                    'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u' 
+                ],
+                'email' => 'required|email',
+                'experience' => 'nullable|string|max:500',
+                'club' => 'nullable|string|max:500',
+                'goal' => 'nullable|string|max:500',
+                'habbit' => 'nullable|string|max:500',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // 如果驗證失敗，且內容看起來很可疑，就把它記下來
+            $allInput = json_encode($request->all(), JSON_UNESCAPED_UNICODE);
+            if (preg_match('/(SLEEP|SELECT|--)/i', $allInput)) {
+                \Log::warning("偵測到疑似 SQL 注入攻擊！", [
+                    'IP' => $request->ip(),
+                    'Input' => $request->all(),
+                    'User-Agent' => $request->userAgent()
+                ]);
+            } else {
+                // 正常的驗證錯誤，直接回傳給使用者
+                return redirect()->back()->withInput()->withErrors($e->errors());
+            }
+            //throw $e; // 繼續執行原本的錯誤處理（跳轉回原頁面）
+        }
+
+
         // 檢查電子郵件是否一致
         if (isset($request->emailConfirm) && ($request->email != $request->emailConfirm)) {
             return view("errorPage")->with('error', '電子郵件不一致，請檢查是否輸入錯誤。');
@@ -406,6 +439,17 @@ class CampController extends Controller
      */
     public function campViewRegistrationData(Request $request)
     {
+        $request->validate([
+            'name' => [
+                //'required',
+                'string',
+                'max:27', // 限制長度，SQL 注入代碼通常很長
+                // 加上了 \- 來代表連字號
+                'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u' 
+            ],
+            'sn' => 'required|integer',
+        ]);
+
         $campTable = $this->camp_info->table;
         $formPath = "camps.{$campTable}" . (in_array($campTable, ['ecamp', 'ceocamp']) ? '.form_bak' : '.form');
 
@@ -577,8 +621,14 @@ class CampController extends Controller
         $campTable = $this->camp_info->table;
 
         $request->validate([
-            'name' => 'required',
-            'sn' => 'required|integer'
+            'name' => [
+                'required',
+                'string',
+                'max:27', // 限制長度，SQL 注入代碼通常很長
+                // 加上了 \- 來代表連字號
+                'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u' 
+            ],
+            'sn' => 'required|integer',
         ]);
 
         if ($request->name != null && $request->sn != null) {
