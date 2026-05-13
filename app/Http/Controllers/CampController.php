@@ -637,10 +637,10 @@ class CampController extends Controller
                 return redirect()->back()->withErrors(['找不到報名資料，請確認查詢欄位是否填寫正確，或者是否已成功報名。']);
             }
         }
-
         // try-catch已處理applicant是否存在
         // 但仍需確認找到的applicant是否報名本營隊
-        if ($applicant && $applicant->batch->camp_id == $this->camp_info->id) {
+        //dd($applicant->batch->camp_id, $this->camp_info->id);
+        if ($applicant && !$applicant->deleted_at && $applicant->batch->camp_id == $this->camp_info->id) {
             //使用報名者的報名日期來計算費率，避免修改資料後費率變動的問題
             $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
             [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
@@ -648,14 +648,20 @@ class CampController extends Controller
             if (is_null($applicant->second_bank_barcode)) {
                 $applicant = $this->applicantService->fillPaymentData($applicant);
             }
+            //checkPaymentStatus will return null if $applicant->deleted_at
             $applicant = $this->applicantService->checkPaymentStatus($applicant);
             $this->camp_info->content_link_chn = $this->camp_info->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
+
             return view(
                 'camps.' . $campTable . ".admissionResult",
                 compact('applicant', 'applicant_data', 'fare_room', 'fare_depart_from', 'fare_back_to')
             );
         } else {
-            return back()->withInput()->withErrors(["找不到報名資料，請確認查詢欄位是否填寫正確，或者是否已成功報名。"]);
+            if ($applicant && $applicant->deleted_at) {
+                return back()->withInput()->withErrors(["您已取消報名，如有需要請重新報名，或聯絡主辦方。"]);
+            } else {
+                return back()->withInput()->withErrors(["找不到報名資料，請確認查詢欄位是否填寫正確，或者是否已成功報名。"]);
+            }
         }
     }
 

@@ -1,13 +1,13 @@
 @php
     $today = \Carbon\Carbon::now()->midDay();
     $days = $applicant->batch->batch_start->diffInDays($applicant->batch->batch_end) + 1;
-    $traffic_confirming_date = $camp_info->admission_confirming_date->subDays(14); 
+    $traffic_confirming_date = $camp_info->admission_confirming_end->subDays(14); 
 @endphp
 
 <body style="font-size:16px;">
 <h2 class="center">{{ $applicant->batch->camp->fullName }}<br>【錄取/交通費 通知單】</h2>
 <p class="card-text">親愛的 {{ $applicant->name }} 同學您好：</p>
-<p class="card-text text-indent">恭喜錄取「{{ $applicant->batch->camp->fullName }}」，我們竭誠歡迎您的到來！為確保營隊體驗順利，請詳閱下列各項說明。期待與你見面，也祝福你在營隊中收穫滿載。</p>
+<p class="card-text text-indent">恭喜錄取「{{ $applicant->batch->camp->fullName }}」，我們竭誠歡迎您的到來！為確保營隊體驗順利，請詳閱下列各項說明。期待在營隊與你見面，也祝福你得到豐盛的收穫。</p>
 <p class="card-text text-indent">
 你的報名序號：{{ $applicant->id }}<br>
 你的錄取編號：{{ $applicant->group }}{{ $applicant->number }}<br>
