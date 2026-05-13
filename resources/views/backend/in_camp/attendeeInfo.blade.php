@@ -159,7 +159,7 @@
     @if($layout['sec_file_upload']['is_shown'])
     <div class="container alert alert-primary">
         <div class="row d-flex">
-            <div class="ml-2 mb-2 font-weight-bold">{{ $layout['sec_file_upload']['title'] ?? '上傳學員照片' }}</div>
+            <div class="ml-2 mb-2 font-weight-bold">{{ $layout['sec_file_upload']['title'] ?? '上傳檔案' }}</div>
         </div>
         <div class="row d-flex">
             <form class="ml-2 mr-4 mb-2" method="POST" class="" name="filesForm" enctype="multipart/form-data">

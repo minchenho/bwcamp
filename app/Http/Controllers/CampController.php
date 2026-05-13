@@ -166,7 +166,6 @@ class CampController extends Controller
 
     public function campRegistrationFormSubmitted(Request $request)
     {
-
         try {
             $request->validate([
                 'name' => [
@@ -671,7 +670,10 @@ class CampController extends Controller
         $applicant = Applicant::find($request->applicant_id);
         $applicant = $this->applicantService->checkIfPaidEarlyBird($applicant);
         $applicant->save();
-        return \PDF::loadView('camps.' . $this->camp_info->table . '.paymentFormPDF', compact('applicant'))->setPaper('a3')->download('Payment_' . \Carbon\Carbon::now()->format('YmdHis') . $applicant->id . '.pdf');
+
+        $refundForm_url = $this->camp_info->dynamic_stats?->where('purpose', 'refundForm')?->first()?->google_sheet_url ?? "";
+
+        return \PDF::loadView('camps.' . $this->camp_info->table . '.paymentFormPDF', compact('applicant','refundForm_url'))->setPaper('a3')->download('Payment_' . \Carbon\Carbon::now()->format('YmdHis') . $applicant->id . '.pdf');
     }
 
     public function downloadCheckInNotification(Request $request)
@@ -729,22 +731,22 @@ class CampController extends Controller
 
     public function modifyTraffic(Request $request)
     {
-        $applicant = Applicant::findOrFail($request->applicant_id);
+        $applicant_id = $request->applicant_id ?? $request->id;
+        $applicant = Applicant::findOrFail($applicant_id);
         $camp_table = $this->camp_info->table;
 
         // 呼叫 Service
-        $updatedApplicant = $this->trafficService->updateApplicantTraffic(
+        $updatedTraffic = $this->trafficService->updateApplicantTraffic(
             $applicant,
             $this->camp_info,
             $request->depart_from,
             $request->back_to
         );
-
         // 這裡處理 Controller 該做的「跳轉」責任
         return redirect(route('showadmit', [
-            'batch_id' => $updatedApplicant->batch_id,
-            'sn' => $updatedApplicant->id,
-            'name' => $updatedApplicant->name
+            'batch_id' => $applicant->batch_id,
+            'sn' => $applicant->id,
+            'name' => $applicant->name
         ]));
     }
 
@@ -754,7 +756,7 @@ class CampController extends Controller
         $camp_table = $this->camp_info->table;
 
         // 呼叫 Service
-        $updatedApplicant = $this->lodgingService->updateApplicantLodging(
+        $updatedLodging = $this->lodgingService->updateApplicantLodging(
             $applicant,
             $this->camp_info,
             $request->room_type,
@@ -763,9 +765,9 @@ class CampController extends Controller
 
         // 這裡處理 Controller 該做的「跳轉」責任
         return redirect(route('showadmit', [
-            'batch_id' => $updatedApplicant->batch_id,
-            'sn' => $updatedApplicant->id,
-            'name' => $updatedApplicant->name
+            'batch_id' => $applicant->batch_id,
+            'sn' => $applicant->id,
+            'name' => $applicant->name
         ]));
     }
     public function modifyAfterAdmitted(Request $request)

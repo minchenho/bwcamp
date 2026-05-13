@@ -120,7 +120,7 @@
         <td align="center">錄取編號：{{ $applicant->group }}{{ $applicant->number }}</td>
     </tr>
 </table>
-恭喜您錄取「{{ $applicant->batch->camp->fullName }}」！竭誠歡迎您的到來，期待與您共享這場心靈饗宴，希望您能獲得豐盛的收穫。您選擇交通的方式及費用如下：
+恭喜您錄取「{{ $applicant->batch->camp->fullName }}」！竭誠歡迎您的到來，期待在營隊與你見面，也祝福你得到豐盛的收穫。您選擇交通的方式及費用如下：
 <ul>
     <li>去程：{{ $applicant->traffic?->depart_from ?? "未定" }}</li>
     <li>回程：{{ $applicant->traffic?->back_to ?? "未定" }}</li>
@@ -133,11 +133,11 @@
     <li>查詢：完成繳費後，請於至少一個工作天後，再上網查詢是否已繳費完畢。<br>
     （<a href="http://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/queryadmit" target="_blank" rel="noopener noreferrer">http://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/queryadmit</a> ）</li>
         {{-- （<a href="{{ url('camp/' . $applicant->batch_id . '/queryadmit') }}" target="_blank">{{ url('camp/' . $applicant->batch_id . '/queryadmit') }}</a>） --}}
-    <li>發票：本交通服務為代收代付，故不提供發票，敬請見諒。</li>
+    <!-- <li>發票：本交通服務為代收代付，故不提供發票，敬請見諒。</li> -->
     <li>退費：車資繳交後視為已訂位，未於退費申請截止前申請退費者，恕不退費。<br>
-    2025大專營車資退費申請表單：<a href="https://forms.gle/uNdCacCLirnQUsHG7">https://forms.gle/uNdCacCLirnQUsHG7</a></li>
+    2025大專營車資退費申請表單：<a href="{{ $refundForm_url }}" target="_blank" rel="noopener noreferrer">{{ $refundForm_url }}</a></li>
 </ul>
-<a class="right">財團法人福智文教基金會　敬啟</a><br>
+<a class="right">財團法人福智文教基金會</a><br>
 <a class="right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</a>
 </body>
 </html>

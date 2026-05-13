@@ -78,7 +78,7 @@ Route::group(["prefix" => "camp/{batch_id}", "middleware" => ["throttle:60,1"]],
     Route::get("/downloads", "CampController@showDownloads")->name("showDownloads");
     Route::get("/camp_total", [CampController::class, "getCampTotalRegisteredNumber"]);    
     // 針對「提交表單」與「取消」等敏感操作，再套一層更嚴格的限制
-    Route::middleware(['throttle:5,1'])->group(function () {
+    Route::middleware([env('THROTTLE_LIMIT')])->group(function () {
         Route::post("/submit", "CampController@campRegistrationFormSubmitted")->name("formSubmit");
         Route::post("/cancel", [CampController::class, "campCancellation"])->name("cancel");
         Route::post("/queryadmit", [CampController::class, "campQueryAdmission"])->name("queryadmit");
