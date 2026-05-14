@@ -16,7 +16,8 @@ class AdmittedMail extends Mailable
     use SerializesModels;
 
     public $applicant;
-    public $campFullData;
+    public $camp_info;
+    public $campFullData;   //backward compatibility
     public $attachment;
     public $etc;
     public $carers_unified;
@@ -27,11 +28,12 @@ class AdmittedMail extends Mailable
      *
      * @return void
      */
-    public function __construct($applicant, $campFullData, $attachment = null)
+    public function __construct($applicant, $camp_info, $attachment = null)
     {
         //
         $this->applicant = $applicant;
-        $this->campFullData = $campFullData;
+        $this->camp_info = $camp_info;
+        $this->campFullData = $camp_info;
         $this->attachment = $attachment;
         $this->etc = $this->applicant->user?->roles?->where("camp_id", \App\Models\Vcamp::find($this->applicant->camp->id)->mainCamp->id)->first()?->section;
         $this->carers_unified = [];
@@ -41,7 +43,7 @@ class AdmittedMail extends Mailable
         $this->content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
         $this->content_link_eng = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_eng')?->first()?->google_sheet_url ?? [];
 
-        if ($this->campFullData->table == 'mcamp') {
+        if ($this->camp_info->table == 'mcamp') {
             $vbatch = $this->applicant->batch->vbatch ?? null;
             $vcamp = $this->applicant->camp->vcamp ?? null;
 
@@ -67,6 +69,7 @@ class AdmittedMail extends Mailable
                 $this->carers = $carers;
             }
         }
+        View::share('camp_info', $this->camp_info);
         View::share('content_link_chn', $this->content_link_chn);
         View::share('content_link_eng', $this->content_link_eng);
         return;
@@ -84,16 +87,16 @@ class AdmittedMail extends Mailable
             $headers->addTextHeader('time', time());
         });
 
-        if ($this->campFullData->table == 'ceocamp' || $this->campFullData->table == 'ecamp' 
+        if ($this->camp_info->table == 'ceocamp' || $this->camp_info->table == 'ecamp' 
                 || !$this->attachment) {
             // ceocamp/ecamp 不附加PDF，或attachment為空時不附加PDF
-            return $this->subject($this->campFullData->abbreviation . '錄取通知')
-                ->view('camps.' . $this->campFullData->table . ".admittedMail");
+            return $this->subject($this->camp_info->abbreviation . '錄取通知')
+                ->view('camps.' . $this->camp_info->table . ".admittedMail");
         } else {
             // 其他營隊附加PDF
-            return $this->subject($this->campFullData->abbreviation . '錄取通知')
-                ->view('camps.' . $this->campFullData->table . ".admittedMail")
-                ->attachData($this->attachment, '繳費暨錄取通知單' . \Carbon\Carbon::now()->format('YmdHis') . $this->campFullData->table . $this->applicant->group . $this->applicant->number . '.pdf', [
+            return $this->subject($this->camp_info->abbreviation . '錄取通知')
+                ->view('camps.' . $this->camp_info->table . ".admittedMail")
+                ->attachData($this->attachment, '繳費暨錄取通知單' . \Carbon\Carbon::now()->format('YmdHis') . $this->camp_info->table . $this->applicant->group . $this->applicant->number . '.pdf', [
                     'mime' => 'application/pdf',
                 ]);
         }

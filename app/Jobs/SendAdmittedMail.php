@@ -11,7 +11,9 @@ use App\Services\ApplicantService;
 use App\Traits\EmailConfiguration;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Support\Facades\View;
 use App\Models\Applicant;
+
 
 class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
 {
@@ -23,6 +25,7 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
 
     protected $applicant;
     protected $applicantId;
+    protected $camp_info;
     protected $tries = 400;
 
     /**
@@ -30,15 +33,17 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
      *
      * @return void
      */
-    public function __construct($applicantId, $campTable = null)
+    public function __construct($applicantId, $camp_info)
     {
         $this->applicantId = $applicantId;
+        $this->camp_info = $camp_info;
+
         //eager load lodging and traffic, which might be needed in the email view
-        $relations = ['batch.camp', 'lodging', 'traffic'];
-        if ($campTable) {
-            $relations[] = $campTable;
-        }
+        $relations = [$this->camp_info->table, 'lodging', 'traffic'];
         $this->applicant = Applicant::with($relations)->find($applicantId);
+
+        View::share('applicant', $this->applicant);
+        View::share('camp_info', $this->camp_info);
     }
 
     /**
@@ -58,20 +63,24 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
         }
 
         $applicant = $this->applicant;
+        $camp_info = $this->camp_info;
+
         $applicant = $applicantService->checkIfPaidEarlyBird($applicant);
+        // MCH: 錄取通知信寄出時更新admitted_at，避免重複寄送錄取通知信
         $applicant->admitted_at = \Carbon\Carbon::now()->format('Y-m-d');    //MCH
         $applicant->save();
-        $camp = $this->applicant->batch->camp;
+        $refundForm_url = $camp_info->dynamic_stats?->where('purpose', 'refundForm')?->first()?->google_sheet_url ?? "";
+
 
         // 動態載入電子郵件設定
-        $this->setEmail($camp->table, $camp->variant);
-        if (!isset($applicant->fee) || $applicant->fee == 0 || $camp->table == 'utcamp') {
+        $this->setEmail($camp_info->table, $camp_info->variant);
+        if (!isset($applicant->fee) || $applicant->fee == 0 || $camp_info->table == 'utcamp') {
             //無費用，或有費用但不需繳費單
-            \Mail::to($applicant->email)->send(new \App\Mail\AdmittedMail($applicant, $camp));
+            \Mail::to($applicant->email)->send(new \App\Mail\AdmittedMail($applicant, $camp_info));
         } else {
             //需繳費單
-            $paymentFile = \PDF::loadView('camps.' . $camp->table . '.paymentFormPDF', compact('applicant'))->setPaper('a3')->output();
-            \Mail::to($applicant->email)->send(new \App\Mail\AdmittedMail($applicant, $camp, $paymentFile));
+            $paymentFile = \PDF::loadView('camps.' . $camp_info->table . '.paymentFormPDF', compact('refundForm_url'))->setPaper('a3')->output();
+            \Mail::to($applicant->email)->send(new \App\Mail\AdmittedMail($applicant, $camp_info, $paymentFile));
         }
         \logger('SendAdmittedMail: applicant ' . $this->applicantId . ' Email: ' . $applicant->email . ' success');
     }
@@ -87,7 +96,7 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
             \Sentry\captureException(new \Exception('SendAdmittedMail: Applicant not found'));
             return [];
         }
-        return [new WithoutOverlapping($this->applicant->batch->camp->id)];
+        return [new WithoutOverlapping($this->camp_info->id)];
     }
 
     /**
