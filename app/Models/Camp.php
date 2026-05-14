@@ -78,6 +78,7 @@ class Camp extends Model
         'admission_confirming_end_weekday_eng',
         'admission_confirming_end_weekday_short',
         'cancellation_deadline_weekday',
+        'payment_deadline_weekday',
         'early_bird_last_day_weekday',
         'discount_last_day_weekday',
         'batch_start_earliest',
@@ -345,6 +346,12 @@ class Camp extends Model
     {
         return Attribute::make(
             get: fn () => $this->cancellation_deadline?->locale('zh_TW')->minDayName, // 一
+        );
+    }
+    protected function paymentDeadlineWeekday(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->payment_deadline?->locale('zh_TW')->minDayName, // 一
         );
     }
     protected function earlyBirdLastDayWeekday(): Attribute

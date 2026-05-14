@@ -39,7 +39,7 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
         $this->camp_info = $camp_info;
 
         //eager load lodging and traffic, which might be needed in the email view
-        $relations = [$this->camp_info->table, 'lodging', 'traffic'];
+        $relations = ['batch.camp', $this->camp_info->table, 'lodging', 'traffic'];
         $this->applicant = Applicant::with($relations)->find($applicantId);
 
         View::share('applicant', $this->applicant);
@@ -74,12 +74,12 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
 
         // 動態載入電子郵件設定
         $this->setEmail($camp_info->table, $camp_info->variant);
-        if (!isset($applicant->fee) || $applicant->fee == 0 || $camp_info->table == 'utcamp') {
+        if (!isset($applicant->fee) || $applicant->fee == 0 || $camp_info->table == 'utcamp' || $camp_info->table == 'ycamp') {
             //無費用，或有費用但不需繳費單
             \Mail::to($applicant->email)->send(new \App\Mail\AdmittedMail($applicant, $camp_info));
         } else {
             //需繳費單
-            $paymentFile = \PDF::loadView('camps.' . $camp_info->table . '.paymentFormPDF', compact('refundForm_url'))->setPaper('a3')->output();
+            $paymentFile = \PDF::loadView('camps.' . $camp_info->table . '.paymentFormPDF', compact('applicant', 'camp_info', 'refundForm_url'))->setPaper('a3')->output();
             \Mail::to($applicant->email)->send(new \App\Mail\AdmittedMail($applicant, $camp_info, $paymentFile));
         }
         \logger('SendAdmittedMail: applicant ' . $this->applicantId . ' Email: ' . $applicant->email . ' success');

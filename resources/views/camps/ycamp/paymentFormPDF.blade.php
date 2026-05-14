@@ -70,8 +70,8 @@
             <table class="table" style="margin: -12px">
                 <tr>
                     <td>
-		    	繳費期限：{{ substr($applicant->batch->camp->set_payment_deadline, 0, 4) }}/{{ substr($applicant->batch->camp->set_payment_deadline, 5, 2) }}/{{ substr($applicant->batch->camp->set_payment_deadline, 8, 2) }}<br>
-                        應繳金額：{{ $applicant->traffic?->fare ?? 0 }}
+		    	繳費期限：{{ $camp_info->payment_deadline->format('Y 年 n 月 j 日') }}<br>
+                應繳金額：{{ $applicant->traffic?->fare ?? 0 }}
                     </td>
                 </tr>
                 <tr>
@@ -128,14 +128,14 @@
 </ul>
 <a style="font-size: 1.17em;">【注意事項】</a>
 <ul>
-    <li>繳費時間：請於{{ substr($applicant->batch->camp->payment_deadline, 0, 4) }}年{{ substr($applicant->batch->camp->payment_deadline, 5, 2) }}月{{ substr($applicant->batch->camp->payment_deadline, 8, 2) }}日前完成繳費，<a style="color: red;">逾時將視同放棄搭乘專車！</a>
+    <li>繳費時間：請於 {{ $camp_info->payment_deadline->format('Y 年 n 月 j 日') }}({{ $camp_info->payment_deadline_weekday }}) 前完成繳費，<a style="color: red;">逾時將視同放棄搭乘專車！</a>
     <li>繳費方式：請見上面繳費單說明。</li>
     <li>查詢：完成繳費後，請於至少一個工作天後，再上網查詢是否已繳費完畢。<br>
     （<a href="http://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/queryadmit" target="_blank" rel="noopener noreferrer">http://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/queryadmit</a> ）</li>
         {{-- （<a href="{{ url('camp/' . $applicant->batch_id . '/queryadmit') }}" target="_blank">{{ url('camp/' . $applicant->batch_id . '/queryadmit') }}</a>） --}}
     <!-- <li>發票：本交通服務為代收代付，故不提供發票，敬請見諒。</li> -->
     <li>退費：車資繳交後視為已訂位，未於退費申請截止前申請退費者，恕不退費。<br>
-    2025大專營車資退費申請表單：<a href="{{ $refundForm_url }}" target="_blank" rel="noopener noreferrer">{{ $refundForm_url }}</a></li>
+    {{ $camp_info->year }}大專營車資退費申請表單：<a href="{{ $refundForm_url }}" target="_blank" rel="noopener noreferrer">{{ $refundForm_url }}</a></li>
 </ul>
 <a class="right">財團法人福智文教基金會</a><br>
 <a class="right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</a>

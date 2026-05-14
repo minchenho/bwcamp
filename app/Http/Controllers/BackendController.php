@@ -263,11 +263,12 @@ class BackendController extends Controller
         $applicant = Applicant::find($applicant_id);
         $applicant = $this->applicantService->checkIfPaidEarlyBird($applicant);
         $applicant->save();
+        $camp_info = $this->camp_info;
         $download = $_GET['download'] ?? false;
         if (!$download) {
-            return view('camps.' . $applicant->batch->camp->table . '.paymentForm', compact('applicant', 'download'));
+            return view('camps.' . $applicant->batch->camp->table . '.paymentForm', compact('applicant','camp_info', 'download'));
         } else {
-            return \PDF::loadView('camps.' . $applicant->batch->camp->table . '.paymentFormPDF', compact('applicant'))->setPaper('a3')->download(Carbon::now()->format('YmdHis') . $applicant->batch->camp->table . $applicant->id . '.pdf');
+            return \PDF::loadView('camps.' . $applicant->batch->camp->table . '.paymentFormPDF', compact('applicant','camp_info'))->setPaper('a3')->download(Carbon::now()->format('YmdHis') . $applicant->batch->camp->table . $applicant->id . '.pdf');
         }
     }
 
@@ -1409,7 +1410,7 @@ class BackendController extends Controller
             return back();
         }
         foreach ($request->sns as $sn) {
-            \App\Jobs\SendAdmittedMail::dispatch($sn);
+            \App\Jobs\SendAdmittedMail::dispatch($sn, $this->camp_info);
         }
         \Session::flash('message', "已將產生之信件排入任務佇列。");
         return back();
