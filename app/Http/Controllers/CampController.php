@@ -100,10 +100,10 @@ class CampController extends Controller
         if ($batch->is_late_registration_end) {
             $registration_end = $batch->late_registration_end->endOfDay();
         } else {
-            $registration_end = $this->camp_data->registration_end->endOfDay();
+            $registration_end = $this->camp_info->registration_end->endOfDay();
         }
-        $registration_start = $this->camp_data->registration_start->startOfDay();
-        $final_registration_end = $this->camp_data->final_registration_end?->endOfDay() ?? \Carbon\Carbon::today();
+        $registration_start = $this->camp_info->registration_start->startOfDay();
+        $final_registration_end = $this->camp_info->final_registration_end?->endOfDay() ?? \Carbon\Carbon::today();
 
         $fare_room = $this->lodgingService->getLodgingFare($this->camp_data, Carbon::today());
         [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_data);

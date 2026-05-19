@@ -67,7 +67,7 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
 
         $applicant = $applicantService->checkIfPaidEarlyBird($applicant);
         // MCH: 錄取通知信寄出時更新admitted_at，避免重複寄送錄取通知信
-        $applicant->admitted_at = \Carbon\Carbon::now()->format('Y-m-d');    //MCH
+        $applicant->admitted_at = \Carbon\Carbon::now();    //資料庫統一存datetime格式，顯示時再轉換成date或datetime格式
         $applicant->save();
         $refundForm_url = $camp_info->dynamic_stats?->where('purpose', 'refundForm')?->first()?->google_sheet_url ?? "";
 

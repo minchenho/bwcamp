@@ -1,32 +1,32 @@
 @extends('backend.master')
 @section('content')
-    <div>
-        <h2 class="d-inline-block">{{ $campFullData->abbreviation }} {{ $batch->name }} {{ request()->group }}組 組別名單</h2><br>
-        {{--
-        <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1" class="btn btn-primary d-inline-block" style="margin-bottom: 14px">下載名單</a>
-        <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=1" class="btn btn-secondary d-inline-block" style="margin-bottom: 14px">下載名單樣板</a>
-        <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=2" class="btn btn-success d-inline-block" style="margin-bottom: 14px">下載宿舍安排單</a>
-        <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=3" class="btn btn-info d-inline-block" style="margin-bottom: 14px">下載通訊資料確認表</a>
-        <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=4" class="btn btn-warning d-inline-block" style="margin-bottom: 14px">下載回程交通確認表</a>
-        --}}
-        <p class="d-inline-block text-info">輔導組表格下載：
-            <br>CSV:　
-            <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1">名單</a>　
-            <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=1">名單樣板</a>　
-            <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=51">報到學員名單</a>　
-            <br>PDF:　
-            {{--
-                <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=3">通訊資料確認表</a>　
-            --}}
-            <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=2">宿舍安排單</a>　
-            <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=4">回程交通確認表</a>　
-            <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=50">報到學員名單</a>　
-        </p>
+<div>
+    <h2 class="d-inline-block">{{ $campFullData->abbreviation }} {{ $batch->name }} {{ request()->group }}組 組別名單</h2><br>
+    {{--
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1" class="btn btn-primary d-inline-block" style="margin-bottom: 14px">下載名單</a>
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=1" class="btn btn-secondary d-inline-block" style="margin-bottom: 14px">下載名單樣板</a>
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=2" class="btn btn-success d-inline-block" style="margin-bottom: 14px">下載宿舍安排單</a>
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=3" class="btn btn-info d-inline-block" style="margin-bottom: 14px">下載通訊資料確認表</a>
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=4" class="btn btn-warning d-inline-block" style="margin-bottom: 14px">下載回程交通確認表</a>
+--}}
+    <p class="d-inline-block text-info">輔導組表格下載：
+    <br>CSV:　
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1">名單</a>　
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=1">名單樣板</a>　
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=51">報到學員名單</a>　
+    <br>PDF:　
+    {{--
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=3">通訊資料確認表</a>　
+    --}}
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=2">宿舍安排單</a>　
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=4">回程交通確認表</a>　
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1&template=50">報到學員名單</a>　
+    </p>
 
     </div>
     <form action="" method="post" name="sendEmailByGroup">
+    @csrf
     <table class="table table-bordered">
-        @csrf
         <thead>
             <tr class="">
                 <th>報名序號</th>
@@ -71,7 +71,7 @@
             <tr>
                 <td>{{ $applicant->sn }}</td>
                 <td>{{ $applicant->group }}{{ $applicant->number }}</td>
-                <td>{{ $applicant->admitted_at?? "-" }}</td>
+                <td>{{ $applicant->admitted_at?->format('Y-m-d') ?? '-' }}</td>
                 <td>{{ $applicant->name }}</td>
                 <td>{{ $applicant->gender }}</td>
                 @if($camp_data->table == "tcamp")

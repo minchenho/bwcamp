@@ -35,6 +35,11 @@ enum AttendanceStatus: int
         return self::NotYetCalled; // 回傳一個預設值
     }
 
+    // 新增：從中文標籤直接取得對應的 CSS class
+    public static function colorFromLabel(string $label): string
+    {
+        return self::fromLabel($label)->colorClass();
+    }
 
     // 取得對應的 CSS class
     public function colorClass(): string
@@ -42,7 +47,9 @@ enum AttendanceStatus: int
         return match($this) {
             self::Yes => 'text-success',
             self::No => 'text-danger',
-            self::Maybe, self::Unreachable, self::Partial => 'text-secondary',
+            self::Maybe => 'text-warning', 
+            self::Unreachable => 'text-secondary', 
+            self::Partial => 'text-info', 
             self::NotYetCalled => 'text-light',
         };
     }

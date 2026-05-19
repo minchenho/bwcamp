@@ -1,7 +1,7 @@
 @extends('backend.master')
 @section('content')
     <div><h2 class="d-inline-block">{{ $campFullData->abbreviation }} {{ $batch->name }} {{ request()->group }}組 正式錄取名單</h2>
-    <a href="{{ route("showGroup", [$campFullData->id, $batch->id, request()->group]) }}?download=1" class="btn btn-primary d-inline-block" style="margin-bottom: 14px">下載名單</a>
+    <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1" class="btn btn-primary d-inline-block" style="margin-bottom: 14px">下載名單</a>
     </div>
     <form action="{{ route("sendAdmittedMail", $camp_data->id) }}" method="post" name="sendEmailByGroup">
     @csrf
@@ -11,6 +11,7 @@
             <tr class="">
                 <th>報名序號</th>
                 <th>錄取編號</th>
+                <th>寄送錄取通知日期</th>
                 <th>姓名</th>
                 <th>生理性別</th>
                 @if($camp_data->table == "tcamp")
@@ -22,16 +23,35 @@
                     <th>就讀學校</th>
                     <th>就讀科系所 / 年級</th>
                     <th>行動電話</th>
-                    <!--<th>家中電話</th>-->        
-                @endif  			
-                <th>分區</th>  
-                <th>選取<br>全選<input type="checkbox" name="selectAll" onclick="toggler()"></th> 			
+                    <th>去程交通</th>
+                    <th>回程交通</th>
+                    <th>應交</th>
+                    <th>已交</th>
+                @endif
+                @if($camp_data->table == "nycamp")
+                    <th>就讀學校</th>
+                    <th>就讀科系所 / 年級</th>
+                    <th>服務單位 / 職稱</th>
+                    <th>行動電話</th>
+                    <th>住宿選項</th>
+                    <th>去程交通</th>
+                    <th>回程交通</th>
+                    <th>應交</th>
+                    <th>已交</th>
+                @endif
+                <th>分區</th>
+                <th>參加意願</th>
+                @if(($camp_data->table != "ycamp") && ($camp_data->table != "nycamp"))
+                <th>已繳費</th>
+                @endif
+                <th>選取<br>全選<input type="checkbox" name="selectAll" onclick="toggler()"></th>
             </tr>
         </thead>
         @foreach ($applicants as $applicant)
             <tr>
                 <td>{{ $applicant->sn }}</td>
                 <td>{{ $applicant->group }}{{ $applicant->number }}</td>
+                <td>{{ $applicant->admitted_at?->format('Y-m-d') ?? '-' }}</td>
                 <td>{{ $applicant->name }}</td>
                 <td>{{ $applicant->gender }}</td>
                 @if($camp_data->table == "tcamp")
@@ -43,7 +63,21 @@
                     <td>{{ $applicant->school }}</td>
                     <td>{{ $applicant->department }} / {{ $applicant->grade }}</td>
                     <td>{{ $applicant->mobile }}</td>
-                    <!--<td>{{ $applicant->phone_home }}</td>-->
+                    <td>{{ $applicant->traffic?->depart_from?? 0 }}</td>
+                    <td>{{ $applicant->traffic?->back_to?? 0 }}</td>
+                    <td>{{ $applicant->traffic?->fare?? 0 }}</td>
+                    <td>{{ $applicant->traffic?->sum?? 0 }}</td>
+                @endif
+                @if($camp_data->table == "nycamp")
+                    <td>{{ $applicant->school }}</td>
+                    <td>{{ $applicant->department }} / {{ $applicant->grade }}</td>
+                    <td>{{ $applicant->unit }} / {{ $applicant->title }}</td>
+                    <td>{{ $applicant->mobile }}</td>
+                    <td>{{ $applicant->lodging?->room_type?? 0 }}</td>
+                    <td>{{ $applicant->traffic?->depart_from?? 0 }}</td>
+                    <td>{{ $applicant->traffic?->back_to?? 0 }}</td>
+                    <td>{{ $applicant->lodging?->fare?? 0.0 }} + {{ $applicant->traffic?->fare?? 0 }}</td>
+                    <td>{{ $applicant->lodging?->sum?? 0 }} + {{ $applicant->traffic?->sum?? 0 }}</td>
                 @endif
                 <td>{{ $applicant->region }}</td>
                 <td>

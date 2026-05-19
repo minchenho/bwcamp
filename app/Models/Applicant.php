@@ -35,6 +35,7 @@ class Applicant extends Model
     //自動轉換： 當你儲存資料時 $applicant->gender = Gender::Female，Laravel 會自動幫你存入 F。
 
     protected $casts = [
+        'admitted_at' => 'datetime',    //自訂的timestamp欄位必須主動宣告
         //'gender' => Gender::class,
         //'is_attend' => AttendanceStatus::class,
     ];
