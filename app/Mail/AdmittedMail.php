@@ -39,39 +39,6 @@ class AdmittedMail extends Mailable
         $this->carers_unified = [];
         $this->carers = [];
 
-        //信中用到的外部連結
-        $this->content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
-        $this->content_link_eng = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_eng')?->first()?->google_sheet_url ?? [];
-
-        if ($this->camp_info->table == 'mcamp') {
-            $vbatch = $this->applicant->batch->vbatch ?? null;
-            $vcamp = $this->applicant->camp->vcamp ?? null;
-
-            if ($vbatch) {
-                $this->carers_unified =
-                    \App\Models\Applicant::where('batch_id', $vbatch->id)
-                    ->join('mvcamp', 'mvcamp.applicant_id', '=', 'applicants.id')
-                    ->where('self_intro', \App\Models\Mvcamp::DESCRIPTION_UNIFIED_CONTACT)
-                    ->get();
-            }
-            if ($vcamp) {
-                $orgs = \App\Models\CampOrg::with('users.application_log')
-                    ->where('group_id', $this->applicant->group_id)
-                    ->get();
-
-                $carers = $orgs->pluck("users")->flatten();
-                $vcampBatchIds = $vcamp->batchs->pluck('id');
-
-                $carers = $carers->map(function ($carer) use ($vcampBatchIds) {
-                    $carer["mobile"] = $carer->application_log->whereIn('batch_id', $vcampBatchIds)->first()?->mobile ?? "";
-                    return $carer;
-                });
-                $this->carers = $carers;
-            }
-        }
-        View::share('camp_info', $this->camp_info);
-        View::share('content_link_chn', $this->content_link_chn);
-        View::share('content_link_eng', $this->content_link_eng);
         return;
     }
 
@@ -82,6 +49,39 @@ class AdmittedMail extends Mailable
      */
     public function build()
     {
+        $applicant = $this->applicant;
+        $camp_info = $this->camp_info;
+
+        //信中用到的外部連結
+        $content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
+        $content_link_eng = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_eng')?->first()?->google_sheet_url ?? [];
+
+        if ($this->camp_info->table == 'mcamp' || $this->camp_info->table == 'ecamp' ) {
+            $vbatch = $this->applicant->batch->vbatch ?? null;
+            $vcamp = $this->applicant->camp->vcamp ?? null;
+
+            if ($vbatch && $this->camp_info->table == 'mcamp') {
+                $this->carers_unified =
+                    \App\Models\Applicant::where('batch_id', $vbatch->id)
+                    ->join('mvcamp', 'mvcamp.applicant_id', '=', 'applicants.id')
+                    ->where('self_intro', \App\Models\Mvcamp::DESCRIPTION_UNIFIED_CONTACT)
+                    ->get();
+            }
+            if ($vcamp) {
+                $orgs = \App\Models\CampOrg::with('users.application_log')
+                    ->where('group_id', $this->applicant->group_id)
+                    ->get();
+                $carers = $orgs->pluck("users")->flatten();
+                $vcampBatchIds = $vcamp->batchs->pluck('id');
+
+                $carers = $carers->map(function ($carer) use ($vcampBatchIds) {
+                    $carer["mobile"] = $carer->application_log->whereIn('batch_id', $vcampBatchIds)->first()?->mobile ?? "";
+                    return $carer;
+                });
+                $this->carers = $carers;
+            }
+        }
+
         $this->withSwiftMessage(function ($message) {
             $headers = $message->getHeaders();
             $headers->addTextHeader('time', time());
@@ -91,11 +91,11 @@ class AdmittedMail extends Mailable
                 || !$this->attachment) {
             // ceocamp/ecamp 不附加PDF，或attachment為空時不附加PDF
             return $this->subject($this->camp_info->abbreviation . '錄取通知')
-                ->view('camps.' . $this->camp_info->table . ".admittedMail");
+                ->view('camps.' . $this->camp_info->table . ".admittedMail", compact('applicant', 'camp_info', 'carers', 'content_link_chn', 'content_link_eng'));
         } else {
             // 其他營隊附加PDF
             return $this->subject($this->camp_info->abbreviation . '錄取通知')
-                ->view('camps.' . $this->camp_info->table . ".admittedMail")
+                ->view('camps.' . $this->camp_info->table . ".admittedMail", compact('applicant', 'camp_info', 'carers', 'content_link_chn', 'content_link_eng'))
                 ->attachData($this->attachment, '繳費暨錄取通知單' . \Carbon\Carbon::now()->format('YmdHis') . $this->camp_info->table . $this->applicant->group . $this->applicant->number . '.pdf', [
                     'mime' => 'application/pdf',
                 ]);

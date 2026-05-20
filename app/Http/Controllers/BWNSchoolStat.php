@@ -76,11 +76,11 @@ class BWNSchoolStat extends BackendController{
     protected $other = array (
         "海外",
         "高中",
-        "其他"
+        "其它大學"
     );
 
     protected $groups = array ();
-    
+
     /**
      * Handle the incoming request.
      *
@@ -89,39 +89,74 @@ class BWNSchoolStat extends BackendController{
      */
     public function __invoke(Request $request)
     {
-        //
+        // 校群設定
         $this->groups = array(
 		    "台大" => $this->ntu,
             "師輔" => $this->shifu,
             "北淡" => $this->peitam,
             "政東" => $this->chengdong,
             "花蓮" => $this->hualien,
-            "其他" => $this->other,
+            "其它" => $this->other,
         );
 
-        $bwclubbersBySchool = Applicant::select(\DB::raw('school, count(*) as total'))
-                                ->join('ycamp', 'applicants.id', '=', 'ycamp.applicant_id')
-                                ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                                ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-                                ->where('camps.id', $request->camp_id)
-                                ->groupBy('school')->get();
+        // 北區設定
+        $north_regions = array("臺北市", '新北市', '基隆市', '宜蘭縣', '花蓮縣');
+        $north_listed_schools = array_merge($this->ntu, $this->shifu, $this->peitam, $this->chengdong, $this->hualien);
+        
+        $bwclubbersBySchool = Applicant::select(\DB::raw('school, count(*) as total, school_location'))
+            ->join('ycamp', 'applicants.id', '=', 'ycamp.applicant_id')
+            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->where('camps.id', $request->camp_id)
+            ->groupBy('school','school_location')->get();
 
         $totals = array ();
+        $school_names = array ();
+
         foreach($bwclubbersBySchool as $school){
             $totals[$school->school] = $school->total;
+        }
+        foreach($this->other as $tag){  //海外、高中、其它大學
+            $totals[$tag] = 0;
         }
 
         foreach($this->groups as $groupname => $group){
             $total = 0;
-            foreach($group as $school){
-                if(isset($totals[$school])){
-                    $total += $totals[$school];
+            
+            if ($groupname == "其它"){ //其它這組的統計方式個別處理
+                foreach($bwclubbersBySchool as $school){
+                    if ($school->school_location == '海外') {
+                        $totals['海外'] += $school->total;
+                        $school_names['海外'][] = $school->school;
+                    }
+                    else if(in_array($school->school_location, $north_regions)) {
+                        if (str_contains($school->school, '高中')) {
+                            $totals['高中'] += $school->total;
+                            $school_names['高中'][] = $school->school;
+                        } elseif (!in_array($school->school, $north_listed_schools)) {
+                            $totals['其它大學'] += $school->total;
+                            $school_names['其它大學'][] = $school->school;
+                        }
+                    } else {
+                        //其他區
+                    }
                 }
-                else{
-                    $totals[$school] = 0;
+                $totals[$groupname] = 0; //init
+                foreach($this->other as $tag){  //海外、高中、其它大學
+                    $totals[$groupname] += $totals[$tag];
                 }
             }
-            $totals[$groupname] = $total;
+            else {
+                foreach($group as $school){
+                    if(isset($totals[$school])){
+                        $total += $totals[$school];
+                    }
+                    else{
+                        $totals[$school] = 0;
+                    }
+                }
+                $totals[$groupname] = $total;
+            }
         }
         $title1 = "北區學校統計";
         $title2 = "校群";
@@ -129,7 +164,8 @@ class BWNSchoolStat extends BackendController{
             'title1' => $title1,
             'title2' => $title2,
             'groups' => $this->groups,
-            'totals' => $totals
+            'totals' => $totals,
+            'school_names' => $school_names
         ]);
     }
 }

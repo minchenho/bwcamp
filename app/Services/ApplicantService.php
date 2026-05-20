@@ -172,17 +172,18 @@ class ApplicantService
     }
     public function checkIfPaidEarlyBird($applicant)
     {
+        $is_admitted = $applicant->is_admitted?? false;
         // 須為已錄取
         // 如果已錄取，或營隊有早鳥且報名者已付清款項，則跳過
-        if ($applicant->is_admitted || ($applicant->batch->camp->has_early_bird && ($applicant->fee - $applicant->deposit <= 0))) {
+        if ($is_admitted || ($applicant->batch->camp->has_early_bird && ($applicant->fee - $applicant->deposit <= 0))) {
             return $applicant;
         }
         // 快樂營其他(無論有無早鳥)，僅檢查報名者是否錄取，未錄取表示未繳費完成，則填入繳費資料
-        elseif ($applicant->batch->camp->table == "hcamp" && !$applicant->is_admitted) {
+        elseif ($applicant->batch->camp->table == "hcamp" && !$is_admitted) {
             $applicant = $this->fillPaymentData($applicant);
         }
         // 其他(無論有無早鳥)，僅檢查報名者是否錄取，已錄取則填入繳費資料
-        elseif ($applicant->batch->camp->table != "hcamp" && $applicant->is_admitted) {
+        elseif ($applicant->batch->camp->table != "hcamp" && $is_admitted) {
             $applicant = $this->fillPaymentData($applicant);
         }
         return $applicant;

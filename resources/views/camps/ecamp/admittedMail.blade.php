@@ -16,11 +16,7 @@ $footer_path = $message->embed(public_path() . $str2);
     <tr><td>
         <table width="80%" border="0" cellpadding="0" cellspacing="0" align="center">
             <tr><td>
-            @if (str_contains($applicant->batch->name, "北區"))
             <h2 class="center">{{ $applicant->batch->camp->fullName }}<br>錄&nbsp;取&nbsp;通&nbsp;知&nbsp;函</h2>
-            @else
-            <h2 class="center">{{ $applicant->batch->camp->fullName }}<br>分&nbsp;組&nbsp;通&nbsp;知&nbsp;單</h2>
-            @endif
             </td></tr>
         </table>
         <table width="100%" style="table-layout:fixed; border: 0;">
@@ -29,12 +25,7 @@ $footer_path = $message->embed(public_path() . $str2);
                 姓名：{{ $applicant->name }}<br>
                 序號：{{ $applicant->id }}<br>
                 組別：{{ $applicant->groupRelation?->alias ?? "[異常，請回報主辦單位]" }}<br> 
-                場次：
-                    @if(str_contains($applicant->batch->name, "北區"))
-                    北區({{ $applicant->batch->locationName }})
-                    @else
-                    南區({{ $applicant->batch->locationName }})
-                    @endif
+                場次：{{ $applicant->batch->name }}({{ $applicant->batch->locationName }})
                 </td>
             </tr>
         </table><br>
@@ -67,20 +58,29 @@ $footer_path = $message->embed(public_path() . $str2);
                     <ol>
                         <li>火車：屏東站下車，轉乘客運至學校大門口。</li>
                         <li>高鐵：於左營高鐵站下車，轉乘台鐵至屏東站；再乘客運至學校大門口。</li>
-                        <li>自行前往者請導航：&nbsp;{{ $applicant->batch->locationName }}&nbsp;{{ $applicant->batch->location }}。(<a href="https://goo.gl/maps/jbHDZ">https://goo.gl/maps/jbHDZ</a>)</li>
+                        <li>自行前往者請導航：{{ $applicant->batch->locationName }}&nbsp;{{ $applicant->batch->location }}。(<a href="https://goo.gl/maps/jbHDZ">https://goo.gl/maps/jbHDZ</a>)</li>
                     </ol>
                     <u>因會場停車位有限，懇請多利用公共交通工具。</u>
                 @endif</li>
+            @if (str_contains($applicant->batch->name, "北區")) 
             <li>營隊關懷員近日內將透過簡訊及電話與您聯繫。<br>
                 如有任何問題，也歡迎主動與關懷員聯絡。<br></li>
+            @else
+            <li><b>接下來為您安排的關懷員將陸續透過簡訊或電話與您聯繫，<u>請留意陌生訊息及來電</u>，如有任何問題，也歡迎主動與關懷員聯絡。</b><br></li>
+            @endif
             <li>{{ $applicant->groupRelation?->alias ?? "[異常，請回報主辦單位]" }}關懷員 :
                 <ul>
-                    @foreach ($carers_unified as $carer)
+                    @foreach ($carers as $carer)
                     <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                     @endforeach
                 </ul></li>
         </ol><br>
+        @if (str_contains($applicant->batch->name, "北區")) 
         敬祝～闔家平安、健康喜樂！<br><br>
+        @else
+        ※注意事項：<br>
+        本次營隊報名踴躍，因場地考量容納有限，若您無法全程參加，請告知關懷員，感謝您的協助！<br><br>
+        @endif
         <a class="right">主辦單位：財團法人福智文教基金會&emsp;敬啟</a><br>
         <a class="right">{{ $today->format('Y 年 n 月 j 日') }}</a>
     </td></tr>
