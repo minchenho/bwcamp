@@ -23,6 +23,8 @@ use App\Services\ApplicantService;
 use App\Services\BackendService;
 use App\Services\CampDataService;
 use App\Services\GSheetService;
+use App\Services\LodgingService;
+use App\Services\TrafficService;
 use App\Imports\ApplicantsImport;
 use App\Exports\ApplicantsExport;
 use App\Traits\EmailConfiguration;
@@ -34,7 +36,7 @@ use Intervention\Image\Facades\Image;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Jobs\CheckResourceAccessJob;
 use Illuminate\Support\Facades\Bus;
-use View;
+use Illuminate\Support\Facades\View;
 
 class BackendController extends Controller
 {
@@ -44,11 +46,18 @@ class BackendController extends Controller
     protected $applicantService;
     protected $backendService;
     protected $gsheetService;
+
     protected $batch_id;
-    protected $camp_data;
     protected $batch;
-    protected $has_attend_data;
+    protected $camp_id;
+    protected $camp;
+    protected $camp_info;
+    protected $camp_table;  //string
+    protected $has_attend_data = false;
     protected $usePermissionOptimization = false;
+
+    protected $camp_data;       //=$camp_info
+    protected $campFullData;    //=$camp
 
     /**
      * Create a new controller instance.
@@ -60,59 +69,83 @@ class BackendController extends Controller
         ApplicantService $applicantService,
         BackendService $backendService,
         GSheetService $gsheetService,
-        Request $request
+        Request $request,
+        LodgingService $lodgingService, 
+        TrafficService $trafficService
     ) {
         $this->middleware('auth');
         $this->campDataService = $campDataService;
         $this->applicantService = $applicantService;
         $this->backendService = $backendService;
         $this->gsheetService = $gsheetService;
+        $this->lodgingService = $lodgingService;
+        $this->trafficService = $trafficService;
 
-        if ($request->route()->parameter('batch_id')) {
-            // 營隊資料，存入 view 全域
-            $this->batch_id = $request->route()->parameter('batch_id');
-            $this->camp_data = $this->campDataService->getCampData($this->batch_id)['camp_data'];
-            $this->batch = Batch::find($request->route()->parameter('batch_id'));
-            View::share('batch', $this->batch);
-            View::share('batch_id', $this->batch_id);
-            View::share('camp_data', $this->camp_data);
-            if ($this->camp_data->table == 'ycamp' || $this->camp_data->table == 'acamp') {
-                if (
-                    $this->camp_data->admission_confirming_end &&
-                    Carbon::now()->gt($this->camp_data->admission_confirming_end)
-                ) {
+        $this->camp_id = $request->route()->parameter('camp_id') ?? null;
+        $this->batch_id = $request->route()->parameter('batch_id') ?? null;
+
+        if ($this->batch_id) {
+            $this->batch = Batch::with(['camp'])->find($this->batch_id);
+            if (is_null($this->batch)) {
+                echo "<h1>錯誤：查無梯次資料。</h1>" . "<br>";
+                die();
+            }
+            $this->camp_info = $this->campDataService->getCampInfo($this->batch);
+            if (is_null($this->camp_info)) {
+                echo "<h1>錯誤：查無營隊資料。</h1>" . "<br>";
+                die();
+            }
+            $this->camp_id = $this->camp_info->camp_id;
+            $this->camp_table = $this->camp_info->table;
+            $this->camp = $this->camp_info;
+            $this->persist(camp: $this->camp_info);
+
+            $camp = $this->camp_info;
+
+            if ($this->camp_table == 'ycamp' || $this->camp_table == 'acamp') {
+                if ($this->camp_info->admission_confirming_end &&
+                    Carbon::now()->gt($this->camp_info->admission_confirming_end)) {
                     $this->has_attend_data = true;
                 }
             }
-            $camp = $this->camp_data;
-            if (!$camp) {
-                echo "無此營隊";
-                die();
-            }
-        }
-        if ($request->route()->parameter('camp_id')) {
+        } elseif ($this->camp_id) {
+            //沒有$batch_id
             $this->middleware('permitted');
-            $this->camp_id = $request->route()->parameter('camp_id');
-            $this->campFullData = Camp::find($request->route()->parameter('camp_id'));
-            View::share('camp_id', $this->camp_id);
-            View::share('campFullData', $this->campFullData);
-            if ($this->campFullData && ($this->campFullData->table == 'ycamp' || $this->campFullData->table == 'acamp')) {
-                if ($this->campFullData->admission_confirming_end && Carbon::now()->gt($this->campFullData->admission_confirming_end)) {
+            $this->camp = Camp::find($this->camp_id);
+            $this->camp_table = $this->camp->table;
+            if (is_null($this->camp)) {
+                echo "<h1>錯誤：查無營隊資料。</h1>" . "<br>";
+                die();
+            }
+            $this->camp_info = $this->camp; //without batch_id, camp_info and camp are the same
+            $this->persist(camp: $this->camp);
+
+            if ($this->camp_table == 'ycamp' || $this->camp_table == 'acamp') {
+                if ($this->camp_info->admission_confirming_end &&
+                    Carbon::now()->gt($this->camp_info->admission_confirming_end)) {
                     $this->has_attend_data = true;
                 }
             }
-            $camp = $this->campFullData;
-            if (!$camp) {
-                echo "無此營隊";
-                die();
-            }
         }
+
         if (\Str::contains(url()->current(), "campManage")) {
             $this->middleware('admin');
         }
-        if ($camp ?? false) {
-            $this->persist(camp: $camp);
-        }
+
+        //backward compatibility, to avoid changing too many places at once
+        $this->camp_data = $this->camp_info;
+        $this->campFullData = $this->camp;
+
+        // 營隊資料，存入 view 全域
+        View::share('batch_id', $this->batch_id);
+        View::share('batch', $this->batch);
+        View::share('camp_id', $this->camp_id);
+        View::share('camp', $this->camp); //??
+        View::share('camp_info', $this->camp_info);
+        View::share('camp_table', $this->camp_table);
+
+        View::share('camp_data', $this->camp_data);
+        View::share('campFullData', $this->campFullData);
     }
 
     public function persist(...$args)
@@ -122,8 +155,8 @@ class BackendController extends Controller
         $this->middleware(function ($request, $next) use ($that, $args) {
             $that->user = \App\Models\User::find(auth()->user()->id);
             $that->isVcamp = str_contains($args["camp"], "vcamp");
-            if ($that->user->roles()->where("camp_id", $this->campFullData->id)->count() == 1 &&
-               $that->user->roles()->where("camp_id", $this->campFullData->id)->where("position", "like", "%關懷小組%")->count()) {
+            if ($that->user->roles()->where("camp_id", $this->camp_id)->count() == 1 &&
+               $that->user->roles()->where("camp_id", $this->camp_id)->where("position", "like", "%關懷小組%")->count()) {
                 $that->user->no_panel = true;
             }
             View::share('currentUser', $that->user);
@@ -230,11 +263,12 @@ class BackendController extends Controller
         $applicant = Applicant::find($applicant_id);
         $applicant = $this->applicantService->checkIfPaidEarlyBird($applicant);
         $applicant->save();
+        $camp_info = $this->camp_info;
         $download = $_GET['download'] ?? false;
         if (!$download) {
-            return view('camps.' . $applicant->batch->camp->table . '.paymentForm', compact('applicant', 'download'));
+            return view('camps.' . $applicant->batch->camp->table . '.paymentForm', compact('applicant','camp_info', 'download'));
         } else {
-            return \PDF::loadView('camps.' . $applicant->batch->camp->table . '.paymentFormPDF', compact('applicant'))->setPaper('a3')->download(Carbon::now()->format('YmdHis') . $applicant->batch->camp->table . $applicant->id . '.pdf');
+            return \PDF::loadView('camps.' . $applicant->batch->camp->table . '.paymentFormPDF', compact('applicant','camp_info'))->setPaper('a3')->download(Carbon::now()->format('YmdHis') . $applicant->batch->camp->table . $applicant->id . '.pdf');
         }
     }
 
@@ -404,9 +438,14 @@ class BackendController extends Controller
             //checkPaymentStatus() 檢查完繳費狀況後會 return applicant
             $applicant = $this->applicantService->checkPaymentStatus($candidate);
             $camp_table = $applicant->batch->camp->table;
-            $fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
-            $fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
-            $fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
+
+            //$fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
+            //$fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
+            //$fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
+            $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
+            [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
+            //dd($fare_room);
+
             return view('backend.modifyAccounting', compact('applicant', 'fare_depart_from', 'fare_back_to', 'fare_room'));
         }
         //設定取消參加
@@ -922,7 +961,7 @@ class BackendController extends Controller
             return back();
         }
         foreach ($request->sns as $sn) {
-            \App\Jobs\SendAdmittedMail::dispatch($sn, $request->campTable);
+            \App\Jobs\SendAdmittedMail::dispatch($sn, $this->camp_info);
         }
         \Session::flash('message', "錄取通知信寄送程序已被排入任務佇列。");
         return back();
@@ -1371,7 +1410,7 @@ class BackendController extends Controller
             return back();
         }
         foreach ($request->sns as $sn) {
-            \App\Jobs\SendAdmittedMail::dispatch($sn);
+            \App\Jobs\SendAdmittedMail::dispatch($sn, $this->camp_info);
         }
         \Session::flash('message', "已將產生之信件排入任務佇列。");
         return back();
@@ -1708,7 +1747,7 @@ class BackendController extends Controller
                 return "<h1>您沒有權限查看此資料(" . $theStr . ")</h1>";
             }
 
-            $applicant = $this->applicantService->Mandarization($applicant);
+            //$applicant = $this->applicantService->Mandarization($applicant);
         } else {
             return "<h1>異常狀況發生，請將網址提供給開發人員檢查。</h1>";
         }
@@ -1769,14 +1808,19 @@ class BackendController extends Controller
             }
         }
 
-        $lodgings = config('camps_payments.fare_room.' . $camp->table) ?? [];
-        $departfroms = config('camps_payments.fare_depart_from.' . $camp->table) ?? [];
-        $backtos = config('camps_payments.fare_back_to.' . $camp->table) ?? [];
+
+        //$lodgings = config('camps_payments.fare_room.' . $camp->table) ?? [];
+        //$departfroms = config('camps_payments.fare_depart_from.' . $camp->table) ?? [];
+        //$backtos = config('camps_payments.fare_back_to.' . $camp->table) ?? [];
+        $lodgings = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
+        [$departfroms, $backtos] = $this->trafficService->getTrafficFare($this->camp_info);
+        //dd($applicant->created_at);
 
         $qrcode = $this->generateQrCodeWithText($applicant);
 
         if (str_contains($camp->table, "vcamp")) {
-            return view('backend.in_camp.volunteerInfo', compact('camp', 'batch', 'applicant', 'contactlog', 'qrcode'));
+            $layout = config('camps_volunteerinfo.' . $camp->table) ?? [];
+            return view('backend.in_camp.volunteerInfo', compact('camp', 'batch', 'applicant', 'contactlog', 'qrcode', 'layout'));
         } elseif ($camp->table == "acamp") {
             return view('backend.in_camp.attendeeInfoAcamp', compact('camp', 'batch', 'applicant', 'contactlog', 'qrcode'));
         } elseif ($camp->table == "ceocamp") {
@@ -1786,7 +1830,8 @@ class BackendController extends Controller
         } elseif ($camp->table == "ycamp") {
             return view('backend.in_camp.attendeeInfoYcamp', compact('camp', 'batch', 'applicant', 'contactlog', 'qrcode', 'departfroms', 'backtos'));
         } else {
-            return view('backend.in_camp.attendeeInfo', compact('camp', 'batch', 'applicant', 'contactlog', 'dynamic_stat_urls', 'qrcode'));
+            $layout = config('camps_attendeeinfo.' . $camp->table) ?? [];
+            return view('backend.in_camp.attendeeInfo', compact('camp', 'batch', 'applicant', 'contactlog', 'dynamic_stat_urls', 'qrcode', 'layout'));
         }
     }
 
@@ -2577,10 +2622,11 @@ class BackendController extends Controller
         if ($request->isMethod('POST')) {
             $applicant = Applicant::find($request->id);
             $admitted_sn = $applicant->group.$applicant->number;
-            $camp_table = $this->campFullData->table;
-            $fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
-            $fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
-            $fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
+            $camp_table = $this->camp_info->table;
+
+            $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
+            [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
+
             if ($camp_table == 'ycamp') {
                 $traffic = $applicant->traffic;
                 //尚未登記，建新的Traffic
@@ -2610,7 +2656,7 @@ class BackendController extends Controller
                 } else {
                     return view("backend.modifyAccounting", compact('applicant', 'message', 'fare_depart_from', 'fare_back_to', 'fare_room'));
                 }
-            } elseif ($camp_table == 'ceocamp') {
+            } elseif ($camp_table == 'ceocamp' || $camp_table == 'utcamp') {
                 $lodging = $applicant->lodging;
                 //尚未登記，建新的Lodging
                 if (!$lodging) {
@@ -2619,7 +2665,7 @@ class BackendController extends Controller
                 }
                 //更新房型、天數及應繳車資
                 $lodging->room_type = $request->room_type;
-                $lodging->nights = $request->nights;
+                $lodging->nights = $request->nights?? 1;
                 $lodging->fare = ($fare_room[$lodging->room_type] ?? 0) * ($lodging->nights ?? 0);
                 //更新現金繳費金額
                 if ($request->is_add == 'add') {
@@ -2633,24 +2679,6 @@ class BackendController extends Controller
                 //update barcode
                 $applicant = $this->applicantService->fillPaymentData($applicant);
                 $applicant->save();
-                $message = "修改完成。";
-                if ($request->page == "attendeeInfo") {
-                    return redirect()->back();
-                } else {
-                    return view("backend.modifyAccounting", compact('applicant', 'message', 'fare_depart_from', 'fare_back_to', 'fare_room'));
-                }
-            } elseif ($camp_table == 'utcamp') {
-                $applicant->fee = ($request->fee) ?? 0;
-
-                if ($request->is_add == 'add') {
-                    $applicant->deposit = $applicant->deposit + $request->cash;
-                } else {
-                    $applicant->deposit = $request->cash;
-                }
-
-                $applicant = $this->applicantService->fillPaymentData($applicant);
-                $applicant->save();
-                $applicant = $this->applicantService->checkPaymentStatus($applicant);
                 $message = "修改完成。";
                 if ($request->page == "attendeeInfo") {
                     return redirect()->back();

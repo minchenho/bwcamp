@@ -24,25 +24,31 @@ use App\Services\BackendService;
 use App\Services\CampDataService;
 use App\Services\GSheetService;
 use App\Services\CampOrgService;
+use App\Services\LodgingService;
+use App\Services\TrafficService;
 
 class AdminController extends BackendController {
 
     protected $campOrgService;
 
     public function __construct(
+        CampDataService $campDataService,
         ApplicantService $applicantService,
         BackendService $backendService,
-        CampDataService $campDataService,
-        CampOrgService $campOrgService,
         GSheetService $gsheetService,
-        Request $request
+        Request $request,
+        LodgingService $lodgingService, 
+        TrafficService $trafficService,
+        CampOrgService $campOrgService
     ) {
         parent::__construct(
             $campDataService,
             $applicantService,
             $backendService,
             $gsheetService,
-            $request
+            $request,
+            $lodgingService,
+            $trafficService
         );
         $this->campOrgService = $campOrgService;
     }

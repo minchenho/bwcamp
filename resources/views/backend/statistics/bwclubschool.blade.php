@@ -16,13 +16,21 @@
                 @if($loop->first)
                     <tr style="text-align: center;">
                         <td rowspan="{{ count($schools) }}" style="vertical-align: middle!important">{{ $groupname }}</td>
-                        <td>{{ $school ?? "" }}</td>
+                        <td>{{ $school ?? "" }}
+                            @if(isset($school_names[$school]))
+                                ({{ implode(", ", $school_names[$school]) }})
+                            @endif
+                        </td>
                         <td>{{ $totals[$school] }}</td>  
                         <td rowspan="{{ count($schools) }}" style="vertical-align: middle!important">{{ $totals[$groupname] }}</td>   
                     </tr>
                 @else
                     <tr style="text-align: center;">
-                        <td>{{ $school ?? "" }}</td>
+                        <td>{{ $school ?? "" }}
+                            @if(isset($school_names[$school]))
+                                ({{ implode(", ", $school_names[$school]) }})
+                            @endif
+                        </td>
                         <td>{{ $totals[$school] }}</td>   
                     </tr>    
                 @endif

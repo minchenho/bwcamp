@@ -131,11 +131,12 @@
                 <form class="mr-4 mb-2" action="{{ route('toggleAttendBackend', $applicant->batch->id) }}" method="POST">
                     @csrf
                     <input type="hidden" name="id" value="{{ $applicant->applicant_id ?? $applicant->id }}">
-                    <label><input type="radio" name="is_attend" id="" value="0">不參加</label>
-                    <label><input type="radio" name="is_attend" id="" value="1">參加</label>
-                    <label><input type="radio" name="is_attend" id="" value="2">尚未決定</label>
-                    <label><input type="radio" name="is_attend" id="" value="3">聯絡不上</label>
-                    <label><input type="radio" name="is_attend" id="" value="4">無法全程</label>
+                @foreach(\App\Enums\AttendanceStatus::cases() as $status)
+                    <label class="ml-2 mr-2">
+                        <input type="radio" name="is_attend" value="{{ $status->value }}"
+                            {{ $applicant->is_attend === $status->value ? 'checked' : '' }}>{{ $status->label() }}
+                    </label>
+                @endforeach
                     <input class="btn btn-success" type="submit" value="修改參加狀態">
                 </form>
             </div>

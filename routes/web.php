@@ -55,20 +55,16 @@ Route::get("/home", "HomeController@index")->name("home");
 //    return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\TestExport($camp_id), 'test.xlsx');
 //});
 
-Route::group(["prefix" => "camp/{batch_id}"], function () {
+Route::group(["prefix" => "camp/{batch_id}", "middleware" => ["throttle:60,1"]], function () {
+    // 這裡放原本所有的路由 (每分鐘 60 次，保護伺服器不被刷爆)
     Route::get("/", "CampController@campIndex");
     Route::match(["get", "post"], "/registration", "CampController@campRegistration")->name("registration");
     Route::match(["get", "post"], "/registration_mockup", "CampController@campRegistrationMockUp");
     Route::post("/restoreCancellation", [CampController::class, "restoreCancellation"])->name("restoreCancellation");
     Route::get("/query", "CampController@campQueryRegistrationDataPage")->name("query");
     Route::get("/payment", [CampController::class, "showCampPayment"])->name("payment");
-    Route::post("/queryview", "CampController@campViewRegistrationData")->name("queryview");
-    Route::post("/queryupdate", "CampController@campViewRegistrationData")->name("queryupdate");
-    Route::post("/querysn", "CampController@campGetApplicantSN")->name("querysn");
     Route::get("/queryadmit", "CampController@campViewAdmission")->name("queryadmitGET");
-    Route::post("/queryadmit", [CampController::class, "campQueryAdmission"])->name("queryadmit");
     Route::post("/querycancel", [CampController::class, "campConfirmCancel"])->name("querycancel");
-    Route::post("/cancel", [CampController::class, "campCancellation"])->name("cancel");
     Route::get("/showadmit", [CampController::class, "campQueryAdmission"])->name("showadmit");
     Route::post("/toggleAttend", [CampController::class, "toggleAttend"])->name("toggleAttend");
     Route::post("/toggleAttendBackend", [CampController::class, "toggleAttendBackend"])->name("toggleAttendBackend");
@@ -78,10 +74,18 @@ Route::group(["prefix" => "camp/{batch_id}"], function () {
     Route::post("/downloadPaymentForm", [\App\Http\Controllers\CampController::class, "downloadPaymentForm"])->name("downloadPaymentForm");
     Route::post("/downloadCheckInNotification", [\App\Http\Controllers\CampController::class, "downloadCheckInNotification"])->name("downloadCheckInNotification");
     Route::post("/downloadCheckInQRcode", [\App\Http\Controllers\CampController::class, "downloadCheckInQRcode"])->name("downloadCheckInQRcode");
-    Route::post("/submit", "CampController@campRegistrationFormSubmitted")->name("formSubmit");
     Route::post("/copy", "CampController@campRegistrationFormCopy")->name("formCopy");
     Route::get("/downloads", "CampController@showDownloads")->name("showDownloads");
-    Route::get("/camp_total", [CampController::class, "getCampTotalRegisteredNumber"]);
+    Route::get("/camp_total", [CampController::class, "getCampTotalRegisteredNumber"]);    
+    // 針對「提交表單」與「取消」等敏感操作，再套一層更嚴格的限制
+    Route::middleware([env('THROTTLE_LIMIT')])->group(function () {
+        Route::post("/submit", "CampController@campRegistrationFormSubmitted")->name("formSubmit");
+        Route::post("/cancel", [CampController::class, "campCancellation"])->name("cancel");
+        Route::post("/queryadmit", [CampController::class, "campQueryAdmission"])->name("queryadmit");
+        Route::post("/queryview", "CampController@campViewRegistrationData")->name("queryview");
+        Route::post("/queryupdate", "CampController@campViewRegistrationData")->name("queryupdate");
+        Route::post("/querysn", "CampController@campGetApplicantSN")->name("querysn");
+    });
 });
 
 Route::get("/backend", "BackendController@masterIndex")->name("backendIndex");

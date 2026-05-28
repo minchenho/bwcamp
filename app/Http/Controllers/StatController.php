@@ -12,14 +12,18 @@ class StatController extends BackendController
     public function ageRangeStat(){
         //0-9,10-19 ...
         $applicants = Applicant::select(\DB::raw('CONCAT(FLOOR((YEAR(CURDATE()) - birthyear)/10)*10,"-",FLOOR((YEAR(CURDATE()) - birthyear)/10)*10+9) as agerange, count(*) as total'))
-        ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
+        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('agerange')->orderBy('agerange')->get();
-        $rows = count($applicants);
-        $array = $applicants->toArray();
+
+        // 這裡數最快，且不會觸發 appends 計算
+        $rows = $applicants->count(); 
+        // 之後再處理陣列
+        $array = $applicants->each->setAppends([])->toArray();
+
         $i = 0 ;
         $total = 0 ;
         $GChartData = array('cols'=> array(
@@ -39,19 +43,18 @@ class StatController extends BackendController
         }
 
         $GChartData = json_encode($GChartData);
-
         return view('backend.statistics.agerange', compact('GChartData',  'total'));
     }
 
     public function appliedDateStat() {
         $applicants = Applicant::select(\DB::raw('DATE_FORMAT(applicants.created_at, "%Y-%m-%d") as date, count(*) as total'))
-        ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
+        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('date')->withTrashed()->get();
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
         
         $i = 0 ;
@@ -92,7 +95,6 @@ class StatController extends BackendController
         }
         $GChartData = json_encode($GChartData);
         $GChartData1 = json_encode($GChartData1);
-        
         return view('backend.statistics.appliedDate', compact('GChartData','GChartData1', 'total'));
     }
 
@@ -101,10 +103,10 @@ class StatController extends BackendController
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
         ->join('ecamp', 'ecamp.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('event')->get();        
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $GChartData = array('cols'=> array(
@@ -164,21 +166,18 @@ class StatController extends BackendController
 
     public function genderStat() {
         $applicants = Applicant::select(\DB::raw('applicants.gender, count(*) as total'))
-        ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
+        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('applicants.gender')->get();
-        $rows = count($applicants);
-        foreach($applicants as $applicant){
-            $applicant = $this->applicantService->Mandarization($applicant);
-        }
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $total = 0 ;
         $GChartData = array('cols'=> array(
-                        array('id'=>'gender','label'=>'性別','type'=>'string'),
+                        array('id'=>'gender_chn','label'=>'性別','type'=>'string'),
                         array('id'=>'people','label'=>'人數','type'=>'number'),
                         array('id'=>'annotation','role'=>'annotation','type'=>'number')
                     ),
@@ -186,7 +185,7 @@ class StatController extends BackendController
         for($i = 0; $i < $rows; $i ++) {
             $record = $array[$i];
             array_push($GChartData['rows'], array('c' => array(
-                array('v' => $record['gender']),
+                array('v' => $record['gender_chn']),
                 array('v' => intval($record['total'])),
                 array('v' => intval($record['total']))
             )));
@@ -198,57 +197,72 @@ class StatController extends BackendController
     }
 
     public function countyStat() {
-        if ($this->campFullData->table == 'acamp' && $this->campFullData->year >= 2025) {
-            $applicants = Applicant::select(\DB::raw('acamp.class_county as county, count(*) as total'))
-            ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->where('camps.id', $this->campFullData->id)
-            ->whereNull('applicants.deleted_at')
-            ->groupBy('county')->get();
-        } else {
-            $applicants = Applicant::select(\DB::raw('SUBSTRING(applicants.address, 1, 3) as county, count(*) as total'))
-            ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->where('camps.id', $this->campFullData->id)
-            ->whereNull('applicants.deleted_at')
-            ->groupBy('county')->get();
-        }
-        $rows = count($applicants);
-        $array = $applicants->toArray();
-        $i = 0 ;
-        $total = 0 ;
-        $GChartData = array('cols'=> array(
-                        array('id'=>'city','label'=>'縣市','type'=>'string'),
-                        array('id'=>'people','label'=>'人數','type'=>'number'),
-                        array('id'=>'annotation','role'=>'annotation','type'=>'number')
-                    ),
-                    'rows' => array());
-        for($i = 0; $i < $rows; $i ++) {
-            $record = $array[$i];
-            array_push($GChartData['rows'], array('c' => array(
-                array('v' => $record['county'] == null ? '其他' : $record['county']),
-                array('v' => intval($record['total'])),
-                array('v' => intval($record['total']))
-            )));
-            $total = $total + $record['total'];
-        }
-        $GChartData = json_encode($GChartData);
+        // 1. 定義你想要的特定順序
+        $customOrder = ['臺北市', '新北市', '基隆市', '桃園市', '新竹市', '新竹縣', '苗栗縣', '臺中市', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '臺南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '臺東縣', '澎湖縣', '金門縣', '連江縣', '其他'];
+        
+        // 將陣列轉為 SQL FIELD 用的字串範例: "'台北市','新北市','基隆市'..."
+        $orderString = "'" . implode("','", $customOrder) . "'";
 
-        return view('backend.statistics.county', compact('GChartData',  'total'));
+        if ($this->camp_table == 'acamp' && $this->camp->year >= 2025) {
+            $query = Applicant::select(\DB::raw('acamp.class_county as county, count(*) as total'));
+        } else {
+            $query = Applicant::select(\DB::raw('SUBSTRING(applicants.address, 1, 3) as county, count(*) as total'));
+        }
+
+        $applicants = $query->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
+            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->where('camps.id', $this->camp_id)
+            ->whereNull('applicants.deleted_at')
+            ->groupBy('county')
+            // 2. 使用 orderByRaw 進行自定義排序
+            // FIELD(欄位名稱, '值1', '值2', ...) 如果不在清單內的會排在最前面或最後面
+            ->orderByRaw(\DB::raw("FIELD(county, $orderString) = 0, FIELD(county, $orderString)")) ->get();
+
+        // 後續處理...
+        $total = 0;
+        $GChartData = [
+            'cols' => [
+                ['id' => 'city', 'label' => '縣市', 'type' => 'string'],
+                ['id' => 'people', 'label' => '人數', 'type' => 'number'],
+                ['id' => 'annotation', 'role' => 'annotation', 'type' => 'number']
+            ],
+            'rows' => []
+        ];
+
+        foreach ($applicants as $record) {
+            $record->setAppends([]); // 確保不計算 appends
+            $label = $record->county ?: '其他';
+            $count = intval($record->total);
+
+            $GChartData['rows'][] = ['c' => [
+                ['v' => $label],
+                ['v' => $count],
+                ['v' => $count]
+            ]];
+            $total += $count;
+        }
+        //dd($GChartData);
+        $GChartData = json_encode($GChartData);
+        return view('backend.statistics.county', compact('GChartData', 'total'));
     }
 
     public function birthyearStat(){
-        $applicants = Applicant::select(\DB::raw('CONCAT(birthyear, "(", YEAR(CURDATE()) - birthyear, "歲)") as birthyear, count(*) as total'))
-        ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
+        $applicants = Applicant::select(\DB::raw('CONCAT(birthyear, "(", YEAR(CURDATE()) - birthyear, "歲)") as birthyear_label, birthyear, count(*) as total'))
+        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
-        ->groupBy('birthyear')->get();
-        $rows = count($applicants);
-        $array = $applicants->toArray();
+        ->groupBy('birthyear')
+        ->orderBy('birthyear', 'asc') // 'asc' 是從西元 1980, 1981... 這樣排 (由老到年輕)
+        ->get();
+
+        // 這裡數最快，且不會觸發 appends 計算
+        $rows = $applicants->count(); 
+        // 之後再處理陣列
+        $array = $applicants->each->setAppends([])->toArray();
+
         $i = 0 ;
         $total = 0 ;
         $GChartData = array('cols'=> array(
@@ -275,10 +289,10 @@ class StatController extends BackendController
         $applicants = Applicant::select(\DB::raw('batchs.name as batch, count(*) as total'))
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('batchs.name')->get();
-        $rows = count($applicants);
+        $rows = $applicants->count(); 
         $array = $applicants->toArray();
 
         $i = 0 ;
@@ -305,16 +319,13 @@ class StatController extends BackendController
 
     public function regionStat(){
         $applicants = Applicant::select(\DB::raw('applicants.region, count(*) as total'))
-        ->join($this->campFullData->table, 'applicants.id', '=', $this->campFullData->table . '.applicant_id')
+        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('applicants.region')->get();
-        $rows = count($applicants);
-        foreach($applicants as $applicant){
-            $applicant = $this->applicantService->Mandarization($applicant);
-        }
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $total = 0 ;
@@ -343,9 +354,9 @@ class StatController extends BackendController
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
         ->join('tcamp', 'tcamp.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->groupBy('tcamp.school_or_course')->get();
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $i = 0 ;
@@ -374,10 +385,10 @@ class StatController extends BackendController
         $applicants = Applicant::select(\DB::raw('batchs.name, count(*) as total'))
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->where('is_admitted', 1)
         ->groupBy('batchs.name')->get();
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $i = 0 ;
@@ -407,10 +418,10 @@ class StatController extends BackendController
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
         ->join('check_in', 'applicants.id', '=', 'check_in.applicant_id')
-        ->where('camps.id', $this->campFullData->id)
+        ->where('camps.id', $this->camp_id)
         ->where('is_admitted', 1)
         ->groupBy('check_in_date')->get();
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $i = 0 ;
@@ -431,14 +442,14 @@ class StatController extends BackendController
             $total = $total + $record['total'];
         }
         $GChartData = json_encode($GChartData);
-        $batches = \App\Models\Batch::where('camp_id', $this->campFullData->id)->get();
+        $batches = \App\Models\Batch::where('camp_id', $this->camp_id)->get();
         foreach($batches as $batch){
             $batch_applicants = Applicant::select(\DB::raw('check_in.check_in_date, count(*) as total'))
             ->join('check_in', 'applicants.id', '=', 'check_in.applicant_id')
             ->where('batch_id', $batch->id)
             ->where('is_admitted', 1)
             ->groupBy('check_in_date')->get();
-            $rows = count($batch_applicants);
+            $rows = $batch_applicants->count();
             $array = $batch_applicants->toArray();
 
             $i = 0 ;
@@ -467,17 +478,17 @@ class StatController extends BackendController
 
     public function educationStat(){
         $str = 'education';
-        if($this->campFullData->table == 'ycamp'){
+        if($this->camp_table == 'ycamp'){
             $str = 'system';
         }
-        $applicants = Applicant::select(\DB::raw($this->campFullData->table . '.' . $str . ' as education, count(*) as total'))
+        $applicants = Applicant::select(\DB::raw($this->camp_table . '.' . $str . ' as education, count(*) as total'))
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->join($this->campFullData->table, $this->campFullData->table . '.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->campFullData->id)
+        ->join($this->camp_table, $this->camp_table . '.applicant_id', '=', 'applicants.id')
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('education')->get();
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $i = 0 ;
@@ -499,15 +510,15 @@ class StatController extends BackendController
         }
         $GChartDataAll = json_encode($GChartData);
 
-        if($this->campFullData->table == "hcamp"){
-            $applicants = Applicant::select(\DB::raw($this->campFullData->table . '.education as education, count(*) as total'))
+        if($this->camp_table == "hcamp"){
+            $applicants = Applicant::select(\DB::raw($this->camp_table . '.education as education, count(*) as total'))
             ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
             ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->join($this->campFullData->table, $this->campFullData->table . '.applicant_id', '=', 'applicants.id')
-            ->where('camps.id', $this->campFullData->id)
+            ->join($this->camp_table, $this->camp_table . '.applicant_id', '=', 'applicants.id')
+            ->where('camps.id', $this->camp_id)
             ->where('applicants.gender', 'M')
-            ->groupBy($this->campFullData->table . '.education')->get();
-            $rows = count($applicants);
+            ->groupBy($this->camp_table . '.education')->get();
+            $rows = $applicants->count();
             $array = $applicants->toArray();
 
             $i = 0 ;
@@ -529,14 +540,14 @@ class StatController extends BackendController
             }
             $GChartDataM = json_encode($GChartData);
 
-            $applicants = Applicant::select(\DB::raw($this->campFullData->table . '.education as education, count(*) as total'))
+            $applicants = Applicant::select(\DB::raw($this->camp_table . '.education as education, count(*) as total'))
             ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
             ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->join($this->campFullData->table, $this->campFullData->table . '.applicant_id', '=', 'applicants.id')
-            ->where('camps.id', $this->campFullData->id)
+            ->join($this->camp_table, $this->camp_table . '.applicant_id', '=', 'applicants.id')
+            ->where('camps.id', $this->camp_id)
             ->where('applicants.gender', 'M')
-            ->groupBy($this->campFullData->table . '.education')->get();
-            $rows = count($applicants);
+            ->groupBy($this->camp_table . '.education')->get();
+            $rows = $applicants->count();
             $array = $applicants->toArray();
 
             $i = 0 ;
@@ -566,14 +577,14 @@ class StatController extends BackendController
     }
 
     public function wayStat(){
-        $applicants = Applicant::select(\DB::raw($table.'.way as way, count(*) as total'))
+        $applicants = Applicant::select(\DB::raw($this->camp_table.'.way as way, count(*) as total'))
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->join($table, $table.'.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->campFullData->id)
+        ->join($this->camp_table, $this->camp_table.'.applicant_id', '=', 'applicants.id')
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
-        ->groupBy('ycamp.way')->get();
-        $rows = count($applicants);
+        ->groupBy($this->camp_table.'.way')->get();
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $i = 0 ;
@@ -599,17 +610,15 @@ class StatController extends BackendController
     }
 
     public function industryStat(){
-        $table = $this->campFullData->table;
-
-        $applicants = Applicant::select(\DB::raw($table.'.industry as industry, count(*) as total'))
+        $applicants = Applicant::select(\DB::raw($this->camp_table.'.industry as industry, count(*) as total'))
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->join($table, $table.'.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->campFullData->id)
+        ->join($this->camp_table, $this->camp_table.'.applicant_id', '=', 'applicants.id')
+        ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
-        ->groupBy($table.'.industry')->get();
+        ->groupBy($this->camp_table.'.industry')->get();
 
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
         $i = 0 ;
         $total = 0 ;
@@ -634,16 +643,14 @@ class StatController extends BackendController
     }
 
     public function jobPropertyStat(){
-        $table = $this->campFullData->table;
-
-        $applicants = Applicant::select(\DB::raw($table.'.job_property as job_property, count(*) as total'))
+        $applicants = Applicant::select(\DB::raw($this->camp_table.'.job_property as job_property, count(*) as total'))
         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->join($table, $table.'.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->campFullData->id)
-        ->groupBy($table.'.job_property')->get();
+        ->join($this->camp_table, $this->camp_table.'.applicant_id', '=', 'applicants.id')
+        ->where('camps.id', $this->camp_id)
+        ->groupBy($this->camp_table.'.job_property')->get();
 
-        $rows = count($applicants);
+        $rows = $applicants->count();
         $array = $applicants->toArray();
 
         $i = 0 ;

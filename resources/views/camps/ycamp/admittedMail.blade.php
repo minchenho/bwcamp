@@ -1,24 +1,32 @@
-<style>
-    u{
-        color: red;
-    }
-</style>
-<h2 class="center">{{ $applicant->batch->camp->fullName }}<br>【錄取/報到通知單】</h2>
+@php
+    $today = \Carbon\Carbon::now()->midDay();
+    $days = $applicant->batch->batch_start->diffInDays($applicant->batch->batch_end) + 1;
+    $traffic_confirming_date = $camp_info->admission_confirming_end->subDays(14); 
+@endphp
+
+<body style="font-size:16px;">
+<h2 class="center">{{ $applicant->batch->camp->fullName }}<br>【錄取/交通費 通知單】</h2>
 <p class="card-text">親愛的 {{ $applicant->name }} 同學您好：</p>
-<p class="card-text text-indent">非常恭喜您錄取「{{ $applicant->batch->camp->fullName }}」！竭誠歡迎您的到來！<u>請於6月20日(五) ~ 6月30日(一)上網回覆交通方式！</u>並請詳閱以下訊息，祝福您營隊收穫滿滿。</p>
+<p class="card-text text-indent">恭喜錄取「{{ $applicant->batch->camp->fullName }}」，我們竭誠歡迎您的到來！為確保營隊體驗順利，請詳閱下列各項說明。期待在營隊與你見面，也祝福你得到豐盛的收穫。</p>
 <p class="card-text text-indent">
-您的報名序號：{{ $applicant->id }}<br>
-您的錄取編號：{{ $applicant->group }}{{ $applicant->number }}<br>
-營隊日期：{{ $applicant->batch->batch_start }}({{ $applicant->batch_start_Weekday }}) ~ {{ $applicant->batch->batch_end }}({{ $applicant->batch_end_Weekday }})，共4天<br>
+你的報名序號：{{ $applicant->id }}<br>
+你的錄取編號：{{ $applicant->group }}{{ $applicant->number }}<br>
+營隊日期：{{ $applicant->batch->batch_start }}({{ $applicant->batch->batch_start_weekday }}) ~ {{ $applicant->batch->batch_end }}({{ $applicant->batch->batch_end_weekday }})，共{{ $days }}天<br>
 營隊地點：{{ $applicant->batch->locationName }}({{ $applicant->batch->location }})<br>
 </p>
 <ul>
-    <li><p class="card-text indent"><a href="http://bwcamp.bwfoce.org/downloads/ycamp2025/【2025第58屆大專青年生命成長營】錄取通知單.pdf">錄取/報到通知連結</a></p></li>
-    <li><p class="card-text indent">上網<a href="https://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/showadmit?sn={{ $applicant->id }}&name={{ $applicant->name }}">回覆交通方式</a></p>
+    <li><p class="card-text indent">請詳閱<a href="{{ $content_link_chn }}">【錄取/交通費通知】</a>，內含報到資訊、必帶物品，及交通資訊等等。</p></li>
+    <li><p class="card-text indent"><span style="color: #DC3545;">請於6月30日前上網</span><a href="https://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/showadmit?sn={{ $applicant->id }}&name={{ $applicant->name }}">回覆交通方式</a>。交通資訊請參閱</p>
     <p>若以上連結無法點選，請複製下方文字後，再由瀏覽器進入頁面做回覆：</p>
     <p>https://bwcamp.bwfoce.org/camp/{{ $applicant->batch->id }}/queryadmit</p>
     </li>
 </ul>
 <br>
-<p class="card-text text-right">財團法人福智文教基金會 敬啟</p>
-<p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
+<p>
+財團法人福智文教基金會<br>
+{{ $today->format('Y 年 n 月 j 日') }}<br>
+--<br>
+洽詢電話：(週一 ~ 週五 上午10時 ~ 下午5時) <br>
+{!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+</p>
+</body>

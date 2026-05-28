@@ -106,7 +106,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     <div class='row form-group required'>
         <label for='inputName' class='col-md-2 control-label text-md-right'>姓名</label>
         <div class='col-md-10'>
-            <input type='text' name='name' value='' class='form-control' id='inputName' placeholder='請填寫中文全名' required @if(isset($isModify) && $isModify) disabled @endif>
+            <input type='text' name='name' value='' class='form-control' id='inputName' placeholder='請填寫中文全名' required @if(isset($isModify) && $isModify) readonly @endif>
         </div>
         <div class="invalid-feedback">
             請填寫姓名
@@ -118,7 +118,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         <div class='col-md-10'>
             <div class="form-check form-check-inline">
                 <label class="form-check-label" for="M">
-                    <input class="form-check-input" type="radio" name="gender" value="M" required @if(isset($isModify) && $isModify) disabled @endif>
+                    <input class="form-check-input" type="radio" name="gender" value="M" required @if(isset($isModify) && $isModify) readonly @endif>
                     男
                     <div class="invalid-feedback">
                         未選擇性別
@@ -127,7 +127,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </div>
             <div class="form-check form-check-inline">
                 <label class="form-check-label" for="F">
-                    <input class="form-check-input" type="radio" name="gender" value="F" required @if(isset($isModify) && $isModify) disabled @endif>
+                    <input class="form-check-input" type="radio" name="gender" value="F" required @if(isset($isModify) && $isModify) readonly @endif>
                     女
                     <div class="invalid-feedback">
                         &nbsp;

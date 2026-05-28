@@ -35,9 +35,9 @@ return [
             "HI" => "萊爾富",
         ],
         'email' => [
-            "lzong.tw@gmail.com",
-            "minchen.ho@blisswisdom.org",
-            "ceo.camp@blisswisdom.org",
+            env('ADMIN1_EMAIL'),
+            env('ADMIN2_EMAIL'),
+            env('CEOCAMP_MAIL_FROM_ADDRESS'),
         ]
     ],
 
@@ -56,8 +56,10 @@ return [
             "HI" => "萊爾富",
         ],
         'email' => [
-            "lzong.tw@gmail.com",
-            "minchen.ho@blisswisdom.org",
+            env('ADMIN1_EMAIL'),
+            env('ADMIN2_EMAIL'),
+            env('UTCAMP_MAIL_FROM_ADDRESS'),
+
         ]
     ],
 
@@ -76,9 +78,9 @@ return [
             "HI" => "萊爾富",
         ],
         'email' => [
-            "lzong.tw@gmail.com",
-            "minchen.ho@blisswisdom.org",
-            "youth@blisswisdom.org",
+            env('ADMIN1_EMAIL'),
+            env('ADMIN2_EMAIL'),
+            env('YCAMP_MAIL_FROM_ADDRESS'),
         ]
     ],
 
@@ -97,8 +99,9 @@ return [
             "HI" => "萊爾富",
         ],
         'email' => [
-            "lzong.tw@gmail.com",
-            "bwmedu@blisswisdom.org",
+            env('ADMIN1_EMAIL'),
+            env('ADMIN2_EMAIL'),
+            env('TCAMP_MAIL_FROM_ADDRESS'),
         ]
     ],
 
@@ -117,20 +120,22 @@ return [
             "HI" => "萊爾富",
         ],
         'email' => [
-            "lzong.tw@gmail.com",
+            env('ADMIN1_EMAIL'),
+            env('ADMIN2_EMAIL'),
+            env('HCAMP_MAIL_FROM_ADDRESS'),
             "worldofethics@gmail.com"
         ]
     ],
 
     'fare_depart_from' => [
         "ycamp" => [
-            "台北專車" => "400",
-            "桃園專車" => "350",
-            "新竹專車" => "270",
-            "台中專車" => "200",
+            "台北專車" => "500",
+            "桃園專車" => "400",
+            "新竹專車" => "300",
+            "台中專車" => "220",
             "台南專車" => "250",
-            "高雄專車" => "400",
-            "火車站接駁車" => "0",
+            "高雄專車" => "450",
+            "斗南火車站接駁車" => "0",
             "親友接送" => "0",
             "自往" => "0",
         ],
@@ -149,13 +154,13 @@ return [
 
     'fare_back_to' => [
         "ycamp" => [
-            "台北專車" => "400",
-            "桃園專車" => "350",
-            "新竹專車" => "270",
-            "台中專車" => "200",
+            "台北專車" => "500",
+            "桃園專車" => "400",
+            "新竹專車" => "300",
+            "台中專車" => "220",
             "台南專車" => "250",
-            "高雄專車" => "400",
-            "火車站接駁車" => "0",
+            "高雄專車" => "450",
+            "斗南火車站接駁車" => "0",
             "親友接送" => "0",
             "自回" => "0",
         ],
