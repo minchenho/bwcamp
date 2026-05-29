@@ -1,7 +1,13 @@
 /node_modules
+/public/downloads
 /public/hot
+/public/img
+/public/phpMyAdmin/*
 /public/storage
 /storage/*.key
+/storage/attachment
+/storage/avatars
+/storage/fonts/
 /vendor
 .env
 .env.backup
@@ -11,17 +17,12 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 .vscode/launch.json
-/storage/attachment
-/storage/avatars
 .vscode/
 *.Identifier
 .phpstorm.meta.php
 _ide_helper.php
 _ide_helper_models.php
-public/phpMyAdmin/*
 .idea/
-storage/fonts/installed-fonts.json
-storage/fonts/msjh_*
 .composer/
 auth.json
 
