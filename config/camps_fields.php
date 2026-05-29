@@ -931,7 +931,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -973,7 +973,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1035,7 +1035,7 @@ return [
                 "sort" => 1,
                 "for_query" => 1,
             ],
-            "is_attend" => [
+            "is_attend_chn" => [
                 "name" => "是否參加",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1079,7 +1079,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1114,7 +1114,7 @@ return [
                 "sort" => 1,
                 "for_query" => 0,
             ],
-            "is_attend" => [
+            "is_attend_chn" => [
                 "name" => "參加意願",
                 "sort" => 1,
                 "for_query" => 0,
@@ -1161,7 +1161,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1248,7 +1248,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1303,7 +1303,7 @@ return [
                 "sort" => 1,
                 "for_query" => 1,
             ],
-            "is_attend" => [
+            "is_attend_chn" => [
                 "name" => "參加意願",
                 "sort" => 1,
                 "for_query" => 0,
@@ -1350,7 +1350,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1437,7 +1437,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1494,7 +1494,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1542,7 +1542,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1572,7 +1572,7 @@ return [
                 "sort" => 1,
                 "for_query" => 0,
             ],
-            "is_attend" => [
+            "is_attend_chn" => [
                 "name" => "參加意願",
                 "sort" => 1,
                 "for_query" => 0,
@@ -1599,7 +1599,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1631,7 +1631,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1730,7 +1730,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1797,7 +1797,7 @@ return [
                 "sort" => 1,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "生理性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1854,7 +1854,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -1941,7 +1941,7 @@ return [
                 "sort" => 1,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "生理性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -2072,7 +2072,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -2114,7 +2114,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -2146,7 +2146,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
@@ -2193,7 +2193,7 @@ return [
                 "sort" => 0,
                 "for_query" => 1,
             ],
-            "gender" => [
+            "gender_chn" => [
                 "name" => "性別",
                 "sort" => 1,
                 "for_query" => 1,
