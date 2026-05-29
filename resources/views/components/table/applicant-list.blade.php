@@ -46,7 +46,9 @@
                     @elseif($key == "contactLog" && $currentUser->canAccessResource(new App\Models\ContactLog(), 'read', $campFullData))
                         <th class="text-center" data-field="contactLog" data-sortable="0">關懷記錄</th>
                     @elseif($key == "gender")
-                        <th class="text-center" data-field="gender->" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
+                        <th class="text-center" data-field="gender_chn" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
+                    @elseif($key == "is_attend")
+                        <th class="text-center" data-field="is_attend_chn" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
                     @else
                         <th class="text-center" data-field="{{ $key }}" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
                     @endif
@@ -67,7 +69,8 @@
         $applicants = $applicants->load('contactlog');
         $applicants = $applicants->each(function ($applicant) use ($camp) {
             //$applicant->number = $applicant->number;
-            $applicant->gender = $applicant->gender_zh_tw;
+            $applicant->gender = $applicant->gender_chn;
+            $applicant->is_attend = $applicant->is_attend_chn;
             //$applicant->age = $applicant->age;
             /*match ($applicant->is_attend) {
                 0 => $applicant->is_attend = "不參加",
@@ -94,8 +97,9 @@
             foreach ($registeredVolunteers as &$v) {
                 if ($v->application_log) {
                     foreach ($v->application_log as $k => &$a) {
-                        $a->gender = $a->gender_zh_tw;
-                        $a->age = $a->age;
+                        $a->gender = $a->gender_chn;
+                        $a->is_attend = $a->is_attend_chn;
+                        //$a->age = $a->age;
                         /*match ($a->is_attend) {
                             0 => $a->is_attend = "不參加",
                             1 => $a->is_attend = "參加",
@@ -241,7 +245,8 @@
             result = Object.values(result[0]);
         }
         result.forEach(function(item) {
-            item.gender = item.gender_
+            item.gender = item.gender_chn;
+            item.is_attend = item.is_attend_chn;
             if (!item || !item.id) {
                 console.log(item, count);
                 return;
