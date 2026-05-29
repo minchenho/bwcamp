@@ -51,6 +51,7 @@ class AdmittedMail extends Mailable
     {
         $applicant = $this->applicant;
         $camp_info = $this->camp_info;
+	$carers = [];
 
         //信中用到的外部連結
         $content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
