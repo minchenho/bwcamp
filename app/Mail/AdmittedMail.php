@@ -4,6 +4,9 @@ namespace App\Mail;
 
 use App\Models\Applicant;
 use App\Models\Mvcamp;
+use App\Models\Vcamp;
+use App\Models\CampOrg;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -51,7 +54,7 @@ class AdmittedMail extends Mailable
     {
         $applicant = $this->applicant;
         $camp_info = $this->camp_info;
-	$carers = [];
+        $carers = [];
 
         //信中用到的外部連結
         $content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
