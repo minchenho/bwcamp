@@ -410,7 +410,7 @@ class Applicant extends Model
                 3 => '聯絡不上',
                 4 => '無法全程',
                 5 => '尚未聯絡',
-                default => '-',
+                default => '尚未聯絡',
             }
         );
     }

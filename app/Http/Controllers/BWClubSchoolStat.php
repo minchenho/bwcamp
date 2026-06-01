@@ -63,7 +63,7 @@ class BWClubSchoolStat extends BackendController{
             "國立臺南大學",
             "國立成功大學",
             "嘉南藥理大學",
-            "長榮大學"
+            //"長榮大學"
     );
     protected $kaohsiung = array (
             // "國立高雄科技大學(原第一科大)",

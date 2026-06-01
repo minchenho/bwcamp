@@ -70,7 +70,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('export:Applicant 122')->dailyAt("1:30"); // ecamp_s
         $schedule->command('export:Applicant 121')->dailyAt("2:00"); // evcamp_n
         $schedule->command('export:Applicant 123')->dailyAt("2:30"); // evcamp_s
-        // $schedule->command('export:Applicant 110')->dailyAt("0:10");  // nycamp
+        $schedule->command('export:Applicant 126')->dailyAt("3:00"); // ycamp
         // $schedule->command('export:Applicant 108')->dailyAt("0:30");  // tcamp
 
         //utcamp
