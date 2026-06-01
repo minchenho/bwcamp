@@ -46,7 +46,7 @@
                     @elseif($key == "contactLog" && $currentUser->canAccessResource(new App\Models\ContactLog(), 'read', $campFullData))
                         <th class="text-center" data-field="contactLog" data-sortable="0">關懷記錄</th>
                     @elseif($key == "gender")
-                        <th class="text-center" data-field="gender->" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
+                        <th class="text-center" data-field="gender_chn" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
                     @else
                         <th class="text-center" data-field="{{ $key }}" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
                     @endif
@@ -241,7 +241,8 @@
             result = Object.values(result[0]);
         }
         result.forEach(function(item) {
-            item.gender = item.gender_
+            item.gender = item.gender_chn;
+            console.log(item.gender);
             if (!item || !item.id) {
                 console.log(item, count);
                 return;

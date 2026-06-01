@@ -56,11 +56,11 @@ $footer_path = $message->embed(public_path() . $str2);
                 @else
                 交通：（屏東大學民生校區臨近屏東火車站約3公里）<br>
                     <ol>
-                        <li>火車：屏東站下車，轉乘客運至學校大門口。</li>
-                        <li>高鐵：於左營高鐵站下車，轉乘台鐵至屏東站；再乘客運至學校大門口。</li>
+                        <li>火車：屏東站下車，搭大會接駁車至學校大門口。</li>
+                        <li>高鐵：於左營高鐵站下車，轉乘台鐵至屏東站；再乘大會接駁車至學校大門口。</li>
                         <li>自行前往者請導航：{{ $applicant->batch->locationName }}&nbsp;{{ $applicant->batch->location }}。(<a href="https://goo.gl/maps/jbHDZ">https://goo.gl/maps/jbHDZ</a>)</li>
                     </ol>
-                    <u>因會場停車位有限，懇請多利用公共交通工具。</u>
+                    <u>因會場停車位有限，懇請多利用大會接駁車。</u>
                 @endif</li>
             @if (str_contains($applicant->batch->name, "北區")) 
             <li>營隊關懷員近日內將透過簡訊及電話與您聯繫。<br>
