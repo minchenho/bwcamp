@@ -132,16 +132,46 @@
             {{ Session::get("error") }}
         </div>
     @endif
-    <button type="submit" class="btn btn-success" style="margin-bottom: 15px" onclick="this.innerText = '處理中'; this.disabled = true; document.sendEmailByGroup.action='{{ route('sendAdmittedMail', $camp_id) }}'; document.sendEmailByGroup.submit();">寄送錄取通知信 / 分組通知函</button>
-    <button type="submit" class="btn btn-info float-right" style="margin-bottom: 15px" onclick="this.innerText = '處理中'; this.disabled = true; document.sendEmailByGroup.action='{{ route('sendCheckInMail', $camp_id) }}';document.sendEmailByGroup.submit();">寄送報到通知信</button>
+
+    <button type="button" class="btn btn-success" style="margin-bottom: 15px" onclick="sendMail(this, 'admitted')">寄送錄取通知信/分組通知函</button>&emsp;&emsp;
+    <button type="button" class="btn btn-info" style="margin-bottom: 15px" onclick="sendMail(this, 'checkIn')">寄送報到通知信</button>
+    <button type="button" class="btn btn-warning float-right" style="margin-bottom: 15px" onclick="sendMail(this, 'thankYou')">寄送不參加感謝函</button>
 </form>
 <script>
     function toggler(){
         let sns = document.getElementsByClassName("selected");
-        console.log(sns);
+        //console.log(sns);
         for(let i = 0; i < sns.length ; i++){
             sns[i].checked = sns[i].checked ? false : true;
         }
     }
+
+    function sendMail(button, mailType) {
+        // 1. 讓按鈕變成處理中並禁用，防止重複點擊
+        button.innerText = '處理中';
+        button.disabled = true;
+
+        // 2. 先準備好 Laravel 產生的各個路由網址
+        const routes = {
+            'admitted': "{{ route('sendAdmittedMail', $camp_id) }}",
+            'checkIn':  "{{ route('sendCheckInMail', $camp_id) }}",
+            'thankYou': "{{ route('sendThankYouMail', $camp_id) }}"
+        };
+
+        // 3. 根據傳入的 mailType 找到對應的網址
+        const targetUrl = routes[mailType];
+
+        if (targetUrl) {
+            // 4. 設定表單 action 並送出
+            document.sendEmailByGroup.action = targetUrl;
+            document.sendEmailByGroup.submit();
+        } else {
+            console.error('未知的郵件類型：' + mailType);
+            // 如果出錯了，把按鈕還原
+            button.innerText = '重試';
+            button.disabled = false;
+        }
+    }
+</script>
 </script>
 @endsection

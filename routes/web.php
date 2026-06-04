@@ -199,8 +199,9 @@ Route::group(["prefix" => "backend/{camp_id}", ], function () {
         Route::get("/section/{org_id}", "BackendController@showSection")->name("showSection");
         // 郵件發送
         Route::post("/sendAdmittedMail", "BackendController@sendAdmittedMail")->name("sendAdmittedMail");
+        Route::post("/sendCheckInMail",  "BackendController@sendCheckInMail" )->name("sendCheckInMail");
+        Route::post("/sendThankYouMail", "BackendController@sendThankYouMail")->name("sendThankYouMail");
         Route::post("/sendNotAdmittedMail", "BackendController@sendNotAdmittedMail")->name("sendNotAdmittedMail");
-        Route::post("/sendCheckInMail", "BackendController@sendCheckInMail")->name("sendCheckInMail");
         // 其他功能
         Route::get("/showPaymentForm/{applicant_id}", "BackendController@showPaymentForm")->name("showPaymentForm");
         Route::get("/showNotAdmitted", "BackendController@showNotAdmitted")->name("showNotAdmitted");

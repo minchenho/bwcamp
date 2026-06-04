@@ -1,0 +1,80 @@
+<?php
+
+namespace App\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use App\Services\ApplicantService;
+use App\Traits\EmailConfiguration;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
+
+class SendNotAdmittedMail implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+    use EmailConfiguration;
+
+    protected $applicant;
+    protected $applicantId;
+    protected $tries = 400;
+
+    /**
+     * Create a new job instance.
+     *
+     * @return void
+     */
+    public function __construct($applicantId)
+    {
+        //
+        $this->applicantId = $applicantId;
+        $this->applicant = \App\Models\Applicant::with('batch.camp')->find($applicantId);
+    }
+
+    /**
+     * Execute the job.
+     *
+     * @return void
+     */
+    public function handle(ApplicantService $applicantService)
+    {
+        //
+        sleep(3);
+        ini_set('memory_limit', -1);
+
+        if (!$this->applicant) {
+            \Log::error("SendNotAdmittedMail, Applicant: {$this->applicantId} not found.");
+            return;
+        }
+
+        $applicant = $this->applicant;
+        // 動態載入電子郵件設定
+        $this->setEmail($applicant->batch->camp->table, $applicant->batch->camp->variant);
+        \Mail::to($applicant->email)->send(new \App\Mail\NotAdmittedMail($applicant));
+        \logger('SendNotAdmittedMail, Applicant: ' . $this->applicantId . ' success');
+    }
+
+    /**
+     * The unique ID of the job.
+     *
+     * @return string
+     */
+    public function uniqueId()
+    {
+        return $this->applicantId;
+    }
+
+    /**
+     * Determine the time at which the job should timeout.
+     *
+     * @return \DateTime
+     */
+    public function retryUntil()
+    {
+        return now()->addMinutes(60);
+    }
+}
