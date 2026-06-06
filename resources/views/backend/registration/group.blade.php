@@ -155,7 +155,7 @@
         const routes = {
             'admitted': "{{ route('sendAdmittedMail', $camp_id) }}",
             'checkIn':  "{{ route('sendCheckInMail', $camp_id) }}",
-            'thankYou': "{{ route('sendThankYouMail', $camp_id) }}"
+            'thankYou': "{{ route('sendThankYouMail', [$camp_id, 'mailType' => 'thankYou']) }}"
         };
 
         // 3. 根據傳入的 mailType 找到對應的網址

@@ -21,6 +21,7 @@ class SendNotAdmittedMail implements ShouldQueue
 
     protected $applicant;
     protected $applicantId;
+    protected $mailType; //notAdmitted or thankYou
     protected $tries = 400;
 
     /**
@@ -28,10 +29,11 @@ class SendNotAdmittedMail implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($applicantId)
+    public function __construct($applicantId, $mailType = 'notAdmitted')
     {
         //
         $this->applicantId = $applicantId;
+        $this->mailType = $mailType;
         $this->applicant = \App\Models\Applicant::with('batch.camp')->find($applicantId);
     }
 
@@ -54,7 +56,7 @@ class SendNotAdmittedMail implements ShouldQueue
         $applicant = $this->applicant;
         // 動態載入電子郵件設定
         $this->setEmail($applicant->batch->camp->table, $applicant->batch->camp->variant);
-        \Mail::to($applicant->email)->send(new \App\Mail\NotAdmittedMail($applicant));
+        \Mail::to($applicant->email)->send(new \App\Mail\NotAdmittedMail($applicant, $this->mailType));
         \logger('SendNotAdmittedMail, Applicant: ' . $this->applicantId . ' success');
     }
 

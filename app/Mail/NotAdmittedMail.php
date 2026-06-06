@@ -13,15 +13,19 @@ class NotAdmittedMail extends Mailable
     use Queueable, SerializesModels;
 
     public $applicant;
+    public $campInfo;
+    public $mailType; //notAdmitted or thankYou
 
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct($applicant) {
+    public function __construct($applicant, $campInfo, $mailType = 'notAdmitted') {
         //
         $this->applicant = $applicant;
+        $this->campInfo = $campInfo;
+        $this->mailType = $mailType;
     }
 
     /**
@@ -34,11 +38,18 @@ class NotAdmittedMail extends Mailable
             $headers = $message->getHeaders();
             $headers->addTextHeader('time', time());
         });
-        if($this->applicant->camp->table == 'ecamp'){
-            return $this->subject($this->applicant->camp->abbreviation . '感謝函')
-                ->view('camps.' . $this->applicant->camp->table . ".notAdmittedMail");
+
+        $applicant = $this->applicant;
+        $campInfo = $this->campInfo;
+        $mailType = $this->mailType;
+
+        if ($campInfo->table == 'ecamp' || $this->mailType === 'thankYou') {
+            $mailSubject = $campInfo->abbreviation . '感謝函';
+        } else {
+            $mailSubject = $campInfo->abbreviation . '通知信';
         }
-        return $this->subject($this->applicant->batch->camp->abbreviation . '通知信')
-                ->view('camps.' . $this->applicant->batch->camp->table . ".notAdmittedMail");
+
+        return $this->subject($mailSubject)
+            ->view('camps.' . $campInfo->table . ".notAdmittedMail", compact('applicant', 'campInfo', 'mailType'));
     }
 }

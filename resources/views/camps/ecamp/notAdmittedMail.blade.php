@@ -6,36 +6,32 @@
         text-align: right;
     }
 </style>
-<body>
+@php
+$today = \Carbon\Carbon::now();
+$str1 = '/img/'. $today->year . $applicant->batch->camp->table . 'MailHeader.png';
+$str2 = '/img/'. $today->year . $applicant->batch->camp->table . 'MailFooter.png';
+$header_path = $message->embed(public_path() . $str1);
+$footer_path = $message->embed(public_path() . $str2);
+@endphp
+<body style="font-size:16px;">
 <table role="presentation"  cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
-<tr><td><img width="100%" src="{{ $message->embed(public_path() . '/img/ecamp2024/head.png') }}" /></td></tr>
-<tr><td>
-<table width="80%" border="0" cellpadding="0" cellspacing="0" align="center"><tr><td>
-<tr><td align="center"><h2 class="center">感&emsp;&emsp;謝&emsp;&emsp;函</h2></td></tr>
-<tr><td>
-<table width="100%" style="table-layout:fixed; border: 0;">
-    <tr>
-        <td>姓名：{{ $applicant->name }}</td>
-        <td>序號：{{ $applicant->id }}</td>
-        <td>組別：{{ $applicant->groupRelation?->alias ?? "--" }}</td> 
-        <td>場次：@if (str_contains($applicant->batch->name, "第一梯")) 北區場(開南大學) @else 中區(勤益科大) @endif</td>
-    </tr>
-</table><br>
-
-親愛的企業主管您好 :<br><br>
-&emsp;&emsp;感謝您報名2024企業主管生命成長營，這對暱稱「黃背心」的我們是極大的鼓勵。<br><br>
-
-&emsp;&emsp;今年企業營重返桃園開南大學舉辦，但受到疫情的影響，整體環境已大幅改變。由於場地的種種限制，無法容納所有希望來參加的學員，在此請您能諒解。<br><br>
- 
-&emsp;&emsp;為了讓更多還沒有機會接觸廣論的福友，能夠透過營隊認識師父老師的志業及理念，與我們一起進入廣論班學習，成為我們的同行善友，在此分享另一種營隊學習的方法給您─加入「黃背心」的行列！<br><br>
-
-&emsp;&emsp;日常法師曾說「營隊的正行是義工」，成為義工，護持他人的學習，以及對境歷事練心，其成長與受用並不亞於營隊學員。 如果您有意願與我們一同穿上黃背心，熱情服務營隊學員，歡迎您與我們聯繫。<br><br>
-
-請洽: 02-2545-3788 (分機545、517) 林小姐<br><br>
-</td></tr><tr><td align="right">
-<br>
-<a class="right">主辦單位：財團法人福智文教基金會&nbsp;敬啟</a><br>
-<a class="right">{{ \Carbon\Carbon::now()->year }}  年　{{ \Carbon\Carbon::now()->month }}  月 　 {{ \Carbon\Carbon::now()->day }}  日</a>
-</td></tr></table></td></tr>
-<tr><td><br><br><img width="100%" height="20%" src="{{ $message->embed(public_path() . '/img/ecamp2024/footer.png') }}" /></td></tr></table>
+    <tr><td><img width="100%" src="{{ $header_path }}" /></td></tr>
+    <tr><td>
+        親愛的企業主管您好 :<br><br>
+        &emsp;&emsp;非常感謝您報名福智文教基金會舉辦的{{ $campInfo->fullName }}<br><br>
+        @if($mailType == "notAdmitted")
+            &emsp;&emsp;感謝您對生命議題的關心與支持，因為舉辦活動場地及報名資格的限制，無法讓所有報名營隊者都能夠參加營隊。<br><br>        
+            &emsp;&emsp;福智文教基金會，不定期會舉辦各種大型活動，或各種議題的社區活動，竭誠歡迎您的參與。藉由這些活動，期盼您能夠更深入了解福智文教基金會及其所屬單位回饋社會的熱情與努力。<br><br>
+        @elseif($mailType == "thankYou")
+            &emsp;&emsp;今年雖然無法與您在營隊中見面，但福智文教基金會，不定期舉辦各種大型活動，或各種議題的社區活動，竭誠歡迎您的參與。藉由這些活動，期盼您能夠更深入了解福智文教基金會及其所屬單位回饋社會的熱情與努力。<br><br>
+        @endif
+        &emsp;&emsp;若您對營隊有任何問題，歡迎您透過以下的方式聯絡本基金會，我們將盡速為您服務。感謝您的支持！<br><br>
+        財團法人福智文教基金會<br>
+        {{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}<br><br>
+        {!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+        福智文教基金會會員中心：<a href="https://circles.bwfoce.org" target="_blank">https://circles.bwfoce.org</a>
+    </td></tr>   
+    <tr><td><br><br><img width="100%" height="20%" src="{{ $footer_path }}" /></td></tr>
+</table>
 </body>
+
