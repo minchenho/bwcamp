@@ -75,6 +75,7 @@
             <hr>
         @endforeach
         @if(auth()->user()->getPermission()->level <= 2)
+            <input type=hidden name='mailType' value='notAdmitted'>
             <button type="submit" class="btn btn-danger" style="margin-bottom: 15px" onclick="this.innerText = '處理中'; this.disabled = true; document.sendEmailByGroup.action='{{ route("sendNotAdmittedMail", $camp_id) }}'; document.sendEmailByGroup.submit();">寄送未錄取通知信</button>
         @endif
     </form>

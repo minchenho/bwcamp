@@ -171,7 +171,7 @@ class BackendController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function masterIndex()
+    /*public function masterIndex()
     {
         // 檢查權限
         $permission = auth()->user()->getPermission('all');
@@ -188,7 +188,36 @@ class BackendController extends Controller
             $camps[] = $camp;
         });
         return view('backend.MasterIndex')->with("camps", $camps);
+    }*/
+
+public function masterIndex()
+{
+    // 檢查權限
+    $permission = auth()->user()->getPermission('all');
+    
+    // 確保這裡拿出來的是 Collection
+    $camps = $this->campDataService->getAvailableCamps($permission);
+    if (is_array($camps)) {
+        $camps = collect($camps);
     }
+
+    $newPermissions = OrgUser::where('user_id', \Auth::user()->id)->get();
+    
+    $camps2Ids = [];
+    $newPermissions->each(function ($p) use (&$camps2Ids) {
+        if ($p->camp && !in_array($p->camp->id, $camps2Ids)) {
+            $camps2Ids[] = $p->camp->id;
+        }
+    });
+
+    $camps2 = Camp::whereIn('id', $camps2Ids)->get();
+
+    // ✨ 關鍵改動：將兩組集合合併，並在「最後」統一依據 ID 倒序排列（從大到小）
+    // 如果想要從小到大，請把 sortByDesc('id') 改成 sortBy('id')
+    $finalCamps = $camps->merge($camps2)->sortByDesc('id');
+
+    return view('backend.MasterIndex')->with("camps", $finalCamps);
+}
 
     public function campIndex()
     {
@@ -974,9 +1003,14 @@ class BackendController extends Controller
             return back();
         }
         foreach ($request->sns as $sn) {
-            \App\Jobs\SendNotAdmittedMail::dispatch($sn);
+            \App\Jobs\SendNotAdmittedMail::dispatch($sn, $this->batch, $this->camp_info, $request->mailType);
         }
-        \Session::flash('message', "未錄取通知信寄送程序已被排入任務佇列。");
+        if ($request->mailType == "notAdmitted") {
+            \Session::flash('message', "未錄取通知信寄送程序已被排入任務佇列。");
+        } elseif ($request->mailType == "thankYou") {
+            \Session::flash('message', "感謝信寄送程序已被排入任務佇列。");
+        }
+
         return back();
     }
 

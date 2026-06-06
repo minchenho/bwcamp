@@ -12,6 +12,7 @@
     } else {
         if(\Str::contains($batch->name, "北區")) {$is_north = TRUE;}
     }
+    $imgicon = asset("img/{$camp_info->year}ecampIcon.png");
 @endphp
 <!DOCTYPE html>
 <html data-bs-theme="light" lang="en">
@@ -25,8 +26,9 @@
     <meta property='og:url' content='https://bwfoce.org/ecamp/'/>
     <meta property='og:title' content='{{ $camp_data->abbreviation }}'/>
     <meta property='og:description' content='「翻轉人生從心出發」邀請您報名參加企業主管生命成長營。' />
-    <meta property='og:image' content='https://static.wixstatic.com/media/8822b2_42442909881444a99904caa63bb7e659~mv2.png/v1/fill/w_2274,h_640,al_c,usm_0.66_1.00_0.01,enc_auto/8822b2_42442909881444a99904caa63bb7e659~mv2.png'/>
-    {{-- <link rel='icon' href='/camp/favicon.ico'> --}}
+        <meta property="og:image" content='{{ $imgicon }}' />
+        <meta property="og:image:width" content="830"/>
+        <meta property="og:image:height" content="600"/>
     <title> {{ $camp_data->fullName }} </title>
     <link rel="stylesheet" href="{{ asset("mockup-assets/ecamp/bootstrap/css/bootstrap.min.css") }}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
