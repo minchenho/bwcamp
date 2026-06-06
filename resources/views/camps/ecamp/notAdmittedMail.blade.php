@@ -8,8 +8,8 @@
 </style>
 @php
 $today = \Carbon\Carbon::now();
-$str1 = '/img/'. $today->year . $applicant->batch->camp->table . 'MailHeader.png';
-$str2 = '/img/'. $today->year . $applicant->batch->camp->table . 'MailFooter.png';
+$str1 = '/img/'. $today->year . $campInfo->table . 'MailHeader.png';
+$str2 = '/img/'. $today->year . $campInfo->table . 'MailFooter.png';
 $header_path = $message->embed(public_path() . $str1);
 $footer_path = $message->embed(public_path() . $str2);
 @endphp
@@ -28,7 +28,7 @@ $footer_path = $message->embed(public_path() . $str2);
         &emsp;&emsp;若您對營隊有任何問題，歡迎您透過以下的方式聯絡本基金會，我們將盡速為您服務。感謝您的支持！<br><br>
         財團法人福智文教基金會<br>
         {{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}<br><br>
-        {!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+        {!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}<br>
         福智文教基金會會員中心：<a href="https://circles.bwfoce.org" target="_blank">https://circles.bwfoce.org</a>
     </td></tr>   
     <tr><td><br><br><img width="100%" height="20%" src="{{ $footer_path }}" /></td></tr>
