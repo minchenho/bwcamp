@@ -30,8 +30,8 @@
             <th scope="col" class="text-nowrap">地址</th>
             <th scope="col" class="text-nowrap">電話</th>
             <th scope="col" class="text-nowrap">學員組數</th>
-            <th scope="col" class="text-nowrap">建立日期</th>
-            <th scope="col" class="text-nowrap">更新日期</th>
+            <!-- <th scope="col" class="text-nowrap">建立日期</th> -->
+            <!-- <th scope="col" class="text-nowrap">更新日期</th> -->
             <th scope="col" class="text-nowrap">報名人數</th>            
             <th scope="col" class="text-nowrap">動作</th>
         </tr>
@@ -50,8 +50,8 @@
                 <td>{{ $batch->location }}</td>
                 <td>{{ $batch->tel }}</td>
                 <td>{{ $batch->num_groups }}</td>
-                <td>{{ $batch->created_at }}</td>
-                <td>{{ $batch->updated_at }}</td>
+                <!-- <td>{{ $batch->created_at }}</td> -->
+                <!-- <td>{{ $batch->updated_at }}</td> -->
                 <td>{{ $num_applicants[$batch->id]}}</td>
                 <td>
                     <a href="{{ route("showModifyBatch", [$camp->id, $batch->id]) }}" class="btn btn-primary">修改</a>
