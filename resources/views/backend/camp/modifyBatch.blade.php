@@ -95,10 +95,13 @@
                 <input type="number" name="num_groups" id="" class='form-control' value="{{ $batch->num_groups ?? "" }}">
             </div>
         </div>
+        <label class='text-info'>
+            未錄取公佈日：在此日期前，未錄取皆顯示「錄取作業進行中。」<br>
+        </label>
         <div class='row form-group'>
             <label for='inputContactCard' class='col-md-1 control-label'>聯絡資訊</label>
             <div class='col-md-6'>
-                <input type="text" name="contact_card" id="" class='form-control' value="{{ $batch->contact_card ?? "" }}">
+                <textarea class=form-control rows=2 required  name='club' id=inputClub>{{ $batch->club ?? "" }} </textarea>
             </div>
         </div>
 
