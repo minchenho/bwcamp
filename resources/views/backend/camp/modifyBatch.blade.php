@@ -95,6 +95,13 @@
                 <input type="number" name="num_groups" id="" class='form-control' value="{{ $batch->num_groups ?? "" }}">
             </div>
         </div>
+        <div class='row form-group'>
+            <label for='inputContactCard' class='col-md-1 control-label'>聯絡資訊</label>
+            <div class='col-md-6'>
+                <input type="text" name="contact_card" id="" class='form-control' value="{{ $batch->contact_card ?? "" }}">
+            </div>
+        </div>
+
         @if($vbatches)
             <div class='row form-group'>
                 <label for='inputVBatch' class='col-md-2 control-label'>關聯之義工梯次</label>
