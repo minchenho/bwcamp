@@ -28,7 +28,7 @@
             <th scope="col" class="text-nowrap">報到日</th>
             <th scope="col" class="text-nowrap">地點</th>
             <th scope="col" class="text-nowrap">地址</th>
-            <!-- <th scope="col" class="text-nowrap">電話</th> 
+            <!-- <th scope="col" class="text-nowrap">電話</th> -->
             <th scope="col" class="text-nowrap">學員組數</th>
             <!-- <th scope="col" class="text-nowrap">建立日期</th> -->
             <!-- <th scope="col" class="text-nowrap">更新日期</th> -->
