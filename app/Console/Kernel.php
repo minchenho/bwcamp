@@ -64,7 +64,11 @@ class Kernel extends ConsoleKernel
         // 其他營隊匯出排程
         $schedule->command('export:Applicant 125')->dailyAt("0:10"); // ceovcamp_n
         $schedule->command('export:Applicant 129')->dailyAt("0:20"); // ceovcamp_s
+        $schedule->command('gen:BankSecondBarcode 124')->dailyAt("00:28");
+        $schedule->command('import:Form 124')->dailyAt("0:29");
         $schedule->command('export:Applicant 124')->dailyAt("0:30"); // ceocamp_n
+        $schedule->command('gen:BankSecondBarcode 128')->dailyAt("00:38");
+        $schedule->command('import:Form 128')->dailyAt("0:39");
         $schedule->command('export:Applicant 128')->dailyAt("0:40"); // ceocamp_s
         $schedule->command('export:Applicant 120')->dailyAt("1:00"); // ecamp_n
         $schedule->command('export:Applicant 122')->dailyAt("1:30"); // ecamp_s
