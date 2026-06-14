@@ -122,7 +122,7 @@ class CampCustomOption extends Model
                 ->where('batch_id', $batchId)
                 ->where('type', $type)
                 ->orderBy('sort_order', 'asc')
-                ->pluck('option_label')
+                ->pluck('option_value')
                 ->toArray();
                 
             if (!empty($options)) return $options;
@@ -133,7 +133,7 @@ class CampCustomOption extends Model
             ->whereNull('batch_id')
             ->where('type', $type)
             ->orderBy('sort_order', 'asc')
-            ->pluck('option_label')
+            ->pluck('option_value')
             ->toArray();
 
         if (!empty($options)) return $options;
