@@ -9,236 +9,125 @@ class StatController extends BackendController
 {
     use EmailConfiguration;
 
-/**
- * 萬能區域撈取器（僅在第一次呼叫時查資料庫，之後直接讀記憶體）
- * 用法：在任何方法寫 $this->getSpecifiedRegions() 即可
- */
-protected function getSpecifiedRegions(): array
-{
-    // 如果這輩子已經查過一次了，就直接吐回去，不重查資料庫
-    if (!isset($this->specifiedRegionsCache)) {
-        $this->specifiedRegionsCache = $this->camp && $this->camp->regions 
-            ? $this->camp->regions->pluck('name')->toArray()
-            : [];
-    }
-
-    return $this->specifiedRegionsCache;
-}
-
-/**
- * 年齡與年次 萬能通用統計 (完美結合 $applicant->age 屬性)
- *
- * @param string $mode 'range' 呈現年齡層區間 / 'year' 呈現出生年次(歲)
- * 年齡與年次 通用分區統計 (支援前端全區/分區切換)
- */
-public function ageStat($mode = 'range')
-{
-    // 1. 撈取基礎數據 (包含 region)
-    $applicantsData = Applicant::select(\DB::raw('applicants.birthyear, applicants.region, count(*) as total, MAX(applicants.id) as sample_id'))
-        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->where('batchs.camp_id', $this->camp_id)
-        ->whereNull('applicants.deleted_at')
-        ->groupBy('applicants.birthyear', 'applicants.region')
-        ->get();
-
-    $specifiedRegions = $this->getSpecifiedRegions();
-    $currentYear = now()->year;
-
-    // 2. 初始化定義區間 (只有 range 模式需要固定順序)
-    $rangesOrder = [];
-    if ($mode === 'range') {
-        $rangesOrder = ['<=20', '21-30', '31-40', '41-50', '51-60', '61-70', '>70', '其它'];
-    } else {
-        // 年次模式：先收集所有出現過的精準年次標籤，確保等一下各分區的 key 順序完全一致
-        $tempYears = [];
-        foreach ($applicantsData as $r) {
-            if (!empty($r->birthyear)) $tempYears[] = $r->birthyear;
-        }
-        $tempYears = array_unique($tempYears);
-        sort($tempYears); // 由老到年輕排序
-        foreach ($tempYears as $y) {
-            $age = $currentYear - $y;   //只用year去計算年齡，有一點不精準。
-            $rangesOrder[] = $y . '(' . $age . ')';
-        }
-        $rangesOrder[] = '其它';
-    }
-
-    // 3. 初始化各分區的暫存容器
-    $rawGroupData = ['all' => [], 'other' => []];
-    foreach ($specifiedRegions as $rName) { $rawGroupData[$rName] = []; }
-
-    $totals = ['all' => 0, 'other' => 0];
-    foreach ($specifiedRegions as $rName) { $totals[$rName] = 0; }
-
-    // 預填容器確保順序一致
-    foreach (array_merge(['all', 'other'], $specifiedRegions) as $gKey) {
-        foreach ($rangesOrder as $label) { $rawGroupData[$gKey][$label] = 0; }
-    }
-
-    // 4. 開始分流計算
-    foreach ($applicantsData as $record) {
-        $birthyear = $record->birthyear;
-        $region = $record->region ? trim($record->region) : '';
-        $count = intval($record->total);
-        $totals['all'] += $count;
-
-        // 計算對應的標籤
-        if (empty($birthyear)) {
-            $label = '其它';
-        } else {
-            $age = $currentYear - $birthyear;   //只用year去計算年齡，有一點不精準。
-            $label = $mode === 'range' 
-                ? ($age <= 20 ? '<=20' : 
-                ($age <= 30 ? '21-30' : 
-                ($age <= 40 ? '31-40' : 
-                ($age <= 50 ? '41-50' : 
-                ($age <= 60 ? '51-60' : 
-                ($age <= 70 ? '61-70' :
-                '>70'))))))
-                : $birthyear . '(' . $age . ')';
+    /**
+     * 萬能區域撈取器（僅在第一次呼叫時查資料庫，之後直接讀記憶體）
+     * 用法：在任何方法寫 $this->getSpecifiedRegions() 即可
+     */
+    protected function getSpecifiedRegions(): array
+    {
+        // 如果這輩子已經查過一次了，就直接吐回去，不重查資料庫
+        if (!isset($this->specifiedRegionsCache)) {
+            $this->specifiedRegionsCache = $this->camp && $this->camp->regions 
+                ? $this->camp->regions->pluck('name')->toArray()
+                : [];
         }
 
-        // 累加
-        $rawGroupData['all'][$label] += $count;
-        if (in_array($region, $specifiedRegions)) {
-            $rawGroupData[$region][$label] += $count;
-            $totals[$region] += $count;
-        } else {
-            $rawGroupData['other'][$label] += $count;
-            $totals['other'] += $count;
-        }
+        return $this->specifiedRegionsCache;
     }
 
-    // 5. 組裝 Google Chart 格式
-    $chartCols = [
-        ['id' => 'age_key', 'label' => $mode === 'range' ? '年齡級距' : '年次(歲)', 'type' => 'string'],
-        ['id' => 'people', 'label' => '人數', 'type' => 'number'],
-        ['id' => 'annotation', 'role' => 'annotation', 'type' => 'number']
-    ];
-
-    $displayConfig = array_merge(['all' => '全區'], array_combine($specifiedRegions, $specifiedRegions), ['other' => '其它區域']);
-    $chartCollection = [];
-
-    foreach ($displayConfig as $key => $labelText) {
-        $rows = [];
-        foreach ($rawGroupData[$key] as $labelName => $count) {
-            // 年次模式下，如果全區和分區該項目都是 0 就不塞入，優化畫面
-            if ($mode === 'year' && $rawGroupData['all'][$labelName] === 0) continue;
-
-            $rows[] = ['c' => [['v' => $labelName], ['v' => $count], ['v' => $count]]];
-        }
-        $chartCollection[$key] = [
-            'label' => $labelText,
-            'total' => $totals[$key],
-            'data'  => ['cols' => $chartCols, 'rows' => $rows]
-        ];
-    }
-
-    $chartCollectionJson = json_encode($chartCollection);
-    $specifiedKeys = $specifiedRegions;
-    $title1 = $mode === 'range' ? '年齡級距' : '年次(歲)';
-
-    // 💡 傳遞給前端的新變數名
-    return view('backend.statistics.ageCustom', compact('chartCollectionJson', 'specifiedKeys', 'title1'));
-}
-
-public function ageRangeStat() { return $this->ageStat('range'); }
-public function birthyearStat() { return $this->ageStat('year'); }
-
-/*
-    public function ageRangeStat() {
-        // 1. 抓出所有年齡與區域的統計數據
-        $applicants = Applicant::select(\DB::raw('
-                CONCAT(FLOOR((YEAR(CURDATE()) - birthyear)/10)*10,"-",FLOOR((YEAR(CURDATE()) - birthyear)/10)*10+9) as agerange, 
-                applicants.region,
-                count(*) as total
-            '))
+    /**
+     * 年齡與年次 萬能通用統計 (完美結合 $applicant->age 屬性)
+     *
+     * @param string $mode 'range' 呈現年齡層區間 / 'year' 呈現出生年次(歲)
+     * 年齡與年次 通用分區統計 (支援前端全區/分區切換)
+     */
+    public function ageStat($mode = 'range')
+    {
+        // 1. 撈取基礎數據 (包含 region)
+        $applicantsData = Applicant::select(\DB::raw('applicants.birthyear, applicants.region, count(*) as total, MAX(applicants.id) as sample_id'))
             ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
             ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->where('camps.id', $this->camp_id)
+            ->where('batchs.camp_id', $this->camp_id)
             ->whereNull('applicants.deleted_at')
-            ->groupBy('agerange', 'applicants.region')
-            ->orderBy('agerange')
+            ->groupBy('applicants.birthyear', 'applicants.region')
             ->get();
 
-        // 2. 【核心改動】從 Camp Model 取得該營隊有設定且排好序的區域名稱清單
-        // 假設 $this->camp 已經是當前營隊的 Model 實例
         $specifiedRegions = $this->getSpecifiedRegions();
-        // 例如抓出來會是：['北區', '竹區'] (順序已由關聯的 orderByRaw 決定)
+        $currentYear = now()->year;
 
-        // 3. 動態初始化資料容器
-        $rawGroupData = [
-            'all'   => [], // 全區
-            'other' => []  // 其它
-        ];
-        
-        $totals = [
-            'all'   => 0,
-            'other' => 0
-        ];
-
-        // 根據營隊綁定的指定分區，動態初始化容器
-        foreach ($specifiedRegions as $rName) {
-            $rawGroupData[$rName] = [];
-            $totals[$rName] = 0;
+        // 2. 初始化定義區間 (只有 range 模式需要固定順序)
+        $rangesOrder = [];
+        if ($mode === 'range') {
+            $rangesOrder = ['<=20', '21-30', '31-40', '41-50', '51-60', '61-70', '>70', '其它'];
+        } else {
+            // 年次模式：先收集所有出現過的精準年次標籤，確保等一下各分區的 key 順序完全一致
+            $tempYears = [];
+            foreach ($applicantsData as $r) {
+                if (!empty($r->birthyear)) $tempYears[] = $r->birthyear;
+            }
+            $tempYears = array_unique($tempYears);
+            sort($tempYears); // 由老到年輕排序
+            foreach ($tempYears as $y) {
+                $age = $currentYear - $y;   //只用year去計算年齡，有一點不精準。
+                $rangesOrder[] = $y . '(' . $age . ')';
+            }
+            $rangesOrder[] = '其它';
         }
 
-        // 4. 開始分流與累加資料
-        foreach ($applicants as $record) {
-            $record->setAppends([]);
-            
-            $ageRange = $record->agerange ?: '其它';
-            $region   = $record->region ? trim($record->region) : '';
-            $count    = intval($record->total);
+        // 3. 初始化各分區的暫存容器
+        $rawGroupData = ['all' => [], 'other' => []];
+        foreach ($specifiedRegions as $rName) { $rawGroupData[$rName] = []; }
 
-            // (A) 全區累加
-            $rawGroupData['all'][$ageRange] = ($rawGroupData['all'][$ageRange] ?? 0) + $count;
+        $totals = ['all' => 0, 'other' => 0];
+        foreach ($specifiedRegions as $rName) { $totals[$rName] = 0; }
+
+        // 預填容器確保順序一致
+        foreach (array_merge(['all', 'other'], $specifiedRegions) as $gKey) {
+            foreach ($rangesOrder as $label) { $rawGroupData[$gKey][$label] = 0; }
+        }
+
+        // 4. 開始分流計算
+        foreach ($applicantsData as $record) {
+            $birthyear = $record->birthyear;
+            $region = $record->region ? trim($record->region) : '';
+            $count = intval($record->total);
             $totals['all'] += $count;
 
-            // (B) 判斷是否屬於營隊指定的區域清單
+            // 計算對應的標籤
+            if (empty($birthyear)) {
+                $label = '其它';
+            } else {
+                $age = $currentYear - $birthyear;   //只用year去計算年齡，有一點不精準。
+                $label = $mode === 'range' 
+                    ? ($age <= 20 ? '<=20' : 
+                    ($age <= 30 ? '21-30' : 
+                    ($age <= 40 ? '31-40' : 
+                    ($age <= 50 ? '41-50' : 
+                    ($age <= 60 ? '51-60' : 
+                    ($age <= 70 ? '61-70' :
+                    '>70'))))))
+                    : $birthyear . '(' . $age . ')';
+            }
+
+            // 累加
+            $rawGroupData['all'][$label] += $count;
             if (in_array($region, $specifiedRegions)) {
-                // 自動動態歸類到對應的區域（例如：'北區' 或 '竹區'）
-                $rawGroupData[$region][$ageRange] = ($rawGroupData[$region][$ageRange] ?? 0) + $count;
+                $rawGroupData[$region][$label] += $count;
                 $totals[$region] += $count;
             } else {
-                // 其餘無填寫、或不在設定清單內的，歸入其它
-                $rawGroupData['other'][$ageRange] = ($rawGroupData['other'][$ageRange] ?? 0) + $count;
+                $rawGroupData['other'][$label] += $count;
                 $totals['other'] += $count;
             }
         }
 
-        // 5. 標準化為 Google Chart 格式
+        // 5. 組裝 Google Chart 格式
         $chartCols = [
-            ['id' => 'agerange', 'label' => '年齡級距', 'type' => 'string'],
+            ['id' => 'age_key', 'label' => $mode === 'range' ? '年齡級距' : '年次(歲)', 'type' => 'string'],
             ['id' => 'people', 'label' => '人數', 'type' => 'number'],
             ['id' => 'annotation', 'role' => 'annotation', 'type' => 'number']
         ];
 
-        // 動態建構前端顯示的正確順序與標題設定
-        // 結構會是：全區 -> 依序排出營隊設定的分區 -> 其它區域
-        $displayConfig = ['all' => '全區'];
-        foreach ($specifiedRegions as $rName) {
-            $displayConfig[$rName] = $rName;
-        }
-        $displayConfig['other'] = '其它區域';
-
+        $displayConfig = array_merge(['all' => '全區'], array_combine($specifiedRegions, $specifiedRegions), ['other' => '其它區域']);
         $chartCollection = [];
 
         foreach ($displayConfig as $key => $labelText) {
-            $dataArray = $rawGroupData[$key];
-            ksort($dataArray); // 排序年齡層 (0-9, 10-19...)
-            
             $rows = [];
-            foreach ($dataArray as $ageRange => $count) {
-                $rows[] = ['c' => [
-                    ['v' => $ageRange],
-                    ['v' => $count],
-                    ['v' => $count]
-                ]];
-            }
+            foreach ($rawGroupData[$key] as $labelName => $count) {
+                // 年次模式下，如果全區和分區該項目都是 0 就不塞入，優化畫面
+                if ($mode === 'year' && $rawGroupData['all'][$labelName] === 0) continue;
 
+                $rows[] = ['c' => [['v' => $labelName], ['v' => $count], ['v' => $count]]];
+            }
             $chartCollection[$key] = [
                 'label' => $labelText,
                 'total' => $totals[$key],
@@ -247,13 +136,15 @@ public function birthyearStat() { return $this->ageStat('year'); }
         }
 
         $chartCollectionJson = json_encode($chartCollection);
+        $specifiedKeys = $specifiedRegions;
+        $title1 = $mode === 'range' ? '年齡級距' : '年次(歲)';
 
-        // 同時把排好序的分區 Key 清單傳給前端，方便前端區分「全區」與「分區」模式
-        $specifiedKeys = $specifiedRegions; 
+        // 💡 傳遞給前端的新變數名
+        return view('backend.statistics.ageCustom', compact('chartCollectionJson', 'specifiedKeys', 'title1'));
+}
 
-        return view('backend.statistics.agerange', compact('chartCollectionJson', 'specifiedKeys'));
-    }
-*/
+    public function ageRangeStat() { return $this->ageStat('range'); }
+    public function birthyearStat() { return $this->ageStat('year'); }
 
     public function appliedDateStat() {
         // 1. 撈出所有日期與區域的報名統計
@@ -596,45 +487,6 @@ public function birthyearStat() { return $this->ageStat('year'); }
         $GChartData = json_encode($GChartData);
         return view('backend.statistics.county', compact('GChartData', 'total'));
     }
-/*
-    public function birthyearStat(){
-        $applicants = Applicant::select(\DB::raw('CONCAT(birthyear, "(", YEAR(CURDATE()) - birthyear, "歲)") as birthyear_label, birthyear, count(*) as total'))
-        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->where('camps.id', $this->camp_id)
-        ->whereNull('applicants.deleted_at')
-        ->groupBy('birthyear')
-        ->orderBy('birthyear', 'asc') // 'asc' 是從西元 1980, 1981... 這樣排 (由老到年輕)
-        ->get();
-
-        // 這裡數最快，且不會觸發 appends 計算
-        $rows = $applicants->count(); 
-        // 之後再處理陣列
-        $array = $applicants->each->setAppends([])->toArray();
-
-        $i = 0 ;
-        $total = 0 ;
-        $GChartData = array('cols'=> array(
-                        array('id'=>'birthyear','label'=>'年次(歲)','type'=>'string'),
-                        array('id'=>'people','label'=>'人數','type'=>'number'),
-                        array('id'=>'annotation','role'=>'annotation','type'=>'number')
-                    ),
-                    'rows' => array());
-        for($i = 0; $i < $rows; $i ++) {
-            $record = $array[$i];
-            array_push($GChartData['rows'], array('c' => array(
-                array('v' => $record['birthyear'] == null ? '其它' : $record['birthyear']),
-                array('v' => intval($record['total'])),
-                array('v' => intval($record['total']))
-            )));
-            $total = $total + $record['total'];
-        }
-        $GChartData = json_encode($GChartData);
-
-        return view('backend.statistics.birthyear', compact('GChartData',  'total'));
-    }
-*/
 
     public function batchesStat(){
         $applicants = Applicant::select(\DB::raw('batchs.name as batch, count(*) as total'))
@@ -826,108 +678,6 @@ public function birthyearStat() { return $this->ageStat('year'); }
         return view('backend.statistics.checkin', compact('GChartData',  'total', 'batches'));
     }
 
-/*
-    public function educationStat(){
-        $str = 'education';
-        if($this->camp_table == 'ycamp'){
-            $str = 'system';
-        }
-        $applicants = Applicant::select(\DB::raw($this->camp_table . '.' . $str . ' as education, count(*) as total'))
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-        ->join($this->camp_table, $this->camp_table . '.applicant_id', '=', 'applicants.id')
-        ->where('camps.id', $this->camp_id)
-        ->whereNull('applicants.deleted_at')
-        ->groupBy('education')->get();
-        $rows = $applicants->count();
-        $array = $applicants->toArray();
-
-        $i = 0 ;
-        $total = 0 ;
-        $GChartData = array('cols'=> array(
-                        array('id'=>'education','label'=>'學程','type'=>'string'),
-                        array('id'=>'people','label'=>'人數','type'=>'number'),
-                        array('id'=>'annotation','role'=>'annotation','type'=>'number')
-                    ),
-                    'rows' => array());
-        for($i = 0; $i < $rows; $i ++) {
-            $record = $array[$i];
-            array_push($GChartData['rows'], array('c' => array(
-                array('v' => $record['education'] == null ? '其它' : $record['education']),
-                array('v' => intval($record['total'])),
-                array('v' => intval($record['total']))
-            )));
-            $total = $total + $record['total'];
-        }
-        $GChartDataAll = json_encode($GChartData);
-
-        if($this->camp_table == "hcamp"){
-            $applicants = Applicant::select(\DB::raw($this->camp_table . '.education as education, count(*) as total'))
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->join($this->camp_table, $this->camp_table . '.applicant_id', '=', 'applicants.id')
-            ->where('camps.id', $this->camp_id)
-            ->where('applicants.gender', 'M')
-            ->groupBy($this->camp_table . '.education')->get();
-            $rows = $applicants->count();
-            $array = $applicants->toArray();
-
-            $i = 0 ;
-            $total = 0 ;
-            $GChartData = array('cols'=> array(
-                            array('id'=>'education','label'=>'學程','type'=>'string'),
-                            array('id'=>'people','label'=>'人數','type'=>'number'),
-                            array('id'=>'annotation','role'=>'annotation','type'=>'number')
-                        ),
-                        'rows' => array());
-            for($i = 0; $i < $rows; $i ++) {
-                $record = $array[$i];
-                array_push($GChartData['rows'], array('c' => array(
-                    array('v' => $record['education'] == null ? '其它' : $record['education']),
-                    array('v' => intval($record['total'])),
-                    array('v' => intval($record['total']))
-                )));
-                $total = $total + $record['total'];
-            }
-            $GChartDataM = json_encode($GChartData);
-
-            $applicants = Applicant::select(\DB::raw($this->camp_table . '.education as education, count(*) as total'))
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->join($this->camp_table, $this->camp_table . '.applicant_id', '=', 'applicants.id')
-            ->where('camps.id', $this->camp_id)
-            ->where('applicants.gender', 'M')
-            ->groupBy($this->camp_table . '.education')->get();
-            $rows = $applicants->count();
-            $array = $applicants->toArray();
-
-            $i = 0 ;
-            $total = 0 ;
-            $GChartData = array('cols'=> array(
-                            array('id'=>'education','label'=>'學程','type'=>'string'),
-                            array('id'=>'people','label'=>'人數','type'=>'number'),
-                            array('id'=>'annotation','role'=>'annotation','type'=>'number')
-                        ),
-                        'rows' => array());
-            for($i = 0; $i < $rows; $i ++) {
-                $record = $array[$i];
-                array_push($GChartData['rows'], array('c' => array(
-                    array('v' => $record['education'] == null ? '其它' : $record['education']),
-                    array('v' => intval($record['total'])),
-                    array('v' => intval($record['total']))
-                )));
-                $total = $total + $record['total'];
-            }
-            $GChartDataF = json_encode($GChartData);
-        } else {
-            $GChartDataM = json_encode($GChartData);
-            $GChartDataF = json_encode($GChartData);
-        }
-
-        return view('backend.statistics.education', compact('GChartDataAll', 'GChartDataM', 'GChartDataF', 'total'));
-    }
-*/
-
     public function educationStat()
     {
         return $this->customOptionStat('system', '就讀學程統計', 
@@ -1029,7 +779,7 @@ public function birthyearStat() { return $this->ageStat('year'); }
         // 3. 呼叫 Model 靜態方法：優先看資料庫客製化，沒有就吃傳入的預設值
         $optionsOrder = \App\Models\CampCustomOption::getProcessedOptions(
             $this->camp_id, 
-            null, // 統計看全營隊，梯次傳 null
+            ($this->batch_id ?? null), // 統計看全營隊，梯次傳 null
             $type, 
             $defaultFallback
         );

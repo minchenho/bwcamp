@@ -109,9 +109,15 @@ class BackendController extends Controller
                 }
             }
         } elseif ($this->camp_id) {
+
             //沒有$batch_id
             $this->middleware('permitted');
             $this->camp = Camp::find($this->camp_id);
+            
+            //如果只有一個梯次，就直接把 batch 資料撈出來，避免之後還要再查一次
+            $this->batch = ($this->camp->batches->count() == 1) ? $this->camp->batches->first() : null;
+            $this->batch_id = $this->batch ? $this->batch->id : null;
+
             $this->camp_table = $this->camp->table;
             if (is_null($this->camp)) {
                 echo "<h1>錯誤：查無營隊資料。</h1>" . "<br>";
