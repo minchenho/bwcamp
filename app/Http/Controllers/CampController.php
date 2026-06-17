@@ -297,18 +297,14 @@ class CampController extends Controller
         }
         // 營隊報名
         else {
+            // 【修改處 1】優化防重複報名檢查：直接利用新增的 camp_id 欄位過濾，不再需要 JOIN batchs 表
             $applicant = Applicant::select('applicants.*')
                 ->join($this->camp_info->table, 'applicants.id', '=', $this->camp_info->table . '.applicant_id')
-                ->join('batchs', 'applicants.batch_id', '=', 'batchs.id')
-                //->join('batchs', function($query) {
-                //    $query->on('batchs.camp_id', '=', 'camps.id')
-                //            ->on('batchs.id', '=', 'applicants.batch_id');
-                //})
-                //->join('camps', 'camps.id', '=', 'batchs.camp_id')
-                ->where('batchs.camp_id', $this->camp_info->id)
+                ->where('applicants.camp_id', $this->camp_info->id)
                 ->where('applicants.name', $request->name)
-                ->where('email', $request->email)
+                ->where('applicants.email', $request->email)
                 ->withTrashed()->first();
+                
             if ($applicant) {
                 if ($applicant->trashed()) {
                     $applicant->restore();
@@ -355,6 +351,10 @@ class CampController extends Controller
                 $controller = $this;
                 $applicant = \DB::transaction(function () use ($formData, $controller) {
                     DB::statement("SET SESSION sql_mode = '';");
+                    
+                    // 【修改處 2】寫入事務區塊：將營隊 camp_id 注入 formData 以寫入 applicants 表中
+                    $formData['camp_id'] = $this->camp_info->id;
+                    
                     $applicant = Applicant::create($formData);
                     $formData['applicant_id'] = $applicant->id;
                     $model = '\\App\\Models\\' . ucfirst($this->camp_info->table);
@@ -460,7 +460,8 @@ class CampController extends Controller
         }
 
         // 2. 驗證營隊所屬權限
-        if (!$applicant || $applicant->batch->camp_id != $this->camp_info->id) {
+        // 【修改處 3】優化權限驗證：直接比對 $applicant->camp_id，減少對 batch 關係的額外查詢
+        if (!$applicant || $applicant->camp_id != $this->camp_info->id) {
             return redirect()->back()->withErrors(['找不到報名資料，請確認查詢欄位及查詢營隊是否正確。']);
         }
         // 如果需排除特定欄位
@@ -639,8 +640,8 @@ class CampController extends Controller
         }
         // try-catch已處理applicant是否存在
         // 但仍需確認找到的applicant是否報名本營隊
-        //dd($applicant->batch->camp_id, $this->camp_info->id);
-        if ($applicant && !$applicant->deleted_at && $applicant->batch->camp_id == $this->camp_info->id) {
+        // 【修改處 4】錄取結果驗證：直接比對 $applicant->camp_id，免去關聯查詢
+        if ($applicant && !$applicant->deleted_at && $applicant->camp_id == $this->camp_info->id) {
             //使用報名者的報名日期來計算費率，避免修改資料後費率變動的問題
             $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
             [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
@@ -698,10 +699,10 @@ class CampController extends Controller
         return $pdf->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_info->table . $applicant->id . 'QR Code 報到單.pdf');
     }
 
+    // 【修改處 5】總人數統計優化：不再需要先撈 batchs 陣列，直接一行 SQL 用 camp_id 統計
     public function getCampTotalRegisteredNumber()
     {
-        $batches = Batch::where('camp_id', $this->camp_info->id)->get()->pluck('id');
-        return Applicant::whereIn('batch_id', $batches)->withTrashed()->count();
+        return Applicant::where('camp_id', $this->camp_info->id)->withTrashed()->count();
     }
 
     public function toggleAttend(Request $request)
