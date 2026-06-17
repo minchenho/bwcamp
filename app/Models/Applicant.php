@@ -18,7 +18,7 @@ class Applicant extends Model
 
     //
     protected $fillable = [
-        'batch_id', 'name', 'english_name', 'region', 'region_id', 'avatar','gender',
+        'batch_id', 'camp_id', 'name', 'english_name', 'region', 'region_id', 'avatar','gender',
         'group_id', 'number_id', 'is_admitted', 'admitted_at', 'is_paid', 'is_attend',
         'birthyear', 'birthmonth', 'birthday', 'birthdate',
         'age_range', 'nationality', 'idno',
@@ -106,17 +106,17 @@ class Applicant extends Model
     public function batch()
     {
         //預設會使用 batch_id & id, 所以不需寫
-        return $this->belongsTo(Batch::class);
+        return $this->belongsTo(Batch::class, 'batch_id', 'id');
     }
 
     public function camp()
     {
-        return $this->hasOneThrough(Camp::class, Batch::class, 'id', 'id', 'batch_id', 'camp_id');
+        return $this->belongsTo(Camp::class, 'camp_id', 'id');
     }
 
     public function vcamp()
     {
-        return $this->hasOneThrough(Vcamp::class, Batch::class, 'id', 'id', 'batch_id', 'camp_id');
+        return $this->belongsTo(Vcamp::class, 'camp_id', 'id');
     }
 
     /*重複
