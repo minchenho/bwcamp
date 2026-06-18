@@ -8,23 +8,14 @@
     $imgicon = asset("img/{$camp_info->year}ceocampIcon.png");
     $imgbg   = asset("img/{$camp_info->year}ceocampBackground.png");
     
-    $is_central = 0; //是否為中區場，預設為0(非中區場)
     if(str_contains($camp_info->name, "北區")) {
         $county_local = "台北及新北";
     }
-    else { 
-        //南區場才檢查是否variant=中區場
-        $is_central = (($_GET['variant'] ?? '') === 'central') ? 1 : 0;
-        $county_local = $is_central ? "台中" : "屏東"; 
+    elseif (str_contains($camp_info->name, "中區"))
+        $county_local = "台中";
+    else {
+        $county_local = "屏東"; 
     }
-    
-    //$is_central override
-    $locationName = $is_central ? "國立勤益科技大學" : $camp_info->locationName;
-    $first_line   = strstr($camp_info->contact_card, '\n', 1);
-    $contact_card = $is_central ? $first_line : $camp_info->contact_card;
-    $fn_postfix   = $is_central ? "中區場" : $camp_info->name;
-    $batch_start  = $is_central ? "2026-07-25" : $camp_info->batch_start;
-    $batch_end    = $is_central ? "2026-07-26" : $camp_info->batch_end;
 @endphp
 <!DOCTYPE html>
 <html data-bs-theme="light" lang="zh-Hant">
@@ -71,7 +62,7 @@
         <div class="container"><a class="navbar-brand d-flex align-items-center" href="{{ $camp_info->site_url }}" target="_blank"><span
                     style="font-family: Abel, sans-serif;color: rgb(46,83,99);"><span
                         style="color: rgb(40, 100, 80);">{{ $camp_info->year }}企業菁英生命成長營推薦 </span><span
-                        style="color: rgb(123, 83, 130);">{{ $locationName }}梯 </span></span></a><button data-bs-toggle="collapse"
+                        style="color: rgb(123, 83, 130);">{{ $camp_info->locationName }}梯 </span></span></a><button data-bs-toggle="collapse"
                 class="navbar-toggler" data-bs-target="#navcol-1"
                 style="width: 43px;height: 40px;padding: 0px 0px;background: rgba(255,255,255,0.3);"><span
                     class="visually-hidden">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
@@ -94,7 +85,7 @@
             <p style="text-align: left;margin: 0px;">
                 <span style="color: rgb(33, 37, 41); background-color: rgba(220, 220, 220, 0);">
                     若您在填寫表格時遇到困難，請洽詢：<br>
-                    {{ $contact_card }}
+                    {{ $camp_info->contact_card }}
                 </span>
             </p>
         </div>
@@ -244,7 +235,7 @@
                                                             <span style="color: rgb(60, 145, 190); background-color: rgba(220, 220, 220, 0);">知悉並告知被推薦人</span>
                                                         </strong>
                                                         <span style="color: rgb(35, 35, 35); background-color: rgba(220, 220, 220, 0);">：
-                                                            營隊活動地點為{{ $locationName }}，配合 {{ substr($batch_start,5,5) }}~{{ substr($batch_end,5,5) }} 兩天課程，{{ $county_local }}以外縣市學員，若由主辦單位安排 {{ substr($batch_start,5,5) }} 晚間住宿者，費用以報名區域為準。
+                                                            營隊活動地點為{{ $camp_info->locationName }}，配合 {{ substr($camp_info->batch_start,5,5) }}~{{ substr($camp_info->batch_end,5,5) }} 兩天課程，{{ $county_local }}以外縣市學員，若由主辦單位安排 {{ substr($camp_info->batch_start,5,5) }} 晚間住宿者，費用以報名區域為準。
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -254,12 +245,12 @@
                                                 <td style="font-size: initial;background: rgba(173,192,224,0.3);padding: 5px 40px;border-style: none;border-color: rgb(255,255,255);border-radius: 30px;">
                                                     <span style="color: rgb(33, 37, 41); background-color: rgba(220, 220, 220, 0);">
                                                         若有需要，可下載&nbsp;</span>
-                                                    <a href="{{ asset('downloads/ceocamp/'. $camp_info->year . '菁英營學員推薦表_' . $fn_postfix . '.docx') }}" 
+                                                    <a href="{{ asset('downloads/ceocamp/'. $camp_info->year . '菁英營學員推薦表_' . $camp_info->name . '.docx') }}" 
                                                     target="_blank"><strong>
                                                         <span style="color: rgb(50, 125, 70); background-color: rgba(220, 220, 220, 0);">學員推薦表WORD檔</span>
                                                     </strong></a>&nbsp;
                                                     <span style="color: rgb(33, 37, 41); background-color: rgba(220, 220, 220, 0);">或&nbsp;</span>
-                                                    <a href="{{ asset('downloads/ceocamp/'. $camp_info->year . '菁英營學員推薦表_' . $fn_postfix . '.pdf') }}" 
+                                                    <a href="{{ asset('downloads/ceocamp/'. $camp_info->year . '菁英營學員推薦表_' . $camp_info->name  . '.pdf') }}" 
                                                     target="_blank"><strong>
                                                         <span style="color: rgb(50, 125, 70); background-color: rgba(220, 220, 220, 0);">學員推薦表PDF檔</span>
                                                     </strong></a>
@@ -308,15 +299,10 @@
                                         <td
                                             style="color: rgba(255,255,255,0);background: rgba(255,255,255,0);border-style: none;">
                                             <span style="color: rgb(0, 0, 0);" class="required">區域別：&nbsp;</span>
-                                            @if($is_central)
-                                                    <input checked readonly type="radio" value="中區" name="region" required>
-                                                    <span style="color: rgb(0, 0, 0);"> 中區　</span>
-                                            @else
                                                 @foreach ($regions as $region)
                                                     <input type="radio" value="{{ $region->name }}" name="region" required>
                                                     <span style="color: rgb(0, 0, 0);"> {{ $region->name }}　</span>
                                                 @endforeach
-                                            @endif
                                             <br>
                                             <sup><span style="color: rgb(255, 0, 0);">建議根據被推薦人的工作/生活地區選擇</span></sup>
                                         </td>
