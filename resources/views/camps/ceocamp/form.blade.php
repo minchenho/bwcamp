@@ -1,13 +1,21 @@
 @php
+    session_start();
     header('Cache-Control: no-cache, no-store, must-revalidate, post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
     header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
     header('Expires: Fri, 01 Jan 1990 00:00:00 GMT');
     $regions = $camp_info->regions;
-    if(str_contains($camp_info->name, "北區")) {$county_local = "台北及新北";}
-    else { $county_local = "屏東"; }
     $imgicon = asset("img/{$camp_info->year}ceocampIcon.png");
-    $imgbg= asset("img/{$camp_info->year}ceocampBackground.png");   
+    $imgbg   = asset("img/{$camp_info->year}ceocampBackground.png");
+    
+    if(str_contains($camp_info->name, "北區")) {
+        $county_local = "台北及新北";
+    }
+    elseif (str_contains($camp_info->name, "中區"))
+        $county_local = "台中";
+    else {
+        $county_local = "屏東"; 
+    }
 @endphp
 <!DOCTYPE html>
 <html data-bs-theme="light" lang="zh-Hant">
@@ -54,7 +62,7 @@
         <div class="container"><a class="navbar-brand d-flex align-items-center" href="{{ $camp_info->site_url }}" target="_blank"><span
                     style="font-family: Abel, sans-serif;color: rgb(46,83,99);"><span
                         style="color: rgb(40, 100, 80);">{{ $camp_info->year }}企業菁英生命成長營推薦 </span><span
-                        style="color: rgb(123, 83, 130);">{{ $camp_info->locationName }}梯</span></span></a><button data-bs-toggle="collapse"
+                        style="color: rgb(123, 83, 130);">{{ $camp_info->locationName }}梯 </span></span></a><button data-bs-toggle="collapse"
                 class="navbar-toggler" data-bs-target="#navcol-1"
                 style="width: 43px;height: 40px;padding: 0px 0px;background: rgba(255,255,255,0.3);"><span
                     class="visually-hidden">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
@@ -77,7 +85,7 @@
             <p style="text-align: left;margin: 0px;">
                 <span style="color: rgb(33, 37, 41); background-color: rgba(220, 220, 220, 0);">
                     若您在填寫表格時遇到困難，請洽詢：<br>
-                    {!! nl2br(e(str_replace('\n', "\n", $camp_info->contact_card))) !!}
+                    {{ $camp_info->contact_card }}
                 </span>
             </p>
         </div>
@@ -242,7 +250,7 @@
                                                         <span style="color: rgb(50, 125, 70); background-color: rgba(220, 220, 220, 0);">學員推薦表WORD檔</span>
                                                     </strong></a>&nbsp;
                                                     <span style="color: rgb(33, 37, 41); background-color: rgba(220, 220, 220, 0);">或&nbsp;</span>
-                                                    <a href="{{ asset('downloads/ceocamp/'. $camp_info->year . '菁英營學員推薦表_' . $camp_info->name . '.pdf') }}" 
+                                                    <a href="{{ asset('downloads/ceocamp/'. $camp_info->year . '菁英營學員推薦表_' . $camp_info->name  . '.pdf') }}" 
                                                     target="_blank"><strong>
                                                         <span style="color: rgb(50, 125, 70); background-color: rgba(220, 220, 220, 0);">學員推薦表PDF檔</span>
                                                     </strong></a>
@@ -292,8 +300,8 @@
                                             style="color: rgba(255,255,255,0);background: rgba(255,255,255,0);border-style: none;">
                                             <span style="color: rgb(0, 0, 0);" class="required">區域別：&nbsp;</span>
                                                 @foreach ($regions as $region)
-                                                     <input type="radio" value="{{ $region->name }}" name="region" required>
-                                                     <span style="color: rgb(0, 0, 0);"> {{ $region->name }}　</span>
+                                                    <input type="radio" value="{{ $region->name }}" name="region" required>
+                                                    <span style="color: rgb(0, 0, 0);"> {{ $region->name }}　</span>
                                                 @endforeach
                                             <br>
                                             <sup><span style="color: rgb(255, 0, 0);">建議根據被推薦人的工作/生活地區選擇</span></sup>

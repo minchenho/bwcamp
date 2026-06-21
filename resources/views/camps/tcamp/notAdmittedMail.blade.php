@@ -1,6 +1,6 @@
 <style>
     u{
-        @if($applicant->batch->camp->variant == "utcamp")
+        @if($campInfo->variant == "utcamp")
             color: red;
         @endif
     }
@@ -13,7 +13,7 @@
         text-align: right;
     }
 </style>
-    <h2 class="center">{{ $applicant->batch->camp->fullName }}&emsp;報名結果通知單</h2>
+    <h2 class="center">{{ $campInfo->fullName }}&emsp;報名結果通知單</h2>
 
     &emsp;&emsp;敬愛的教育夥伴，您好！ <br>
     &emsp;&emsp;「教師生命成長營」自舉辦以來，每年都得到教育夥伴們的支持和肯定，思及社會上仍有這麼多人共同關心莘莘學子們的學習成長，令人深感振奮！每一位老師的報名都是鼓舞我們的一分力量，激勵基金會全體人員持續不懈，與大家共同攜手為教育盡心盡力。<br><br>

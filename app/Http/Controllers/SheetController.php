@@ -609,125 +609,155 @@ class SheetController extends Controller
         $camp = Camp::find($request->camp_id);
         $table = $camp->table;
         $fare_room = config('camps_payments.fare_room.' . $table) ?? [];
+        $update_count = 0;
 
-        //maybe more than one
-        $dss = DynamicStat::select('dynamic_stats.*')
-            ->where('urltable_id', $request->camp_id)
+        $dss = DynamicStat::where('urltable_id', $request->camp_id)
             ->where('urltable_type', 'App\Models\Camp')
             ->where('purpose', 'importForm')
             ->get();
 
-        if ($dss == null) {
+        if ($dss->isEmpty()) {
             \Log::info("sheet not found\n");
-            exit(1);
+            return 0; // 改用 return 避免直接 exit 破壞 Laravel 生命週期
         }
 
         foreach ($dss as $ds) {
-            $sheet_id = $ds->spreadsheet_id;
-            $sheet_name = $ds->sheet_name;
-            $sheets = $this->gsheetservice->Get($sheet_id, $sheet_name);
+            $sheets = $this->gsheetservice->Get($ds->spreadsheet_id, $ds->sheet_name);
+            if (empty($sheets)) {
+                continue;
+            }
 
             $titles = $sheets[0];
             $num_cols = count($titles);
             $num_rows = count($sheets);
 
-            $title_tg = array("報名序號", "是否參加營隊", "住宿房型", "繳費");
-            $colidx = array(-1, -1, -1, -1);
+            $title_tg = ["報名序號", "是否參加營隊", "住宿房型", "繳費"];
+            $colidx = [-1, -1, -1, -1];
             $jcnt = count($title_tg);
-            //find title
+
+            // 尋找標題索引
             for ($i = 0; $i < $num_cols; $i++) {
                 for ($j = 0; $j < $jcnt; $j++) {
                     if (str_contains($titles[$i], $title_tg[$j])) {
                         $colidx[$j] = $i;
-                        continue;
                     }
                 }
+            }
+
+            // 【新增安全檢查】如果連「報名序號」都找不到，這一頁就無法處理
+            if ($colidx[0] === -1) {
+                \Log::error("找不到『報名序號』欄位，跳過此工作表。");
+                continue;
             }
 
             if ($table == 'ceocamp') {
-                //$success_count = 0;
-                //$fail_count = 0;
-                $ids = array();
-                $is_attends = array();
-                $room_types = array();
+                $ids = [];
+                $is_attends = [];
+                $room_types = [];
+
                 for ($j = 1; $j < $num_rows; $j++) {
                     $data = $sheets[$j];
-                    if (count($data) > 2) { //已調查
-                        array_push($ids, $data[$colidx[0]]);
-                        //$is_attends[$data[$colidx1]] = ($data[$colidx2]?? "");
-                        if (isset($data[$colidx[1]])) {
-                            if ($data[$colidx[1]] == "是") {
-                                $is_attends[$data[$colidx[0]]] = 1;
-                            } elseif ($data[$colidx[1]] == "否") {
-                                $is_attends[$data[$colidx[0]]] = 0;
-                            } else {
-                                $is_attends[$data[$colidx[0]]] = 2;
-                            }
+                    
+                    // 【優化】確保報名序號欄位在該行陣列中存在
+                    if (!isset($data[$colidx[0]]) || $data[$colidx[0]] == "") {
+                        continue;
+                    }
+
+                    $app_id = $data[$colidx[0]];
+                    $ids[] = $app_id;
+
+                    // 【安全檢查】使用 isset 避免陣列長度不足導致的越界錯誤
+                    if ($colidx[1] !== -1 && isset($data[$colidx[1]])) {
+                        if (str_contains($data[$colidx[1]], "是")) {
+                            $is_attends[$app_id] = 1;
+                        } elseif (str_contains($data[$colidx[1]], "否")) {
+                            $is_attends[$app_id] = 0;
+                        } else {
+                            $is_attends[$app_id] = 2;
                         }
-                        $room_types[$data[$colidx[0]]] = ($data[$colidx[2]] ?? "");
+                    }
+
+                    if ($colidx[2] !== -1 && isset($data[$colidx[2]])) {
+                        $room_types[$app_id] = $data[$colidx[2]];
+                    } else {
+                        $room_types[$app_id] = "";
                     }
                 }
 
-                $applicants = Applicant::select('applicants.*')
-                    ->whereIn('id', $ids)->get();
-                try {
-                    foreach ($applicants as $applicant) {
-                        //dd($applicant->id);
-                        $applicant->is_attend = ($is_attends[$applicant->id] ?? null);
-                        if ($room_types[$applicant->id] == "") {
-                            $applicant->save();
-                        } else {
-                            $lodging = $applicant->lodging;
-                            //尚未登記，建新的Lodging
-                            if (!isset($lodging)) {
-                                $lodging = new Lodging();
-                                $lodging->applicant_id = $applicant->id;
+                // 【優化】使用 with 預先載入 lodging，避免迴圈內重複查詢 (解決 N+1 問題)
+                $applicants = Applicant::with('lodging')->whereIn('id', $ids)->get();
+
+                foreach ($applicants as $applicant) {
+                    try {
+                        // 使用 DB 交易（Transaction）確保資料一致性
+                        \DB::transaction(function () use ($applicant, $is_attends, $room_types, $fare_room, &$update_count) {
+                            $applicant->is_attend = $is_attends[$applicant->id] ?? null;
+                            
+                            $room_type = $room_types[$applicant->id] ?? "";
+                            if ($room_type !== "") {
+                                $lodging = $applicant->lodging;
+                                if (!$lodging) {
+                                    $lodging = new Lodging();
+                                    $lodging->applicant_id = $applicant->id;
+                                }
+                                $lodging->room_type = $room_type;
+                                $lodging->nights = 1;
+                                $lodging->fare = ($fare_room[$room_type] ?? 0) * $lodging->nights;
+                                $lodging->save();
+
+                                // 重新計算條碼與付款資料
+                                $applicant = $this->applicantService->fillPaymentData($applicant);
                             }
-                            //更新房型、天數及應繳車資
-                            $lodging->room_type = $room_types[$applicant->id];
-                            $lodging->nights = 1;
-                            $lodging->fare = ($fare_room[$lodging->room_type] ?? 0) * ($lodging->nights ?? 0);
-                            $lodging->save();
-                            //dd($lodging);
-                            //update barcode
-                            $applicant = $this->applicantService->fillPaymentData($applicant);
                             $applicant->save();
-                        }
+                            $update_count++;
+                        });
+                    } catch (\Exception $e) {
+                        \Log::error("更新申請者 ID {$applicant->id} 失敗: " . $e->getMessage());
                     }
-                } catch (\Exception $e) {
-                    logger($e);
                 }
+
             } elseif ($table == 'utcamp') {
-                $ids = array();
-                $deposits = array();
+                // 【安全檢查】確認繳費欄位存在
+                if ($colidx[3] === -1) {
+                    \Log::error("utcamp 模式下找不到『繳費』欄位");
+                    continue;
+                }
+
+                $ids = [];
+                $deposits = [];
+
                 for ($j = 1; $j < $num_rows; $j++) {
                     $data = $sheets[$j];
-                    if (count($data) < $num_cols) {
-                        break;
+
+                    // 【優化】改用 isset 檢查，因為 Google Sheet 空白尾欄會直接不回傳
+                    if (!isset($data[$colidx[0]]) || !isset($data[$colidx[3]])) {
+                        continue;
                     }
+
                     $app_id = preg_replace("/[^0-9]/", "", $data[$colidx[0]]);
                     $deposit = preg_replace("/[^0-9.]/", "", $data[$colidx[3]]);
+                    
                     if ($app_id == "") {
                         continue;
                     }
-                    array_push($ids, $app_id);
+
+                    $ids[] = $app_id;
                     $deposits[$app_id] = $deposit;
                 }
-                $applicants = Applicant::select('applicants.*')
-                    ->whereIn('id', $ids)->get();
 
-                $update_count = 0;
-                try {
-                    foreach ($applicants as $applicant) {
-                        $applicant->deposit = $deposits[$applicant->id];
+                $applicants = Applicant::whereIn('id', $ids)->get();
+
+                foreach ($applicants as $applicant) {
+                    try {
+                        $applicant->deposit = $deposits[$applicant->id] ?? 0;
                         $applicant->save();
                         $update_count++;
+                    } catch (\Exception $e) {
+                        \Log::error("更新 utcamp 申請者 ID {$applicant->id} 失敗: " . $e->getMessage());
                     }
-                } catch (\Exception $e) {
-                    logger($e);
                 }
             }
         }
-        return($update_count);
+        return $update_count;
     }
 }
