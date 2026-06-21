@@ -63,13 +63,17 @@ class Kernel extends ConsoleKernel
 
         // 其他營隊匯出排程
         $schedule->command('export:Applicant 125')->dailyAt("0:10"); // ceovcamp_n
-        $schedule->command('export:Applicant 129')->dailyAt("0:20"); // ceovcamp_s
-        $schedule->command('export:Applicant 124')->dailyAt("0:30"); // ceocamp_n
-        $schedule->command('export:Applicant 128')->dailyAt("0:40"); // ceocamp_s
+        $schedule->command('export:Applicant 129')->dailyAt("0:18"); // ceovcamp_s
+        $schedule->command('export:Applicant 133')->dailyAt("0:26"); // ceovcamp_c
+        $schedule->command('export:Applicant 124')->dailyAt("0:34"); // ceocamp_n
+        $schedule->command('export:Applicant 128')->dailyAt("0:42"); // ceocamp_s
+        $schedule->command('export:Applicant 132')->dailyAt("0:50"); // ceocamp_c
         $schedule->command('export:Applicant 120')->dailyAt("1:00"); // ecamp_n
         $schedule->command('export:Applicant 122')->dailyAt("1:30"); // ecamp_s
+        $schedule->command('export:Applicant 130')->dailyAt("1:50"); // ecamp_c
         $schedule->command('export:Applicant 121')->dailyAt("2:00"); // evcamp_n
         $schedule->command('export:Applicant 123')->dailyAt("2:30"); // evcamp_s
+        $schedule->command('export:Applicant 131')->dailyAt("2:50"); // evcamp_c
         $schedule->command('export:Applicant 126')->dailyAt("3:00"); // ycamp
         // $schedule->command('export:Applicant 108')->dailyAt("0:30");  // tcamp
 
