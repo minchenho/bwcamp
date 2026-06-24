@@ -94,11 +94,10 @@ class ApplicantService
      */
     public function fetchApplicantData($camp_id, $table, $idOrName = null, $group = null, $number = null)
     {
-        $applicant = Applicant::select('applicants.*', $table . '.*', $table . '.id as ""')
+        // 🚀 【重大優化】利用新欄位 camp_id 直球對決，移除原本對 batchs 和 camps 的龐大 JOIN
+        $applicant = Applicant::select('applicants.*', $table . '.*')
             ->join($table, 'applicants.id', '=', $table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->where('camps.id', $camp_id)
+            ->where('applicants.camp_id', $camp_id) // 完美啟動 idx_camp_active_applicants 複合索引！
             ->where(function ($query) use ($idOrName, $group, $number) {
                 if ($idOrName) {
                     $query->where('applicants.id', $idOrName);
