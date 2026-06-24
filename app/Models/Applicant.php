@@ -79,7 +79,7 @@ class Applicant extends Model
     public function batch()
     {
         //預設會使用 batch_id & id, 所以不需寫
-        return $this->belongsTo(Batch::class);
+        return $this->belongsTo(Batch::class, 'batch_id', 'id');
     }
 
     public function camp()

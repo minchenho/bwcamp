@@ -109,9 +109,15 @@ class BackendController extends Controller
                 }
             }
         } elseif ($this->camp_id) {
+
             //沒有$batch_id
             $this->middleware('permitted');
             $this->camp = Camp::find($this->camp_id);
+            
+            //如果只有一個梯次，就直接把 batch 資料撈出來，避免之後還要再查一次
+            $this->batch = ($this->camp->batches->count() == 1) ? $this->camp->batches->first() : null;
+            $this->batch_id = $this->batch ? $this->batch->id : null;
+
             $this->camp_table = $this->camp->table;
             if (is_null($this->camp)) {
                 echo "<h1>錯誤：查無營隊資料。</h1>" . "<br>";
@@ -194,9 +200,8 @@ class BackendController extends Controller
 
         $camps2 = Camp::whereIn('id', $camps2Ids)->get();
 
-    // ✨ 關鍵改動：將兩組集合合併，並在「最後」統一依據 ID 倒序排列（從大到小）
-    // 如果想要從小到大，請把 sortByDesc('id') 改成 sortBy('id')
-    $finalCamps = $camps->merge($camps2)->sortByDesc('id');
+        // ✨ 將兩組集合合併，並在「最後」統一依據 ID 倒序排列（從大到小）
+        $finalCamps = $camps->merge($camps2)->sortByDesc('id');
 
         return view('backend.MasterIndex')->with("camps", $finalCamps);
     }
@@ -208,13 +213,13 @@ class BackendController extends Controller
 
     public function admission(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $message = null;
@@ -285,13 +290,13 @@ class BackendController extends Controller
 
     public function batchAdmission(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         if ($request->isMethod('POST')) {
@@ -362,13 +367,13 @@ class BackendController extends Controller
 
     public function showBatchCandidate(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $applicants = explode(",", $request->snORadmittedSN);
@@ -398,13 +403,13 @@ class BackendController extends Controller
 
     public function showCandidate(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $result = [];
@@ -465,7 +470,7 @@ class BackendController extends Controller
 
     public function showRegistration()
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
@@ -478,13 +483,13 @@ class BackendController extends Controller
     public function showRegistrationUpload()
     {
         //權限??
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        $batches = $this->campFullData->batchs;
+        $batches = $this->camp_info->batchs;
         return view('backend.registration.registrationUpload', compact('batches'));
     }
 
@@ -562,13 +567,13 @@ class BackendController extends Controller
 
     public function showRegistrationList()
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $batches = Batch::where("camp_id", $this->camp_id)->get();
@@ -579,13 +584,13 @@ class BackendController extends Controller
 
     public function getRegistrationList(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
 
@@ -714,7 +719,7 @@ class BackendController extends Controller
                 }
 
                 // 簽到退時間
-                $signAvailabilities = $this->campFullData->allSignAvailabilities;
+                $signAvailabilities = $this->camp_info->allSignAvailabilities;
                 $signData = [];
                 $signDateTimesCols = [];
 
@@ -737,7 +742,7 @@ class BackendController extends Controller
                 }
             }
 
-            $fileName = $this->campFullData->abbreviation . $query . Carbon::now()->format('YmdHis') . '.csv';
+            $fileName = $this->camp_info->abbreviation . $query . Carbon::now()->format('YmdHis') . '.csv';
             $headers = array(
                 "Content-Encoding"    => "Big5",
                 "Content-type"        => "text/csv; charset=big5",
@@ -832,7 +837,7 @@ class BackendController extends Controller
 
     public function changeBatchOrRegion(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
@@ -856,7 +861,7 @@ class BackendController extends Controller
 
     public function massChangeBatchOrRegion(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
@@ -941,13 +946,13 @@ class BackendController extends Controller
 
     public function showGroupList()
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
 
@@ -992,13 +997,13 @@ class BackendController extends Controller
 
     public function showSectionList(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
 
@@ -1021,22 +1026,24 @@ class BackendController extends Controller
             }
             $orgs = $org_parent->children;
         }
-        $campFullData = $this->campFullData;
+        $campFullData = $this->camp_info;
         return view('backend.registration.sectionList', compact('campFullData', 'orgs', 'org_parent'));
     }
 
     public function showNotAdmitted()
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData) && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info) && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp) && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
-        $batches = Batch::where('camp_id', $this->camp_id)->get();
+        //$batches = Batch::where('camp_id', $this->camp_id)->get();
+        $batches = $this->camp->batches;
+        $applicants_not_admitted = 
         $batches->each(
             fn ($batch) =>
                 $batch->applicants = Applicant::select("applicants.*", $this->camp_table . ".*", "batchs.name as bName", "applicants.id as sn", "applicants.created_at as applied_at")
@@ -1064,13 +1071,13 @@ class BackendController extends Controller
     }
     public function showGroup(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $batch_id = $request->route()->parameter('batch_id');
@@ -1122,7 +1129,7 @@ class BackendController extends Controller
                                 ])->values();
 
         $template = $request->template ?? 0;
-        $camp = $this->campFullData;
+        $camp = $this->camp_info;
 
         if (isset($request->download) && $template == 2) {
             $form_title = "報名報到暨宿舍安排單";
@@ -1150,12 +1157,12 @@ class BackendController extends Controller
 
         if (isset($request->download)) {
             if ($template == 1) { //名單樣板=名單for now
-                $fileName = $this->campFullData->abbreviation . $group . "組名單樣板" . Carbon::now()->format('YmdHis') . '.csv';
+                $fileName = $this->camp_info->abbreviation . $group . "組名單樣板" . Carbon::now()->format('YmdHis') . '.csv';
             } elseif ($template == 51) {
                 $form_title = "報到學員名單";
-                $fileName = $this->campFullData->abbreviation . $group . $form_title . Carbon::now()->format('YmdHis') .'.csv';
+                $fileName = $this->camp_info->abbreviation . $group . $form_title . Carbon::now()->format('YmdHis') .'.csv';
             } else {    //名單
-                $fileName = $this->campFullData->abbreviation . $group . "組名單" . Carbon::now()->format('YmdHis') . '.csv';
+                $fileName = $this->camp_info->abbreviation . $group . "組名單" . Carbon::now()->format('YmdHis') . '.csv';
             }
 
             $headers = array(
@@ -1229,13 +1236,13 @@ class BackendController extends Controller
 
     public function showSection(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $camp_id = $request->route()->parameter('camp_id'); //vcamp_id
@@ -1261,13 +1268,13 @@ class BackendController extends Controller
 
     public function showGroupAttendList()
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $batches = Batch::where('camp_id', $this->camp_id)->get()->all();
@@ -1423,13 +1430,13 @@ class BackendController extends Controller
 
     public function showTrafficListLoc(Request $request)
     {
-        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $this->user->id > 2) {
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何學員</h3>";
         }
         if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && $this->user->id > 2) {
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         $batch_id = $_GET['batch_id'] ?? null;
@@ -1461,7 +1468,7 @@ class BackendController extends Controller
                                     ['is_paid', 'desc']
                                 ])->values();
         $batch = Batch::find($batch_id);
-        $camp = $this->campFullData;
+        $camp = $this->camp_info;
         if ($depart_from) {
             $direction = "去程";
             $location = $depart_from;
@@ -1472,7 +1479,7 @@ class BackendController extends Controller
         $columns = $this->getFormColumns('form_traffic_loc');
 
         if ($download) {
-            $fileName = $this->campFullData->abbreviation . $batch->name . "梯" . $direction .$location . Carbon::now()->format('YmdHis') . '.csv';
+            $fileName = $this->camp_info->abbreviation . $batch->name . "梯" . $direction .$location . Carbon::now()->format('YmdHis') . '.csv';
             $headers = array(
                     "Content-Encoding"    => "Big5",
                     "Content-type"        => "text/csv; charset=big5",
@@ -1521,7 +1528,7 @@ class BackendController extends Controller
     {
         ini_set('max_execution_time', -1);
         ini_set("memory_limit", -1);
-        $camp = $this->campFullData->vcamp;
+        $camp = $this->camp_info->vcamp;
         $batches = Batch::where("camp_id", $camp->id)->get();
         $query = Applicant::select("applicants.*", $camp->table . ".*", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
                         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
@@ -1836,10 +1843,10 @@ class BackendController extends Controller
             $dynamic_stats = $dynamic_stats->merge($role->dynamic_stats ?? null);
         }
 
-        if (!$user->canAccessResource(new \App\Models\Applicant(), 'read', $this->campFullData, 'onlyCheckAvailability') && $user->id > 2) {
+        if (!$user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $user->id > 2) {
             return "<h3>沒有權限瀏覽任何學員，或您尚未被指派任何學員</h3>";
         }
-        if (!$this->isVcamp && $this->campFullData->access_end && Carbon::now()->gt($this->campFullData->access_end)) {
+        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
         }
         ini_set('max_execution_time', -1);
@@ -1929,17 +1936,17 @@ class BackendController extends Controller
         }
 
         if ($this->usePermissionOptimization) {
-            $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->campFullData);
+            $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->camp_info);
             $applicants = $applicants->filter(fn ($applicant) => $accessResults->get($applicant->id, false));
         } else {
-            $applicants = $applicants->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->campFullData, target: $applicant));
+            $applicants = $applicants->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant));
         }
 
         // $applicants = $applicants->filter(function ($applicant) {
         //     // 先檢查快取
         //     $cacheKey = "user_{$this->user->id}_can_access_{$applicant->id}";
         //     return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($applicant) {
-        //         return $this->user->canAccessResource($applicant, 'read', $this->campFullData, target: $applicant);
+        //         return $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant);
         //     });
         // });
 
@@ -1948,7 +1955,7 @@ class BackendController extends Controller
 
         // foreach ($chunks as $chunk) {
         //     $jobs = $chunk->map(function ($applicant) {
-        //         return new CheckResourceAccessJob($applicant, $this->user, $this->campFullData);
+        //         return new CheckResourceAccessJob($applicant, $this->user, $this->camp_info);
         //     });
 
         //     Bus::batch($jobs)->dispatch();
@@ -2009,9 +2016,9 @@ class BackendController extends Controller
                 'is_ingroup' => 0,
                 'groupName' => '',
                 'columns_zhtw' => $columns_zhtw,
-                'fullName' => $this->campFullData->fullName,
+                'fullName' => $this->camp_info->fullName,
                 'queryStr' => $queryStr ?? null,
-                'groups' => $this->campFullData->groups,
+                'groups' => $this->camp_info->groups,
                 'targetGroupIds' => $target_group_ids ?? null,
                 'dynamic_stats' => $dynamic_stats
             ])
@@ -2023,7 +2030,7 @@ class BackendController extends Controller
     {
         ini_set('max_execution_time', -1);
         ini_set("memory_limit", -1);
-        if (!$this->campFullData->vcamp) {
+        if (!$this->camp_info->vcamp) {
             return "<h1>尚未設定對應之義工營。</h1>";
         }
         if ($request->isMethod("post")) {
@@ -2031,19 +2038,19 @@ class BackendController extends Controller
             if (count($payload) == 1) {
                 return back()->withErrors(['未設定任何條件。']);
             }
-            [$queryStr, $queryRoles, $showNoJob] = $this->backendService->volunteerQueryStringParser($payload, $request, $this->campFullData);
+            [$queryStr, $queryRoles, $showNoJob] = $this->backendService->volunteerQueryStringParser($payload, $request, $this->camp_info);
         } else {
             $queryStr = null;
             $queryRoles = null;
             $showNoJob = null;
         }
-        $batches = Batch::where("camp_id", $this->campFullData->vcamp->id)->get();
+        $batches = Batch::where("camp_id", $this->camp_info->vcamp->id)->get();
         $query = Applicant::with('groupRelation', 'groupOrgRelation', 'batch', 'contactlog', 'user')
-                        ->select("applicants.*", $this->campFullData->vcamp->table . ".*", $this->campFullData->vcamp->table . ".id as ''", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
+                        ->select("applicants.*", $this->camp_info->vcamp->table . ".*", $this->camp_info->vcamp->table . ".id as ''", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
                         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
                         ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-                        ->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id')
-                        ->where('camps.id', $this->campFullData->vcamp->id)
+                        ->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id')
+                        ->where('camps.id', $this->camp_info->vcamp->id)
                         ->whereDoesntHave('user')
                         ->withTrashed()->orderBy('deleted_at', 'asc');
         ;
@@ -2070,7 +2077,7 @@ class BackendController extends Controller
                 'application_log.user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id),  // applicant-list 顯示用的資料
                 'application_log.user.roles.batch',
                 'application_log' => function ($query) use ($filtered_batches) {
-                    $query->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id');
+                    $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                     $query->whereIn('batch_id', $filtered_batches->pluck('id'));
                 },  'application_log.groupRelation',
                     'application_log.groupOrgRelation',
@@ -2091,7 +2098,7 @@ class BackendController extends Controller
                     }
                 })
                 ->whereHas('application_log', function ($query) use ($batches) {
-                    $query->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id');
+                    $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                     $query->whereIn('batch_id', $batches->pluck('id'));
                 });
             if ($request->isMethod("post")) {
@@ -2100,7 +2107,7 @@ class BackendController extends Controller
                         $registeredUsers = $registeredUsers->whereDoesntHave('application_log.user.roles');
                     } else {
                         $application_log_constraint = function ($query) use ($queryStr, $batches) {
-                            $query->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id');
+                            $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                             $query->whereIn('batch_id', $batches->pluck('id'))
                                 ->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
@@ -2126,7 +2133,7 @@ class BackendController extends Controller
                 } else {
                     $registeredUsers = $registeredUsers->when($queryStr != "(1 = 1)", function ($query) use ($queryStr, $batches) {
                         $query->whereHas('application_log', function ($query) use ($queryStr, $batches) {
-                            $query->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id')
+                            $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id')
                                 ->whereIn('batch_id', $batches->pluck('id'))
                                 ->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
@@ -2142,10 +2149,10 @@ class BackendController extends Controller
                 'application_log.user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id),  // applicant-list 顯示用的資料
                 'application_log.user.roles.batch',
                 'application_log' => function ($query) use ($filtered_batches) {
-                    $query->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id');
+                    $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                     $query->whereIn('batch_id', $filtered_batches->pluck('id'));
                 },
-                'application_log.' .  $this->campFullData->vcamp->table,
+                'application_log.' .  $this->camp_info->vcamp->table,
                 'application_log.groupRelation',
                 'application_log.groupOrgRelation',
                 'application_log.batch',
@@ -2153,7 +2160,7 @@ class BackendController extends Controller
             ])->select('users.*')
             ->join('user_applicant_xrefs', 'users.id', '=', 'user_applicant_xrefs.user_id')
             ->join('applicants', 'user_applicant_xrefs.applicant_id', '=', 'applicants.id')
-            ->join($this->campFullData->vcamp->table . ' as evcamp', 'applicants.id', '=', 'evcamp.applicant_id')
+            ->join($this->camp_info->vcamp->table . ' as evcamp', 'applicants.id', '=', 'evcamp.applicant_id')
             ->leftJoin('org_user', function ($join) {
                 $join->on('users.id', '=', 'org_user.user_id')
                     ->where('org_user.user_type', 'AppModelsUser');
@@ -2191,7 +2198,7 @@ class BackendController extends Controller
                         $registeredUsers = $registeredUsers->whereDoesntHave('application_log.user.roles');
                     } else {
                         $application_log_constraint = function ($query) use ($queryStr, $batches) {
-                            $query->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id');
+                            $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                             $query->whereIn('batch_id', $batches->pluck('id'))
                                 ->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
@@ -2223,26 +2230,26 @@ class BackendController extends Controller
             $registeredUsers = $registeredUsers->distinct()->get();
         }
         if ($this->usePermissionOptimization) {
-            $accessResults = $this->user->batchCanAccessResources($registeredUsers, 'read', $this->campFullData, 'vcamp');
+            $accessResults = $this->user->batchCanAccessResources($registeredUsers, 'read', $this->camp_info, 'vcamp');
             $registeredUsers = $registeredUsers->filter(fn ($user) => $accessResults->get($user->id, false));
-            $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->campFullData, 'vcamp');
+            $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->camp_info, 'vcamp');
             $applicants = $applicants->filter(fn ($applicant) => $accessResults->get($applicant->id, false));
         } else {
-            $registeredUsers = $registeredUsers->filter(fn ($user) => $this->user->canAccessResource($user, 'read', $this->campFullData, target: $user, context: 'vcamp'));
-            $applicants = $applicants->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->campFullData, target: $applicant, context: 'vcamp'));
+            $registeredUsers = $registeredUsers->filter(fn ($user) => $this->user->canAccessResource($user, 'read', $this->camp_info, target: $user, context: 'vcamp'));
+            $applicants = $applicants->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant, context: 'vcamp'));
         }
         // $registeredUsers = $registeredUsers->filter(function ($user) {
         //     // 先檢查快取
         //     $cacheKey = "user_{$this->user->id}_can_access_user_{$user->id}";
         //     return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($user) {
-        //         return $this->user->canAccessResource($user, 'read', $this->campFullData, target: $user, context: 'vcamp');
+        //         return $this->user->canAccessResource($user, 'read', $this->camp_info, target: $user, context: 'vcamp');
         //     });
         // });
         // $applicants = $applicants->filter(function ($applicant) {
         //     // 先檢查快取
         //     $cacheKey = "user_{$this->user->id}_can_access_{$applicant->id}";
         //     return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($applicant) {
-        //         return $this->user->canAccessResource($applicant, 'read', $this->campFullData, target: $applicant, context: 'vcamp');
+        //         return $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant, context: 'vcamp');
         //     });
         // });
 
@@ -2252,7 +2259,7 @@ class BackendController extends Controller
             $isSetting = 0;
         }
 
-        $camp_str = $this->campFullData->vcamp->table;
+        $camp_str = $this->camp_info->vcamp->table;
         $columns_zhtw = config('camps_fields.display.' . $camp_str);
 
         $request->flash();
@@ -2269,8 +2276,8 @@ class BackendController extends Controller
                 'is_ingroup' => 0,
                 'groupName' => '',
                 'columns_zhtw' => $columns_zhtw,
-                'fullName' => $this->campFullData->fullName,
-                'groups' => $this->campFullData->roles,
+                'fullName' => $this->camp_info->fullName,
+                'groups' => $this->camp_info->roles,
                 'queryStr' => $queryStr ?? '',
                 'queryRoles' => $queryRoles ?? ''
             ])
@@ -2283,10 +2290,10 @@ class BackendController extends Controller
         ini_set('memory_limit', -1);
         ini_set('max_execution_time', 0);
         if ($request->input('vcamp')) {
-            $camp = Camp::find($this->campFullData->vcamp->id);
+            $camp = Camp::find($this->camp_info->vcamp->id);
             $filename = $camp->fullName . '義工名單' . Carbon::now()->format('YmdHis') .  '.xlsx';
         } else {
-            $camp = $this->campFullData;
+            $camp = $this->camp_info;
             $filename = $camp->fullName . '學員名單' . Carbon::now()->format('YmdHis') .  '.xlsx';
         }
 
@@ -2298,7 +2305,7 @@ class BackendController extends Controller
 
     public function showCarers(Request $request)
     {
-        if (!$this->campFullData->vcamp) {
+        if (!$this->camp_info->vcamp) {
             return "<h1>尚未設定對應之義工營。</h1>";
         }
         if ($request->isMethod("post")) {
@@ -2345,12 +2352,12 @@ class BackendController extends Controller
                 }
             }
         }
-        $batches = Batch::where("camp_id", $this->campFullData->vcamp->id)->get();
-        $query = Applicant::select("applicants.*", $this->campFullData->vcamp->table . ".*", $this->campFullData->vcamp->table . ".id as ''", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
+        $batches = Batch::where("camp_id", $this->camp_info->vcamp->id)->get();
+        $query = Applicant::select("applicants.*", $this->camp_info->vcamp->table . ".*", $this->camp_info->vcamp->table . ".id as ''", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
             ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
             ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->join($this->campFullData->vcamp->table, 'applicants.id', '=', $this->campFullData->vcamp->table . '.applicant_id')
-            ->where('camps.id', $this->campFullData->vcamp->id)->withTrashed();
+            ->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id')
+            ->where('camps.id', $this->camp_info->vcamp->id)->withTrashed();
         if ($request->isMethod("post")) {
             $query = $queryStr != "" ? $query->where(\DB::raw($queryStr), 1) : $query;
         }
@@ -2366,7 +2373,7 @@ class BackendController extends Controller
             $isSetting = 0;
         }
 
-        $camp_str = $this->campFullData->vcamp->table;
+        $camp_str = $this->camp_info->vcamp->table;
         $columns_zhtw = config('camps_fields.display.' . $camp_str);
 
         $request->flash();
@@ -2383,8 +2390,8 @@ class BackendController extends Controller
                 'is_ingroup' => 1,
                 'groupName' => '第1組',
                 'columns_zhtw' => $columns_zhtw,
-                'fullName' => $this->campFullData->fullName,
-                'groups' => $this->campFullData->roles,
+                'fullName' => $this->camp_info->fullName,
+                'groups' => $this->camp_info->roles,
                 'queryStr' => $queryStr ?? ''
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
@@ -2431,7 +2438,7 @@ class BackendController extends Controller
         if (!$download) {
             return view('backend.registration.accounting')->with('accountings', $accountings);
         } else {
-            $fileName = $this->campFullData->abbreviation . "銷帳資料" . Carbon::now()->format('YmdHis') . '.csv';
+            $fileName = $this->camp_info->abbreviation . "銷帳資料" . Carbon::now()->format('YmdHis') . '.csv';
             $headers = array(
                 "Content-Encoding"    => "Big5",
                 "Content-type"        => "text/csv; charset=big5",
@@ -2562,7 +2569,7 @@ class BackendController extends Controller
             }
         } else { //$request->isMethod('GET')
             $title = "現場手動繳費 / 修改繳費資料";
-            $campFullData = $this->campFullData;
+            $campFullData = $this->camp_info;
             return view("backend.findApplicant", compact("campFullData", "title"));
         }
     }
@@ -2599,7 +2606,7 @@ class BackendController extends Controller
             }
         } else { //$request->isMethod('GET')
             $title = "設定取消參加";
-            $campFullData = $this->campFullData;
+            $campFullData = $this->camp_info;
             return view("backend.findApplicant", compact("campFullData", "title"));
         }
     }
