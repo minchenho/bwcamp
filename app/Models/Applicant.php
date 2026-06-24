@@ -29,15 +29,8 @@ class Applicant extends Model
         'portrait_agree', 'profile_agree', 'expectation','fee', 'tax_id_no', 'created_at'
     ];
 
-    //gender
-    //顯示中文： {{ $applicant->gender->label() }}
-    //程式判斷： if ($applicant->gender === Gender::Male) (不需要再寫死字串 'M')
-    //自動轉換： 當你儲存資料時 $applicant->gender = Gender::Female，Laravel 會自動幫你存入 F。
-
     protected $casts = [
         'admitted_at' => 'datetime',    //自訂的timestamp欄位必須主動宣告
-        //'gender' => Gender::class,
-        //'is_attend' => AttendanceStatus::class,
     ];
 
     protected $appends = [
@@ -66,21 +59,6 @@ class Applicant extends Model
         'is_attend_chn',
         ];
 
-    //先記錄一部分，主要想辨識 mobile/tel/email
-    /*public $fieldTypes = [
-        'mobile' => 'tel',
-        'phone_home' => 'tel',
-        'phone_work' => 'tel',
-        'emergency_mobile'=> 'tel',
-        'emergency_phone_home' => 'tel',
-        'emergency_phone_work' => 'tel',
-        'introducer_phone' => 'tel',
-        'email' => 'email',
-        'introducer_email' => 'email',
-        'line' => 'social',
-        'wechat' => 'social',
-    ];*/
-
     public $resourceNameInMandarin = '一般學員資料';
 
     public $resourceDescriptionInMandarin = '學員報名表或詳細資料頁面中的資料。';
@@ -98,11 +76,6 @@ class Applicant extends Model
         }
     }
 
-    //    public function roles()
-    //    {
-    //        return $this->user()->first()?->belongsToMany(CampOrg::class, 'org_user', 'user_id', 'org_id')->where('camp_id', $this->camp->id) ?? collect([]);
-    //    }
-
     public function batch()
     {
         //預設會使用 batch_id & id, 所以不需寫
@@ -111,12 +84,58 @@ class Applicant extends Model
 
     public function camp()
     {
-        return $this->belongsTo(Camp::class, 'camp_id', 'id');
+        // 🚀 核心優化：直接走 camp_id 欄位，刪除原本痛苦的 hasOneThrough
+        return $this->belongsTo(Camp::class, 'camp_id');
     }
 
     public function vcamp()
     {
-        return $this->belongsTo(Vcamp::class, 'camp_id', 'id');
+        // 同理，如果虛擬營隊也是跟 camp_id 綁定，直接改為 belongsTo
+        return $this->belongsTo(Vcamp::class, 'camp_id');
+    }
+
+    /**
+     * 作用域：只撈取未取消報名的有效學員
+     * 用法：Applicant::active()
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNull('deleted_at');
+    }
+
+    /**
+     * 作用域：快速撈取特定營隊的有效學員 (完美觸發 idx_camp_active_applicants 複合索引)
+     * 用法：Applicant::ofCamp($campId)->get();
+     */
+    public function scopeOfCamp($query, $campId)
+    {
+        return $query->where('camp_id', $campId)->active();
+    }
+
+    /**
+     * 作用域：快速撈取特定梯次的有效學員 (完美觸發 applicants_batch_id_deleted_at_index 複合索引)
+     * 用法：Applicant::ofBatch($batchId)->get();
+     */
+    public function scopeOfBatch($query, $batchId)
+    {
+        return $query->where('batch_id', $batchId)->active();
+    }
+
+    /**
+     * Model 的啟動與事件監聽
+     */
+    protected static function booted()
+    {
+        static::creating(function ($applicant) {
+            // 防呆機制：如果存檔時有填 batch_id，但是沒填 camp_id
+            if ($applicant->batch_id && !$applicant->camp_id) {
+                // 自動透過梯次關聯，把正確的 camp_id 撈出來補上，確保反正規化資料百分之百完美同步！
+                $batch = Batch::find($applicant->batch_id);
+                if ($batch) {
+                    $applicant->camp_id = $batch->camp_id;
+                }
+            }
+        });
     }
 
     /*重複
@@ -139,36 +158,6 @@ class Applicant extends Model
     {
         return $this->hasOne(Lodging::class, 'applicant_id', 'id');
     }
-
-    /*
-     * to replace all xcamp()
-     * in the future,
-     * camp_entry: individual applicant's preferences of the camp
-     * camp_info: the camp's (global) settings
-     */
-
-    /*public function __call($method, $parameters)
-    {
-        // 定義所有可能的營隊關鍵字
-        $camps = ['acamp', 'avcamp', 'actcamp', 'actvcamp',
-        'ceocamp', 'ceovcamp', 'ecamp', 'evcamp', 'hcamp', 'hvcamp',
-        'icamp', 'ivcamp', 'lrcamp', 'lrvcamp', 'mcamp', 'mvcamp',
-        'nycamp', 'nyvcamp', 'scamp', 'svcamp', 'tcamp', 'tvcamp',
-        'utcamp', 'utvcamp', 'wcamp', 'wvcamp', 'ycamp', 'yvcamp'];
-
-        if (in_array($method, $camps)) {
-            $model = "App\\Models\\" . ucfirst($method);
-
-            // 檢查類別是否存在，避免 Fatal Error
-            if (!class_exists($model)) {
-                // 回傳一個空的關聯或是拋出異常
-                throw new \Exception("Model {$model} dose not exist.");
-            }
-            return $this->hasOne($model, 'applicant_id', 'id');
-        }
-
-        return parent::__call($method, $parameters);
-    }*/
 
     public function acamp()
     {
