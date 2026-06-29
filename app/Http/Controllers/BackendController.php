@@ -1864,7 +1864,7 @@ class BackendController extends Controller
             $queryStr = $this->backendService->queryStringParser($payload, $request);
         }
         $query = Applicant::with('groupRelation', 'groupOrgRelation', 'batch')
-                        ->select("applicants.*", $this->camp_table . ".*", $this->camp_table . ".id as ''", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
+                        ->select("applicants.*", $this->camp_table . ".*", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
                         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
                         ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
                         ->where('applicants.camp_id', $this->camp_id)->withTrashed()->orderBy('deleted_at', 'asc')->orderBy('applicants.id', 'asc');
