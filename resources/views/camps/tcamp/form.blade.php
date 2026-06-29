@@ -9,8 +9,8 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     @include('partials.schools_script')
     @include('partials.counties_areas_script')
         <div class="alert alert-warning">
-            <h5>報名期間：{{ \Carbon\Carbon::parse($camp_data->registration_start)->translatedFormat("Y年m月d日(l)") }} 起至 {{ \Carbon\Carbon::parse($camp_data->registration_end)->translatedFormat("Y年m月d日(l)") }} 止</h5>
-            <h5>研習時間：{{ \Carbon\Carbon::parse($camp_data->batch_start)->translatedFormat("Y年m月d日(l)") }} 起至 {{ \Carbon\Carbon::parse($camp_data->batch_end)->translatedFormat("Y年m月d日(l)") }} 止</h5>
+            <h5>報名期間：{{ \Carbon\Carbon::parse($camp_info->registration_start)->translatedFormat("Y年m月d日(l)") }} 起至 {{ \Carbon\Carbon::parse($camp_info->registration_end)->translatedFormat("Y年m月d日(l)") }} 止</h5>
+            <h5>研習時間：{{ \Carbon\Carbon::parse($camp_info->batch_start)->translatedFormat("Y年m月d日(l)") }} 起至 {{ \Carbon\Carbon::parse($camp_info->batch_end)->translatedFormat("Y年m月d日(l)") }} 止</h5>
             <h5>研習時數：凡參加研習者依規定核發研習時數或數位研習證書</h5>
             <h6>指導單位：教育部生命教育中心</h6>
             <h6>主辦單位：財團法人福智文教基金會、國立屏東大學</h6>
@@ -21,7 +21,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     </div>
 
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }} 報名表</h4>
+        <h4>{{ $camp_info->fullName }} 報名表</h4>
     </div>
 <span id="tcamp-layout">
 {{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}
@@ -138,7 +138,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 -->
-    @if(!$camp_data->variant)
+    @if(!$camp_info->variant)
         <div class='row form-group required'>
             <label for='inputHasLicense' class='col-md-2 control-label text-md-right'>教師證</label>
             <div class='col-md-10'>
@@ -164,7 +164,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             <select required class='form-control' name='workshop_credit_type' placeholder='' onchange="id_setRequired(this)">
                 <option value="">- 請選擇 -</option>
                 <option value="不申請">不申請</option>
-                @if(!$camp_data->variant)
+                @if(!$camp_info->variant)
                     <option value="一般教師研習時數">一般教師研習時數</option>
                 @endif
                 <option value="公務員研習時數">公務員研習時數</option>
@@ -194,7 +194,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 --}}
-    @if(!$camp_data->variant)
+    @if(!$camp_info->variant)
         <div id="is-educating-section" class="m-0 p-0">
             <Is-Educating-Section></Is-Educating-Section>
         </div>
@@ -290,7 +290,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </div>
         </div>
 
-    @elseif($camp_data->variant == "utcamp")
+    @elseif($camp_info->variant == "utcamp")
         <div class="row form-group required">
             <label
                 for="inputSchoolOrCourse"
@@ -340,7 +340,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 
-    @if($camp_data->variant ?? null == 'utcamp')
+    @if($camp_info->variant ?? null == 'utcamp')
         <div class='row form-group'>
             <label for='inputTelHome' class='col-md-2 control-label text-md-right'>工作場所電話</label>
             <div class='col-md-10'>
@@ -761,7 +761,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             <label><input type="checkbox" name=info_source[] value='學校公文' > 學校公文</label> <br/>
             <label><input type="checkbox" name=info_source[] value='宣傳海報/小卡' > 宣傳海報/小卡</label> <br/>
             <label><input type="checkbox" name=info_source[] value='福智文教基金會官網' > 福智文教基金會官網</label> <br/>
-            @if(!isset($camp_data->variant) || $camp_data->variant != 'utcamp')
+            @if(!isset($camp_info->variant) || $camp_info->variant != 'utcamp')
                 <label><input type="checkbox" name=info_source[] value='幸福心學堂 Online 臉書' > 幸福心學堂 Online 臉書</label> <br/>
                 <!--<label><input type="checkbox" name=info_source[] value='哈特麥臉書' > 哈特麥臉書</label> <br/>-->
             @endif
@@ -769,7 +769,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 
-    @if(!isset($camp_data->variant) || $camp_data->variant != 'utcamp')
+    @if(!isset($camp_info->variant) || $camp_info->variant != 'utcamp')
         <div class='row form-group'>
             <label for='inputFuzhi' class='col-md-2 control-label text-md-right'>對哪些活動有興趣(可複選)</label>
             <div class='col-md-10'>

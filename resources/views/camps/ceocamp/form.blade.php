@@ -27,7 +27,7 @@
     <meta name='description' content='邀請您推薦報名參加菁英營。' />
     <meta name='author' content='福智文教基金會'>
     <meta property='og:url' content='http://bwfoce.org/ceocamp' />
-    <meta property='og:title' content='{{ $camp_data->abbreviation }}' />
+    <meta property='og:title' content='{{ $camp_info->abbreviation }}' />
     <meta property='og:description' content='邀請您推薦報名參加菁英營。' />
         <meta property="og:image" content='{{ $imgicon }}' />
         <meta property="og:image:width" content="800"/>

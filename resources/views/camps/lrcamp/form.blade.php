@@ -17,7 +17,7 @@
     </div>
 
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }}線上報名表</h4>
+        <h4>{{ $camp_info->fullName }}線上報名表</h4>
     </div>
 
 {{-- 使用舊資料報名：如果有batch_id_from參數的話(今年限2021&2022企業營，但沒有寫這個條件) --}}
@@ -698,7 +698,7 @@
                 <input type='reset' class='btn btn-danger' value='清除再來'>
             {{-- 以上皆非: 檢視資料狀態 --}}
             @else
-                @if(isset($camp_data->modifying_deadline) && \Carbon\Carbon::now() <= \Carbon\Carbon::createFromFormat("Y-m-d", $camp_data->modifying_deadline))
+                @if(isset($camp_info->modifying_deadline) && \Carbon\Carbon::now() <= \Carbon\Carbon::createFromFormat("Y-m-d", $camp_info->modifying_deadline))
                 <input type="hidden" name="sn" value="{{ $applicant_id }}">
                 <input type="hidden" name="isModify" value="1">
                 <button class="btn btn-primary">修改報名資料</button>

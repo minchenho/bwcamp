@@ -18,7 +18,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     @endif
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }}&nbsp;&nbsp;REGISTRATION</h4>
+        <h4>{{ $camp_info->fullName }}&nbsp;&nbsp;REGISTRATION</h4>
     </div>
 
 {{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}

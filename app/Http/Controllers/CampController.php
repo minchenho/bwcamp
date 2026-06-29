@@ -37,6 +37,7 @@ class CampController extends Controller
     protected $camp_table;
     protected $lodgingService;
     protected $trafficService;
+    protected $camp_data;
 
     /**
      * Create a new controller instance.
@@ -63,9 +64,11 @@ class CampController extends Controller
 
         // 動態載入電子郵件設定
         $this->setEmail($this->camp_table, $this->camp_info->variant);
+        $this->camp_data = $this->camp_info;
 
         View::share('batch_id', $this->batch_id);
         View::share('camp_info', $this->camp_info);
+        View::share('camp_data', $this->camp_data);
     }
 
     /**
