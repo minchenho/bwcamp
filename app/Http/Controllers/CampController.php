@@ -32,10 +32,9 @@ class CampController extends Controller
     protected $campDataService;
     protected $applicantService;
     protected $batch_id;
+    protected $camp_id;
     protected $camp_info;
-    protected $camp_data;
-    //protected $admission_announcing_date_Weekday;
-    //protected $admission_confirming_end_Weekday;
+    protected $camp_table;
     protected $lodgingService;
     protected $trafficService;
 
@@ -53,23 +52,20 @@ class CampController extends Controller
         // 營隊資料，存入 view 全域
         $this->batch_id = $request->route()->parameter('batch_id');
         $this->camp_info = $this->campDataService->getCampBatchInfo($this->batch_id);
+        $this->camp_id = $this->camp_info->id;
+        $this->camp_table = $this->camp_info->table;
 
         if (is_null($this->camp_info)) {
             // halt if no camp data found
             echo "查無營隊資料，請確認網址是否正確。" . "<br>";
             die();
         }
-        //$this->camp_info = $this->camp_info['camp_info']; //no need?
 
         // 動態載入電子郵件設定
-        $this->setEmail($this->camp_info->table, $this->camp_info->variant);
-
-        //backward compatible
-        $this->camp_data = $this->camp_info;
+        $this->setEmail($this->camp_table, $this->camp_info->variant);
 
         View::share('batch_id', $this->batch_id);
         View::share('camp_info', $this->camp_info);
-        View::share('camp_data', $this->camp_data);
     }
 
     /**
@@ -79,11 +75,11 @@ class CampController extends Controller
      */
     public function campIndex()
     {
-        if ($this->camp_data->site_url) {
-            return redirect()->to($this->camp_data->site_url);
+        if ($this->camp_info->site_url) {
+            return redirect()->to($this->camp_info->site_url);
         }
         $now = Carbon::now();
-        $registration_start = $this->camp_data->registration_start->startOfDay();
+        $registration_start = $this->camp_info->registration_start->startOfDay();
         if ($now->lt($registration_start)) {
             return '<div style="margin: atuo;">距離開始報名日，還有 <br><img src="http://s.mmgo.io/t/B7Aj" alt="motionmailapp.com" /></div>';
         }
@@ -105,29 +101,29 @@ class CampController extends Controller
         $registration_start = $this->camp_info->registration_start->startOfDay();
         $final_registration_end = $this->camp_info->final_registration_end?->endOfDay() ?? \Carbon\Carbon::today();
 
-        $fare_room = $this->lodgingService->getLodgingFare($this->camp_data, Carbon::today());
-        [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_data);
+        $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, Carbon::today());
+        [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
 
         if ($today > $registration_end && !isset($request->isBackend)) {
             //超過前台報名期限
-            return view('camps.' . $this->camp_data->table . '.outdated')->with('outdatedMessage', '報名期限已過，敬請見諒。');
+            return view('camps.' . $this->camp_table . '.outdated')->with('outdatedMessage', '報名期限已過，敬請見諒。');
         } elseif (isset($request->isBackend) && $today > $final_registration_end) {
             //超過後台最終報名期限
-            return view('camps.' . $this->camp_data->table . '.outdated')
+            return view('camps.' . $this->camp_table . '.outdated')
             ->with('isBackend', '超出最終報名日。')
             ->with('outdatedMessage', '報名期限已過，敬請見諒。');
         } elseif ($today < $registration_start && !isset($request->isBackend)) {
             //尚未開放
-            return view('camps.' . $this->camp_data->table . '.outdated')->with('outdatedMessage', '尚未開放報名。');
+            return view('camps.' . $this->camp_table . '.outdated')->with('outdatedMessage', '尚未開放報名。');
         } else {
             //prepare last_year_camps. may be null
             $last_year = $today->subYear(1)->year;
             $last_year_camps = Camp::select('camps.*')->with('batchs')
                     ->where('year', $last_year)
-                    ->where('table', $this->camp_info->table)
+                    ->where('table', $this->camp_table)
                     ->get();
 
-            return view('camps.' . $this->camp_info->table . '.form')
+            return view('camps.' . $this->camp_table . '.form')
                 ->with('isBackend', $request->isBackend)
                 ->with('batch', Batch::find($request->batch_id))
                 ->with('fare_room', $fare_room)
@@ -149,14 +145,14 @@ class CampController extends Controller
         if ($batch->is_late_registration_end) {
             $registration_end = $batch->late_registration_end->endOfDay();
         } else {
-            $registration_end = $this->camp_data->registration_end->endOfDay();
+            $registration_end = $this->camp_info->registration_end->endOfDay();
         }
         $registration_start = $this->camp_info->registration_start->startOfDay();
         $final_registration_end = $this->camp_info->final_registration_end?->endOfDay() ?? \Carbon\Carbon::today();
         $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, Carbon::today());
         [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
 
-        return view('camps.' . $this->camp_data->table . '.form_mockup')
+        return view('camps.' . $this->camp_table . '.form_mockup')
             ->with('isBackend', $request->isBackend)
             ->with('batch', Batch::find($request->batch_id))
             ->with('fare_room', $fare_room)
@@ -217,7 +213,7 @@ class CampController extends Controller
 
         if (!$request->region_id || $request->region_id == '') {
             if ($request->region != '') {
-                $region = $this->camp_data->regions->where('name', $request->region)->first();
+                $region = $this->camp_info->regions->where('name', $request->region)->first();
                 if ($region) {
                     $request->request->add(['region_id' => $region->id]);
                 }
@@ -228,7 +224,7 @@ class CampController extends Controller
         if (isset($request->applicant_id) && !isset($request->useOldData2Register)) {
             $request = $this->campDataService->checkBoxToArray($request);
             $formData = $request->toArray();
-            $formData = $this->campDataService->handleRegion($formData, $this->camp_data->table, $this->camp_data->id);
+            $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
 
             try {
                 $disk = \Storage::disk('local');
@@ -262,7 +258,7 @@ class CampController extends Controller
                     }
                 }
                 $applicant = Applicant::where('id', $formData['applicant_id'])->first();
-                $model = '\\App\\Models\\' . ucfirst($this->camp_info->table);
+                $model = '\\App\\Models\\' . ucfirst($this->camp_table);
                 $camp = $model::where('applicant_id', $formData['applicant_id'])->first();
                 $applicantFillable = $applicant->getFillable();
                 $campFillable = $camp->getFillable();
@@ -293,14 +289,44 @@ class CampController extends Controller
             $applicant->save();
 
             $isModify = 1;
-            return view('camps.' . $this->camp_info->table . '.success', compact('applicant', 'isModify'));
+            return view('camps.' . $this->camp_table . '.success', compact('applicant', 'isModify'));
         }
         // 營隊報名
         else {
+
+            // 1. 定義你要查找的條件
+            $criteria = [
+                'name'  => $request->name,
+                'email' => $request->email,
+            ];
+
+            // 2. 直接呼叫通用的 Service 方法（一行搞定查詢與關聯載入）
+            $applicant = $this->applicantService->findApplicantWithCriteria($criteria, $this->camp_info);
+    
+            if ($applicant) {
+                // 如果被軟刪除了，直接還原
+                if ($applicant->trashed()) {
+                    $applicant->restore();
+                }
+
+            // 3. 丟進先前重構好的資料打平方法（完全不會重複查詢資料庫）
+            [$applicant, $applicantData] = $this->applicantService->getApplicantData(
+                $applicant, 
+                $this->camp_table
+            );
+
+    return view('camps.' . $this->camp_table . '.success', [
+        'isRepeat' => "您已報名過，請勿重複報名。底下顯示為您之前的報名序號。",
+        'applicant' => $applicant,
+        'applicantData' => $applicantData
+    ]);
+}
+
+
             // 【修改處 1】優化防重複報名檢查：直接利用新增的 camp_id 欄位過濾，不再需要 JOIN batchs 表
             $applicant = Applicant::select('applicants.*')
-                ->join($this->camp_info->table, 'applicants.id', '=', $this->camp_info->table . '.applicant_id')
-                ->where('applicants.camp_id', $this->camp_info->id)
+                ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
+                ->where('applicants.camp_id', $this->camp_id)
                 ->where('applicants.name', $request->name)
                 ->where('applicants.email', $request->email)
                 ->withTrashed()->first();
@@ -310,7 +336,7 @@ class CampController extends Controller
                     $applicant->restore();
                 }
                 return view(
-                    'camps.' . $this->camp_info->table . '.success',
+                    'camps.' . $this->camp_table . '.success',
                     //['isRepeat' => "已成功報名，請勿重複送出報名資料。",
                     ['isRepeat' => "您已報名過，請勿重複報名。底下顯示為您之前的報名序號。",
                     'applicant' => $applicant]
@@ -322,11 +348,11 @@ class CampController extends Controller
                     'status' => 'success'
                 ])->setStatusCode(200);
             } else {
-                \Sentry::captureMessage('Registration from camp ID: ' . $this->camp_info->id);
+                \Sentry::captureMessage('Registration from camp ID: ' . $this->camp_id);
                 $request = $this->campDataService->checkBoxToArray($request);
                 $formData = $request->toArray();
                 $formData['batch_id'] = isset($formData["set_batch_id"]) ? $formData["set_batch_id"] : $this->batch_id;
-                $formData = $this->campDataService->handleRegion($formData, $this->camp_info->table, $this->camp_info->id);
+                $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
 
                 try {
                     $disk = \Storage::disk('local');
@@ -353,11 +379,11 @@ class CampController extends Controller
                     DB::statement("SET SESSION sql_mode = '';");
                     
                     // 【修改處 2】寫入事務區塊：將營隊 camp_id 注入 formData 以寫入 applicants 表中
-                    $formData['camp_id'] = $this->camp_info->id;
+                    $formData['camp_id'] = $this->camp_id;
                     
                     $applicant = Applicant::create($formData);
                     $formData['applicant_id'] = $applicant->id;
-                    $model = '\\App\\Models\\' . ucfirst($this->camp_info->table);
+                    $model = '\\App\\Models\\' . ucfirst($this->camp_table);
                     $model::create($formData);
                     if (isset($formData['depart_from']) || isset($formData['back_to'])) {
                         $this->trafficService->updateApplicantTraffic($applicant, $this->camp_info, $formData['depart_from'] ?? null, $formData['back_to'] ?? null);
@@ -381,7 +407,7 @@ class CampController extends Controller
             }
         }
 
-        return view('camps.' . $this->camp_info->table . '.success')->with('applicant', $applicant);
+        return view('camps.' . $this->camp_table . '.success')->with('applicant', $applicant);
     }
 
     public function campRegistrationFormCopy(Request $request)
@@ -420,13 +446,13 @@ class CampController extends Controller
         ->with('useOldData2Register', true)                     //新增：使用舊資料報名
         ->with('batch', $batchCopy)
         ->with('camp_info', $campCopy)
-        ->with('camp_data', $campCopy);
+        ->with('camp_info', $campCopy);
     }
 
     public function campQueryRegistrationDataPage(Request $request)
     {
         //$request->batch_id_from can be null
-        return view('camps.' . $this->camp_info->table . '.query')
+        return view('camps.' . $this->camp_table . '.query')
             ->with('batch_id_from', $request->batch_id_from);
     }
 
@@ -449,7 +475,7 @@ class CampController extends Controller
             'sn' => 'required|integer',
         ]);
 
-        $campTable = $this->camp_info->table;
+        $campTable = $this->camp_table;
         $formPath = "camps.{$campTable}" . (in_array($campTable, ['ecamp', 'ceocamp']) ? '.form_bak' : '.form');
 
         // 1. 取得報名者資料 (封裝邏輯以減少重複的 try-catch)
@@ -461,7 +487,7 @@ class CampController extends Controller
 
         // 2. 驗證營隊所屬權限
         // 【修改處 3】優化權限驗證：直接比對 $applicant->camp_id，減少對 batch 關係的額外查詢
-        if (!$applicant || $applicant->camp_id != $this->camp_info->id) {
+        if (!$applicant || $applicant->camp_id != $this->camp_id) {
             return redirect()->back()->withErrors(['找不到報名資料，請確認查詢欄位及查詢營隊是否正確。']);
         }
         // 如果需排除特定欄位
@@ -497,7 +523,6 @@ class CampController extends Controller
             'batch_id'           => $applicant->batch_id,
             'batch'              => $batch,
             //'camp_info'          => $this->camp_info, //已在建構子用 View::share 全域傳了，這邊就不需要了
-            //'camp_data'          => $this->camp_data, //己在建構子用 View::share 全域傳了，這邊就不需要了
             'isModify'           => $isModify,
             'isBackend'          => $request->isBackend,
             'fare_room'          => $fare_room,
@@ -510,7 +535,6 @@ class CampController extends Controller
             $batchFrom = Batch::find($request->batch_id_from);
             $campFrom = $batchFrom->camp;
             $viewData['camp_info'] = $campFrom;
-            $viewData['camp_data'] = $campFrom;
             $viewData['batch_id_from'] = $request->batch_id_from;
             $viewData['camp_abbr_from'] = $campFrom->abbreviation;
         }
@@ -538,7 +562,7 @@ class CampController extends Controller
 
     public function campGetApplicantSN(Request $request)
     {
-        $campTable = $this->camp_info->table;
+        $campTable = $this->camp_table;
         $applicant = Applicant::select('applicants.id', 'applicants.email', 'applicants.name')
                     ->join($campTable, 'applicants.id', '=', $campTable . '.applicant_id')
                     ->where('batch_id', $this->batch_id)
@@ -566,7 +590,6 @@ class CampController extends Controller
 
         if ($applicant) {
             // 寄送報名序號
-            // Mail::to($applicant)->send(new ApplicantMail($applicant, $this->camp_info, true));
             SendApplicantMail::dispatch($applicant->id, $this->camp_info, true);    //isGetSN=true
             return view($viewPath, compact('applicant'));
         } else {
@@ -578,7 +601,7 @@ class CampController extends Controller
     public function campViewAdmission()
     {
         $camp = $this->camp_info;
-        return view('camps.' . $this->camp_info->table . ".queryadmission", compact('camp'));
+        return view('camps.' . $this->camp_table . ".queryadmission", compact('camp'));
     }
 
     public function campConfirmCancel(Request $request)
@@ -589,7 +612,7 @@ class CampController extends Controller
                         ->withTrashed()
                         ->first();
         if ($applicant) {
-            return view('camps.' . $this->camp_info->table . '.confirm_cancel', compact('applicant'));
+            return view('camps.' . $this->camp_table . '.confirm_cancel', compact('applicant'));
         } else {
             return back()->withInput()->withErrors(["找不到報名資料，請確認是否已成功報名，或是輸入了錯誤的查詢資料。"]);
         }
@@ -599,7 +622,7 @@ class CampController extends Controller
     {
         try {
             if (Applicant::find($request->sn)->delete()) {
-                return view('camps.' . $this->camp_info->table . '.cancel_successful');
+                return view('camps.' . $this->camp_table . '.cancel_successful');
             }
         } catch (\Exception $e) {
             logger($e);
@@ -611,14 +634,14 @@ class CampController extends Controller
     {
         if (Applicant::withTrashed()->find($request->sn)->restore()) {
             $applicant = Applicant::find($request->sn);
-            return view('camps.' . $this->camp_info->table . '.restore_successful', compact('applicant'));
+            return view('camps.' . $this->camp_table . '.restore_successful', compact('applicant'));
         }
         return "<h2>回復時發生未預期錯誤，請向主辦方回報。</h2>";
     }
 
     public function campQueryAdmission(Request $request)
     {
-        $campTable = $this->camp_info->table;
+        $campTable = $this->camp_table;
 
         $request->validate([
             'name' => [
@@ -633,15 +656,19 @@ class CampController extends Controller
 
         if ($request->name != null && $request->sn != null) {
             try {
+                // applicant is applicant with campTable, lodging, traffic
                 [$applicant, $applicant_data] = $this->applicantService->getApplicantData($request->sn, $campTable, $request->name);
             } catch (ModelNotFoundException $e) {
-                return redirect()->back()->withErrors(['找不到報名資料，請確認查詢欄位是否填寫正確，或者是否已成功報名。']);
+                // 表單錯誤
+                return back()->withInput()->withErrors(['找不到報名資料，請確認查詢欄位是否填寫正確，或者是否已成功報名。']);
+            } catch (\Exception $e) {
+                // 系統錯誤
+                return back()->withInput()->with('error', $e->getMessage());
             }
         }
         // try-catch已處理applicant是否存在
-        // 但仍需確認找到的applicant是否報名本營隊
-        // 【修改處 4】錄取結果驗證：直接比對 $applicant->camp_id，免去關聯查詢
-        if ($applicant && !$applicant->deleted_at && $applicant->camp_id == $this->camp_info->id) {
+        // 但仍需確認：1.applicant是否取消報名；2.applicant是否報名本營隊(可能找到之前營隊)
+        if ($applicant && !$applicant->deleted_at && $applicant->camp_id == $this->camp_id) {
             //使用報名者的報名日期來計算費率，避免修改資料後費率變動的問題
             $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
             [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
@@ -668,7 +695,7 @@ class CampController extends Controller
 
     public function showDownloads()
     {
-        return view('camps.' . $this->camp_info->table . '.downloads');
+        return view('camps.' . $this->camp_table . '.downloads');
     }
 
     public function downloadPaymentForm(Request $request)
@@ -681,13 +708,13 @@ class CampController extends Controller
 
         $refundForm_url = $this->camp_info->dynamic_stats?->where('purpose', 'refundForm')?->first()?->google_sheet_url ?? "";
 
-        return \PDF::loadView('camps.' . $this->camp_info->table . '.paymentFormPDF', compact('applicant','camp_info', 'refundForm_url'))->setPaper('a3')->download('Payment_' . \Carbon\Carbon::now()->format('YmdHis') . $applicant->id . '.pdf');
+        return \PDF::loadView('camps.' . $this->camp_able . '.paymentFormPDF', compact('applicant','camp_info', 'refundForm_url'))->setPaper('a3')->download('Payment_' . \Carbon\Carbon::now()->format('YmdHis') . $applicant->id . '.pdf');
     }
 
     public function downloadCheckInNotification(Request $request)
     {
         $applicant = Applicant::find($request->applicant_id);
-        return \PDF::loadView('camps.' . $this->camp_info->table . '.checkInMail', compact('applicant'))->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_info->table . $applicant->id . '報到通知單.pdf');
+        return \PDF::loadView('camps.' . $this->camp_table . '.checkInMail', compact('applicant'))->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_table . $applicant->id . '報到通知單.pdf');
     }
 
     public function downloadCheckInQRcode(Request $request)
@@ -696,18 +723,19 @@ class CampController extends Controller
         $qr_code = \DNS2D::getBarcodePNG('{"applicant_id":' . $applicant->id . '}', 'QRCODE');
         $pdf = \App::make('dompdf.wrapper');
         $pdf->loadHTML($applicant->batch->camp->fullName . ' QR code 報到單<br>梯次：' . $applicant->batch->name . '<br>錄取序號：' . $applicant->group . $applicant->number . '<br>姓名：' . $applicant->name . '<br><img src="data:image/png;base64,' . $qr_code . '" alt="barcode" height="200px"/>')->setPaper('a6');
-        return $pdf->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_info->table . $applicant->id . 'QR Code 報到單.pdf');
+        return $pdf->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_table . $applicant->id . 'QR Code 報到單.pdf');
     }
 
     // 【修改處 5】總人數統計優化：不再需要先撈 batchs 陣列，直接一行 SQL 用 camp_id 統計
     public function getCampTotalRegisteredNumber()
     {
-        return Applicant::where('camp_id', $this->camp_info->id)->withTrashed()->count();
+        return Applicant::where('camp_id', $this->camp_id)->withTrashed()->count();
     }
 
     public function toggleAttend(Request $request)
     {
-        $applicant = Applicant::find($request->id);
+        $applicant_id = $request->applicant_id ?? $request->id;
+        $applicant = Applicant::findOrFail($applicant_id);
         //other camps
         if ($request->camp == "ycamp") {
             if ($request->cancel) {
@@ -741,7 +769,7 @@ class CampController extends Controller
     {
         $applicant_id = $request->applicant_id ?? $request->id;
         $applicant = Applicant::findOrFail($applicant_id);
-        $camp_table = $this->camp_info->table;
+        $camp_table = $this->camp_table;
 
         // 呼叫 Service
         $updatedTraffic = $this->trafficService->updateApplicantTraffic(
@@ -761,7 +789,7 @@ class CampController extends Controller
     public function modifyLodging(Request $request)
     {
         $applicant = Applicant::findOrFail($request->applicant_id);
-        $camp_table = $this->camp_info->table;
+        $camp_table = $this->camp_table;
 
         // 呼叫 Service
         $updatedLodging = $this->lodgingService->updateApplicantLodging(
@@ -781,8 +809,8 @@ class CampController extends Controller
     public function modifyAfterAdmitted(Request $request)
     {
         $applicant = Applicant::findOrFail($request->applicant_id);
-        $campTable = $this->camp_info->table;
-        $campId = $this->camp_info->id;
+        $campTable = $this->camp_table;
+        $campId = $this->camp_id;
 
         \DB::transaction(function () use ($applicant, $request, $campTable, $campId) {
             // 呼叫 Service
@@ -824,7 +852,7 @@ class CampController extends Controller
 
     public function showCampPayment()
     {
-        return view('camps.' . $this->camp_info->table . '.payment');
+        return view('camps.' . $this->camp_table . '.payment');
     }
 
     public function returnBatches()

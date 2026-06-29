@@ -9,7 +9,8 @@ class Utcamp extends Model
 {
     //
     protected $table = 'utcamp';
-
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
     public $resourceNameInMandarin = '大專教師營特殊欄位';
 
     protected $fillable = [
@@ -32,6 +33,15 @@ class Utcamp extends Model
 
 
     protected $guarded = [];
+    
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$utcamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 
     /*boolean*/
     protected function isCivilCertificateDisplay(): Attribute

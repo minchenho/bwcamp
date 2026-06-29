@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Traffic extends Model
 {
     protected $table = 'traffic';
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
+
     public $resourceNameInMandarin = '交通資料';
     public $resourceDescriptionInMandarin = '交通資料含上/下車地點、費用、繳費金額等';
 

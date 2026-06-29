@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Ceocamp extends Model
 {
     protected $table = 'ceocamp';
-
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
     public $resourceNameInMandarin = '菁英營特殊欄位';
 
     protected $fillable = [
@@ -23,6 +24,15 @@ class Ceocamp extends Model
     protected $appends = [
         //'contact_time_csv',
     ];
+
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$ceocamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 
     /*
      * 取得 contact_time 的 CSV 格式

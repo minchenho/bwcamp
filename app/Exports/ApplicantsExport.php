@@ -115,12 +115,19 @@ class ApplicantsExport implements WithHeadings, WithMapping, WithDrawings, FromV
         }
 
         $campTable = $this->camp->table;
-        $applicants = Applicant::select("applicants.*", $campTable . ".*", "batchs.name as bName", "applicants.id as sn", "applicants.created_at as applied_at")
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+
+        $applicants = Applicant::select(
+                "applicants.*", 
+                $campTable . ".*", 
+                "batchs.name as bName", // 如果前端仍需要梯次名稱，依然要保留 batchs 的 JOIN（見方案 B）
+                "applicants.id as sn", 
+                "applicants.created_at as applied_at"
+            )
             ->join($campTable, 'applicants.id', '=', $campTable . '.applicant_id')
-            ->where('camps.id', $this->camp->id)
+            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id') 
+            ->where('applicants.camp_id', $this->camp->id)
             ->withTrashed()->get();
+
         foreach ($applicants as $applicant) {
             $applicant->id = $applicant->sn;
             if ($applicant->fee > 0) {
