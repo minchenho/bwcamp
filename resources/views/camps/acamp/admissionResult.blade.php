@@ -6,7 +6,7 @@
         }
     </style>
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }}</h4>
+        <h4>{{ $camp_info->fullName }}</h4>
     </div>
     <div class="row">
         @if($applicant->is_admitted)
@@ -17,15 +17,15 @@
                     </div>
                     <div class="card-body">
                         <p class="card-text">{{ $applicant->name }} 您好</p>
-                        <p class="card-text">恭喜您錄取「{{ $camp_data->fullName }}」！<br>
+                        <p class="card-text">恭喜您錄取「{{ $camp_info->fullName }}」！<br>
                         您的報名序號為：{{ $applicant->id }}。<br>
                         您的錄取組別為：{{ $applicant->group }}，錄取編號為：{{ $applicant->group }}{{ $applicant->number }}。</p>
                         <p class="card-text">我們誠摯歡迎您來共享這場心靈饗宴。三天研習務必全程參加，請參閱下列說明。</p>
                         <p class="card-text">
                             <h4>營隊資訊</h4>
-                                <div class="ml-4 mb-2">研習日期：{{ $camp_data->batch_start }}({{ $camp_data->batch_start_weekday }})至{{ $camp_data->batch_end }}({{ $camp_data->batch_end_weekday }})，請務必<u>全程參加</u>。</div>
-                                <div class="ml-4 mb-2">報到時間：{{ $camp_data->batch_start }}({{ $camp_data->batch_start_weekday }})</div>
-                                <div class="ml-4 mb-2">報到地點：{{ $camp_data->locationName }}({{ $camp_data->location }})(詳見報到通知單，預計7/14寄出Email)</div>
+                                <div class="ml-4 mb-2">研習日期：{{ $camp_info->batch_start }}({{ $camp_info->batch_start_weekday }})至{{ $camp_info->batch_end }}({{ $camp_info->batch_end_weekday }})，請務必<u>全程參加</u>。</div>
+                                <div class="ml-4 mb-2">報到時間：{{ $camp_info->batch_start }}({{ $camp_info->batch_start_weekday }})</div>
+                                <div class="ml-4 mb-2">報到地點：{{ $camp_info->locationName }}({{ $camp_info->location }})(詳見報到通知單，預計7/14寄出Email)</div>
                             <h4>確認參加</h4>
                             <div class="ml-4 mb-2">請回覆確認參加。</div>
                             @if(!isset($applicant->is_attend))
@@ -80,9 +80,9 @@
                         <p class="card-text text-right">主辦單位：財團法人福智文教基金會 敬啟</p>
                         <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
                         <p class="card-text">Facebook 卓越青年 <a href="https://www.facebook.com/YoungOneCamp" target="_blank" rel="noopener noreferrer">https://www.facebook.com/YoungOneCamp</a></p>
-                        <p class="card-text">{{ $camp_data->fullName }}官方網站 <a href="http://www.youngone.org.tw/camp/" target="_blank" rel="noopener noreferrer">http://www.youngone.org.tw/camp/</a></p>
+                        <p class="card-text">{{ $camp_info->fullName }}官方網站 <a href="http://www.youngone.org.tw/camp/" target="_blank" rel="noopener noreferrer">http://www.youngone.org.tw/camp/</a></p>
                         <input type='button' class='btn btn-warning' value='回上一頁' onclick=self.history.back()>
-                        <a href="{{ $camp_data->site_url }}" class="btn btn-primary">回營隊首頁</a>
+                        <a href="{{ $camp_info->site_url }}" class="btn btn-primary">回營隊首頁</a>
                     </div>
                 </div>
             </div>
@@ -126,7 +126,7 @@
             </div>
             --}}
         <!--第二波錄取公告為6/12之後未錄取就是真的不錄取了-->
-        @elseif(\Carbon\Carbon::now()->gt($camp_data->rejection_showing_date))
+        @elseif(\Carbon\Carbon::now()->gt($camp_info->rejection_showing_date))
             <div class="col-sm-12">
                 <div class="card">
                     <div class="card-header">
@@ -134,7 +134,7 @@
                     </div>
                     <div class="card-body">
                         <p class="card-text">{{ $applicant->name }} 您好</p>
-                        <p class="card-text indent">非常感謝您報名「{{ $camp_data->fullName }}」，由於場地與各項條件的限制，非常抱歉未能錄取您。誠摯地邀請您參與本會其它活動。</p>
+                        <p class="card-text indent">非常感謝您報名「{{ $camp_info->fullName }}」，由於場地與各項條件的限制，非常抱歉未能錄取您。誠摯地邀請您參與本會其它活動。</p>
                         <p class="card-text indent">相關活動訊息，請洽詢各區聯絡窗口：</p>
                         <p class="card-text indent"><a href="https://www.blisswisdom.org/about/branches" target="_blank" rel="noopener noreferrer">全球辦事處</a></p>
                         <p class="card-text indent"><a href="http://tp.blisswisdom.org/352-2#local" target="_blank" rel="noopener noreferrer">北區服務據點</a></p>
@@ -152,7 +152,7 @@
                         <p class="card-text text-right">主辦單位：財團法人福智文教基金會 敬啟</p>
                         <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
                         <input type='button' class='btn btn-warning' value='回上一頁' onclick=self.history.back()>
-                        <a href="{{ $camp_data->site_url }}" class="btn btn-primary">回營隊首頁</a>
+                        <a href="{{ $camp_info->site_url }}" class="btn btn-primary">回營隊首頁</a>
                     </div>
                 </div>
             </div>

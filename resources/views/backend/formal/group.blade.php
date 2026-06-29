@@ -3,9 +3,9 @@
     <div><h2 class="d-inline-block">{{ $campFullData->abbreviation }} {{ $batch->name }} {{ request()->group }}組 正式錄取名單</h2>
     <a href="{{ route('showGroup', [$campFullData->id, $batch->id, request()->group]) }}?download=1" class="btn btn-primary d-inline-block" style="margin-bottom: 14px">下載名單</a>
     </div>
-    <form action="{{ route("sendAdmittedMail", $camp_data->id) }}" method="post" name="sendEmailByGroup">
+    <form action="{{ route("sendAdmittedMail", $camp_info->id) }}" method="post" name="sendEmailByGroup">
     @csrf
-    <input type=hidden name='campTable' value='{{ $camp_data->table }}'>
+    <input type=hidden name='campTable' value='{{ $camp_info->table }}'>
     <table class="table table-bordered">  
         <thead>
             <tr class="">
@@ -14,11 +14,11 @@
                 <th>寄送錄取通知日期</th>
                 <th>姓名</th>
                 <th>生理性別</th>
-                @if($camp_data->table == "tcamp")
+                @if($camp_info->table == "tcamp")
                     <th>縣市 / 區鄉鎮</th>
                     <th>服務單位 / 職稱</th>
                 @endif
-                @if($camp_data->table == "ycamp")
+                @if($camp_info->table == "ycamp")
                     <th>就讀學程</th>
                     <th>就讀學校</th>
                     <th>就讀科系所 / 年級</th>
@@ -28,7 +28,7 @@
                     <th>應交</th>
                     <th>已交</th>
                 @endif
-                @if($camp_data->table == "nycamp")
+                @if($camp_info->table == "nycamp")
                     <th>就讀學校</th>
                     <th>就讀科系所 / 年級</th>
                     <th>服務單位 / 職稱</th>
@@ -41,7 +41,7 @@
                 @endif
                 <th>分區</th>
                 <th>參加意願</th>
-                @if(($camp_data->table != "ycamp") && ($camp_data->table != "nycamp"))
+                @if(($camp_info->table != "ycamp") && ($camp_info->table != "nycamp"))
                 <th>已繳費</th>
                 @endif
                 <th>選取<br>全選<input type="checkbox" name="selectAll" onclick="toggler()"></th>
@@ -54,11 +54,11 @@
                 <td>{{ $applicant->admitted_at?->format('Y-m-d') ?? '-' }}</td>
                 <td>{{ $applicant->name }}</td>
                 <td>{{ $applicant->gender }}</td>
-                @if($camp_data->table == "tcamp")
+                @if($camp_info->table == "tcamp")
                     <td>{{ $applicant->county }} / {{ $applicant->district }}</td>
                     <td>{{ $applicant->unit }} / {{ $applicant->title }}</td>
                 @endif
-                @if($camp_data->table == "ycamp")
+                @if($camp_info->table == "ycamp")
                     <td>{{ $applicant->system }}</td>
                     <td>{{ $applicant->school }}</td>
                     <td>{{ $applicant->department }} / {{ $applicant->grade }}</td>
@@ -68,7 +68,7 @@
                     <td>{{ $applicant->traffic?->fare?? 0 }}</td>
                     <td>{{ $applicant->traffic?->sum?? 0 }}</td>
                 @endif
-                @if($camp_data->table == "nycamp")
+                @if($camp_info->table == "nycamp")
                     <td>{{ $applicant->school }}</td>
                     <td>{{ $applicant->department }} / {{ $applicant->grade }}</td>
                     <td>{{ $applicant->unit }} / {{ $applicant->title }}</td>

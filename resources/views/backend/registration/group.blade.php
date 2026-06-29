@@ -34,11 +34,11 @@
                 <th>寄送錄取通知日期</th>
                 <th>姓名</th>
                 <th>生理性別</th>
-                @if($camp_data->table == "tcamp")
+                @if($camp_info->table == "tcamp")
                     <th>縣市 / 區鄉鎮</th>
                     <th>服務單位 / 職稱</th>
                 @endif
-                @if($camp_data->table == "ycamp")
+                @if($camp_info->table == "ycamp")
                     <th>就讀學程</th>
                     <th>就讀學校</th>
                     <th>就讀科系所 / 年級</th>
@@ -48,7 +48,7 @@
                     <th>應交</th>
                     <th>已交</th>
                 @endif
-                @if($camp_data->table == "nycamp")
+                @if($camp_info->table == "nycamp")
                     <th>就讀學校</th>
                     <th>就讀科系所 / 年級</th>
                     <th>服務單位 / 職稱</th>
@@ -61,7 +61,7 @@
                 @endif
                 <th>分區</th>
                 <th>參加意願</th>
-                @if(($camp_data->table != "ycamp") && ($camp_data->table != "nycamp"))
+                @if(($camp_info->table != "ycamp") && ($camp_info->table != "nycamp"))
                 <th>已繳費</th>
                 @endif
                 <th>選取<br>全選<input type="checkbox" name="selectAll" onclick="toggler()"></th>
@@ -74,11 +74,11 @@
                 <td>{{ $applicant->admitted_at?->format('Y-m-d') ?? '-' }}</td>
                 <td>{{ $applicant->name }}</td>
                 <td>{{ $applicant->gender }}</td>
-                @if($camp_data->table == "tcamp")
+                @if($camp_info->table == "tcamp")
                     <td>{{ $applicant->county }} / {{ $applicant->district }}</td>
                     <td>{{ $applicant->unit }} / {{ $applicant->title }}</td>
                 @endif
-                @if($camp_data->table == "ycamp")
+                @if($camp_info->table == "ycamp")
                     <td>{{ $applicant->system }}</td>
                     <td>{{ $applicant->school }}</td>
                     <td>{{ $applicant->department }} / {{ $applicant->grade }}</td>
@@ -88,7 +88,7 @@
                     <td>{{ $applicant->traffic?->fare?? 0 }}</td>
                     <td>{{ $applicant->traffic?->sum?? 0 }}</td>
                 @endif
-                @if($camp_data->table == "nycamp")
+                @if($camp_info->table == "nycamp")
                     <td>{{ $applicant->school }}</td>
                     <td>{{ $applicant->department }} / {{ $applicant->grade }}</td>
                     <td>{{ $applicant->unit }} / {{ $applicant->title }}</td>
@@ -113,7 +113,7 @@
                 @else
                     <td style='color: rgb(0, 132, 255);'>尚未聯絡</td>
                 @endif
-                @if($camp_data->table != "ycamp" && $camp_data->table != "nycamp")
+                @if($camp_info->table != "ycamp" && $camp_info->table != "nycamp")
                 <td>{!! $applicant->is_paid == "是" ? "<a style='color: green;'>是</a>" : "<a style='color: red;'>否</a>" !!}</td>
                 @endif
                 <td>

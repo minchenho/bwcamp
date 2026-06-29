@@ -24,12 +24,12 @@
     <meta name='description' content='「翻轉人生從心出發」邀請您報名參加企業主管生命成長營。' />
     <meta name='author' content='福智文教基金會'>
     <meta property='og:url' content='https://bwfoce.org/ecamp/'/>
-    <meta property='og:title' content='{{ $camp_data->abbreviation }}'/>
+    <meta property='og:title' content='{{ $camp_info->abbreviation }}'/>
     <meta property='og:description' content='「翻轉人生從心出發」邀請您報名參加企業主管生命成長營。' />
         <meta property="og:image" content='{{ $imgicon }}' />
         <meta property="og:image:width" content="830"/>
         <meta property="og:image:height" content="600"/>
-    <title> {{ $camp_data->fullName }} </title>
+    <title> {{ $camp_info->fullName }} </title>
     <link rel="stylesheet" href="{{ asset("mockup-assets/ecamp/bootstrap/css/bootstrap.min.css") }}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abel&amp;display=swap">
