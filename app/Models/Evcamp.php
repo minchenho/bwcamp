@@ -8,7 +8,8 @@ class Evcamp extends Model
 {
     //
     protected $table = 'evcamp';
-
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
     public $resourceNameInMandarin = '企業營義工特殊欄位';
 
     protected $fillable = [
@@ -20,4 +21,13 @@ class Evcamp extends Model
     ];
 
     protected $guarded = [];
+
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$evcamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 }

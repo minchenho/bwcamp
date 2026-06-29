@@ -8,6 +8,8 @@ class Nycamp extends Model
 {
     //
     protected $table = 'nycamp';
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
 
     public $resourceNameInMandarin = '國際青年營特殊欄位';
 
@@ -18,4 +20,13 @@ class Nycamp extends Model
     ];
 
     protected $guarded = [];
+
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$nycamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 }

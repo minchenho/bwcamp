@@ -535,7 +535,6 @@ class CampController extends Controller
             $batchFrom = Batch::find($request->batch_id_from);
             $campFrom = $batchFrom->camp;
             $viewData['camp_info'] = $campFrom;
-            $viewData['camp_info'] = $campFrom;
             $viewData['batch_id_from'] = $request->batch_id_from;
             $viewData['camp_abbr_from'] = $campFrom->abbreviation;
         }
