@@ -37,36 +37,38 @@ $footer_path = $message->embed(public_path() . $str2);
             <li>上課時間：
                     {{ $applicant->batch->batch_start }}({{ $applicant->batch->batch_start_weekday }}) 至 {{ $applicant->batch->batch_end }}({{ $applicant->batch->batch_end_weekday }}) </li>
             <li>報到時間：
-                    {{ $applicant->batch->batch_start }}({{ $applicant->batch->batch_start_weekday }})&nbsp;<a style="color: red;">
-                        @if (str_contains($applicant->batch->name, "北區")) 
-                        上午09:30~10:30 
-                        @else
-                        上午09:30~10:30
-                        @endif
-                    </a> </li>
-            <li>舉辦地點：
-                    {{ $applicant->batch->locationName }}&nbsp;({{ $applicant->batch->location }})
-                    @if (str_contains($applicant->batch->name, "北區"))<br>
-                    <a href='https://maps.app.goo.gl/cpuCXGWN7TKGwArf7'>https://maps.app.goo.gl/cpuCXGWN7TKGwArf7</a>
+                    {{ $applicant->batch->batch_start }}({{ $applicant->batch->batch_start_weekday }})&nbsp;<a style="color: red;">上午09:30~10:30</a></li>
+            @if (str_contains($applicant->batch->name, "中區"))
+                <li>報到地點：
+                        {{ $applicant->batch->locationName }}-國秀樓<br>
+                        ({{ $applicant->batch->location }})<br>
+                        <a href='https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8'>https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8</a></li>
+            @else
+                <li>舉辦地點：
+                        {{ $applicant->batch->locationName }}&nbsp;({{ $applicant->batch->location }})
+                        @if (str_contains($applicant->batch->name, "北區"))<br>
+                        <a href='https://maps.app.goo.gl/cpuCXGWN7TKGwArf7'>https://maps.app.goo.gl/cpuCXGWN7TKGwArf7</a>
+                        @endif</li>
+                <li>
+                    @if (str_contains($applicant->batch->name, "北區"))
+                    由於活動現場停車空間有限，誠摯建議優先搭乘大眾運輸工具前往。<br>
+                    本基金會正以鄰近的大眾運輸中心規劃適當的接駁服務中，細節將儘速公布。<br>
+                    @else
+                    交通：（屏東大學民生校區臨近屏東火車站約3公里）<br>
+                        <ol>
+                            <li>火車：屏東站下車，搭大會接駁車至學校大門口。</li>
+                            <li>高鐵：於左營高鐵站下車，轉乘台鐵至屏東站；再乘大會接駁車至學校大門口。</li>
+                            <li>自行前往者請導航：{{ $applicant->batch->locationName }}&nbsp;{{ $applicant->batch->location }}。(<a href="https://goo.gl/maps/jbHDZ">https://goo.gl/maps/jbHDZ</a>)</li>
+                        </ol>
+                        <u>因會場停車位有限，懇請多利用大會接駁車。</u>
                     @endif</li>
-            <li>
-                @if (str_contains($applicant->batch->name, "北區"))
-                由於活動現場停車空間有限，誠摯建議優先搭乘大眾運輸工具前往。<br>
-                本基金會正以鄰近的大眾運輸中心規劃適當的接駁服務中，細節將儘速公布。<br>
-                @else
-                交通：（屏東大學民生校區臨近屏東火車站約3公里）<br>
-                    <ol>
-                        <li>火車：屏東站下車，搭大會接駁車至學校大門口。</li>
-                        <li>高鐵：於左營高鐵站下車，轉乘台鐵至屏東站；再乘大會接駁車至學校大門口。</li>
-                        <li>自行前往者請導航：{{ $applicant->batch->locationName }}&nbsp;{{ $applicant->batch->location }}。(<a href="https://goo.gl/maps/jbHDZ">https://goo.gl/maps/jbHDZ</a>)</li>
-                    </ol>
-                    <u>因會場停車位有限，懇請多利用大會接駁車。</u>
-                @endif</li>
-            @if (str_contains($applicant->batch->name, "北區")) 
+            @endif
+
+            @if (str_contains($applicant->batch->name, "南區")) 
+            <li><b>接下來為您安排的關懷員將陸續透過簡訊或電話與您聯繫，<u>請留意陌生訊息及來電</u>，如有任何問題，也歡迎主動與關懷員聯絡。</b><br></li>
+            @else
             <li>營隊關懷員近日內將透過簡訊及電話與您聯繫。<br>
                 如有任何問題，也歡迎主動與關懷員聯絡。<br></li>
-            @else
-            <li><b>接下來為您安排的關懷員將陸續透過簡訊或電話與您聯繫，<u>請留意陌生訊息及來電</u>，如有任何問題，也歡迎主動與關懷員聯絡。</b><br></li>
             @endif
             <li>{{ $applicant->groupRelation?->alias ?? "[異常，請回報主辦單位]" }}關懷員 :
                 <ul>
@@ -75,11 +77,11 @@ $footer_path = $message->embed(public_path() . $str2);
                     @endforeach
                 </ul></li>
         </ol><br>
-        @if (str_contains($applicant->batch->name, "北區")) 
-        敬祝～闔家平安、健康喜樂！<br><br>
-        @else
+        @if (str_contains($applicant->batch->name, "南區")) 
         ※注意事項：<br>
         本次營隊報名踴躍，因場地考量容納有限，若您無法全程參加，請告知關懷員，感謝您的協助！<br><br>
+        @else
+        敬祝～闔家平安、健康喜樂！<br><br>
         @endif
         <a class="right">主辦單位：財團法人福智文教基金會&emsp;敬啟</a><br>
         <a class="right">{{ $today->format('Y 年 n 月 j 日') }}</a>
