@@ -184,7 +184,7 @@ class Applicant extends Model
     }
     public function actvcamp()
     {
-        return $this->hasOne(Actvamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Actvcamp::class, 'applicant_id', 'id');
     }
     public function ceocamp()
     {
@@ -244,7 +244,7 @@ class Applicant extends Model
     }
     public function svcamp()
     {
-        return $this->hasOne(Scamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Svcamp::class, 'applicant_id', 'id');
     }
     public function tcamp()
     {
@@ -264,11 +264,11 @@ class Applicant extends Model
     }
     public function wcamp()
     {
-        return $this->hasOne(Ycamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Wcamp::class, 'applicant_id', 'id');
     }
     public function wvcamp()
     {
-        return $this->hasOne(Yvcamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Wvcamp::class, 'applicant_id', 'id');
     }
     public function ycamp()
     {

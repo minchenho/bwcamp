@@ -449,12 +449,8 @@ class BackendController extends Controller
             $applicant = $this->applicantService->checkPaymentStatus($candidate);
             $camp_table = $applicant->batch->camp->table;
 
-            //$fare_depart_from = config('camps_payments.fare_depart_from.' . $camp_table) ?? [];
-            //$fare_back_to = config('camps_payments.fare_back_to.' . $camp_table) ?? [];
-            //$fare_room = config('camps_payments.fare_room.' . $camp_table) ?? [];
             $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
             [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
-            //dd($fare_room);
 
             return view('backend.modifyAccounting', compact('applicant', 'fare_depart_from', 'fare_back_to', 'fare_room'));
         }
@@ -529,6 +525,7 @@ class BackendController extends Controller
                     $title_data[$titles[$j]] = $data[$j];
                 }
                 $title_data['batch_id'] = $batch_id;
+		$title_data['camp_id'] = $camp->id; 
                 $title_data = $this->applicantService->convertFormat($title_data, $camp);
 
                 $applicant = Applicant::select('applicants.*')
@@ -538,8 +535,6 @@ class BackendController extends Controller
                     ->first();
 
                 if ($applicant) {   //if exist, update
-                    //$applicant->group_id = $title_data['group_id'];
-                    //$applicant->region = $title_data['region'];
                     $applicant->update($title_data);
                     $model = '\\App\\Models\\' . ucfirst($table);
                     //extended data
@@ -566,11 +561,7 @@ class BackendController extends Controller
             return view('backend.registration.registrationUpload', compact('batches', 'message', 'create_count', 'update_count'));
         }
         $message = "資料庫寫入成功";
-        //$stat['create'] = $create_count;
-        //$stat['update'] = $update_count;
-        //dd($stat);
         return view('backend.registration.registrationUpload', compact('batches', 'message', 'create_count', 'update_count'));
-        //dd("to be implemented");
     }
 
     public function showRegistrationList()
@@ -684,19 +675,11 @@ class BackendController extends Controller
         foreach ($applicants as $applicant) {
             $applicant->id = $applicant->sn;
             if ($applicant->fee > 0) {
-                if ($applicant->fee - $applicant->deposit <= 0) {
-                    $applicant->is_paid = "是";
-                } else {
-                    $applicant->is_paid = "否";
-                }
+                $applicant->is_paid = ($applicant->fee - $applicant->deposit <= 0) ? "是" : "否";
             } else {
                 $applicant->is_paid = "無費用";
             }
-            if ($applicant->trashed()) {
-                $applicant->is_cancelled = "是";
-            } else {
-                $applicant->is_cancelled = "否";
-            }
+            $applicant->is_cancelled = $applicant->trashed() ? "是" : "否";
         }
         //----- 報名名單不以繳費與否排序 -----
         // $applicants = $applicants->sortByDesc('is_paid');
@@ -709,11 +692,7 @@ class BackendController extends Controller
             if ($applicants) {
                 // 參加者報到日期
                 $checkInDates = CheckIn::select('check_in_date')->whereIn('applicant_id', $applicants->pluck('sn'))->groupBy('check_in_date')->get();
-                if ($checkInDates) {
-                    $checkInDates = $checkInDates->toArray();
-                } else {
-                    $checkInDates = array();
-                }
+                $checkInDates = $checkInDates ? $checkInDates->toArray() : array();
                 $checkInDates = \Arr::flatten($checkInDates);
                 foreach ($checkInDates as $key => $checkInDate) {
                     unset($checkInDates[$key]);
@@ -725,9 +704,7 @@ class BackendController extends Controller
                     $date = Carbon::createFromFormat('Y-m-d', $batch->batch_start);
                     $endDate = Carbon::createFromFormat('Y-m-d', $batch->batch_end);
                     while (1) {
-                        if ($date > $endDate) {
-                            break;
-                        }
+                        if ($date > $endDate) { break; }
                         $str = $date->format('Y-m-d');
                         if (!in_array($str, $checkInDates)) {
                             $checkInDates = array_merge($checkInDates, [$str => $str]);
@@ -820,64 +797,35 @@ class BackendController extends Controller
                         // 2022 一般教師營需要
                         if ($v == "廣論班" && $this->camp_info->table == "tcamp" && !$this->camp_info->variant) {
                             $lamrim = \explode("||/", $applicant->blisswisdom_type_complement)[0];
-                            if (!$lamrim || $lamrim == "") {
-                                array_push($rows, '="無"');
-                            } else {
-                                array_push($rows, '="' . $lamrim . '"');
-                            }
+                            $rows[] = (!$lamrim || $lamrim == "") ? '="無"' : '="' . $lamrim . '"';
                             continue;
                         }
                         if ($v == "關懷員" && $this->camp_info->table == "ceocamp") {
                             $str = $applicant->carers->flatten()->pluck('name')->implode('、');
-                            if (!$str || $str == "") {
-                                array_push($rows, '="無"');
-                            } else {
-                                array_push($rows, '="' . $str . '"');
-                            }
+                            $rows[] = (!$str || $str == "") ? '="無"' : '="' . $str . '"';
                             continue;
                         }
-                        if ($key == "care_log") {
-                            continue;
-                        }
+                        if ($key == "care_log") { continue; }
                         // 使用正規表示式抓出日期欄
                         if (preg_match('/\d\d\d\d-\d\d-\d\d/', $key)) {
                             if (isset($checkInData)) {
                                 // 填充報到資料
-                                if (in_array($applicant->sn, $checkInData[$key])) {
-                                    array_push($rows, '="⭕"');
-                                } else {
-                                    array_push($rows, '="➖"');
-                                }
+                                $rows[] = in_array($applicant->sn, $checkInData[$key]) ? '="⭕"' : '="➖"';
+
                             }
                         } elseif (str_contains($key, "SIGN_")) {
                             // 填充簽到資料
-                            if ($signData[substr($key, 5)]['applicants']->contains($applicant->sn)) {
-                                array_push($rows, '="✔️"');
-                            } else {
-                                array_push($rows, '="❌"');
-                            }
-                        } elseif ($key == "role_section") {
+                            $rows[] = $signData[substr($key, 5)]['applicants']->contains($applicant->sn) ? '="✔️"' : '="❌"';
+                        } elseif ($key == "role_section" || $key == "role_position") {
                             $roles = "";
                             $aRoles = $applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get() ?? [];
                             foreach ($aRoles as $k => $role) {
-                                $roles .= $role->section;
-                                if ($k != count($aRoles) - 1) {
-                                    $roles .= "\n";
-                                }
+                                $roles .= ($key == "role_section") ? $role->section : $role->position;
+                                if ($k != count($aRoles) - 1) { $roles .= "\n"; }
                             }
-                            array_push($rows, '="' . $roles . '"');
-                        } elseif ($key == "role_position") {
-                            $roles = "";
-                            $aRoles = $applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get() ?? [];
-                            foreach ($aRoles as $k => $role) {
-                                $roles .= $role->position;
-                                if ($k != count($aRoles) - 1) {
-                                    $roles .= "\n";
-                                }
-                            }
-                            array_push($rows, '="' . $roles . '"');
+                            $rows[] = '="' . $roles . '"';
                         } else {
-                            array_push($rows, '="' . $applicant[$key] . '"');
+                            $rows[] = '="' . $applicant[$key] . '"';
                         }
                     }
                     fputcsv($file, $rows);
@@ -992,11 +940,7 @@ class BackendController extends Controller
 
     public function sendCheckInMail(Request $request)
     {
-        if (isset($request->org_id)) {
-            $org_id = $request->org_id;
-        } else {
-            $org_id = null;
-        }
+        $org_id = $request->org_id ?? null;
 
         if (!$request->sns) {
             \Session::flash('error', "未選取任何被錄取者。");
@@ -1039,7 +983,7 @@ class BackendController extends Controller
                                         $query->whereNotNull('number_id');
                                     }
                                 })->groupBy('region')->get();
-            //dd($batch->regions);
+
             foreach ($batch->regions as &$region) {
                 $region->groups = Applicant::select('group_id', \DB::raw('count(*) as groupApplicantsCount'))
                     ->join('applicants_groups', 'applicants_groups.id', '=', 'applicants.group_id')
@@ -1193,11 +1137,7 @@ class BackendController extends Controller
         // });
         foreach ($applicants as $applicant) {
             if ($applicant->fee > 0) {
-                if ($applicant->fee - $applicant->deposit <= 0) {
-                    $applicant->is_paid = "是";
-                } else {
-                    $applicant->is_paid = "否";
-                }
+                $applicant->is_paid = ($applicant->fee - $applicant->deposit <= 0) ? "是" : "否";
             } else {
                 $applicant->is_paid = "無費用";
             }
