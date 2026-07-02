@@ -2,8 +2,7 @@
 
 namespace App\Models;
 
-//use Carbon\Carbon;
-use Illuminate\Support\Carbon;  //Carbon\Carbon 的加強版子類別
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -16,7 +15,6 @@ class Applicant extends Model
 {
     use SoftDeletes;
 
-    //
     protected $fillable = [
         'batch_id', 'camp_id', 'name', 'english_name', 'region', 'region_id', 'avatar','gender',
         'group_id', 'number_id', 'is_admitted', 'admitted_at', 'is_paid', 'is_attend',
@@ -60,7 +58,6 @@ class Applicant extends Model
         ];
 
     public $resourceNameInMandarin = '一般學員資料';
-
     public $resourceDescriptionInMandarin = '學員報名表或詳細資料頁面中的資料。';
 
     protected $guarded = [];
@@ -69,16 +66,12 @@ class Applicant extends Model
 
     public function user()
     {
-        if ($this->applicant_id ?? false) {
-            return $this->hasOneThrough(User::class, UserApplicantXref::class, 'applicant_id', 'id', 'applicant_id', 'user_id');
-        } else {
-            return $this->hasOneThrough(User::class, UserApplicantXref::class, 'applicant_id', 'id', 'id', 'user_id');
-        }
+        $localKey = ($this->applicant_id ?? false) ? 'applicant_id' : 'id';
+        return $this->hasOneThrough(User::class, UserApplicantXref::class, 'applicant_id', 'id', $localKey, 'user_id');
     }
 
     public function batch()
     {
-        //預設會使用 batch_id & id, 所以不需寫
         return $this->belongsTo(Batch::class, 'batch_id', 'id');
     }
 
@@ -138,12 +131,6 @@ class Applicant extends Model
         });
     }
 
-    /*重複
-    public function getBatch()
-    {
-        return $this->belongsTo(Batch::class, 'batch_id', 'id');
-    }*/
-
     public function checkInData()
     {
         return $this->hasMany(CheckIn::class);
@@ -173,7 +160,7 @@ class Applicant extends Model
     }
     public function actvcamp()
     {
-        return $this->hasOne(Actvamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Actvcamp::class, 'applicant_id', 'id');
     }
     public function ceocamp()
     {
@@ -233,7 +220,7 @@ class Applicant extends Model
     }
     public function svcamp()
     {
-        return $this->hasOne(Scamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Svcamp::class, 'applicant_id', 'id');
     }
     public function tcamp()
     {
@@ -253,11 +240,11 @@ class Applicant extends Model
     }
     public function wcamp()
     {
-        return $this->hasOne(Ycamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Wcamp::class, 'applicant_id', 'id');
     }
     public function wvcamp()
     {
-        return $this->hasOne(Yvcamp::class, 'applicant_id', 'id');
+        return $this->hasOne(Wvcamp::class, 'applicant_id', 'id');
     }
     public function ycamp()
     {
@@ -282,13 +269,13 @@ class Applicant extends Model
         return $this->hasMany(SignInSignOut::class)->whereType('out');
     }
 
-    public function contactlog()
-    {
-        return $this->contactlogs();
+    public function contactlogs() 
+    { 
+	return $this->hasMany(ContactLog::class); 
     }
-    public function contactlogs()
+    public function contactlog() 
     {
-        return $this->hasMany(ContactLog::class);
+    	return $this->contactlogs(); 
     }
 
     public function hasSignedThisTime($datetime)
@@ -336,16 +323,14 @@ class Applicant extends Model
     {
         return Attribute::make(
             set: function ($value) {
-                switch ($value) {
-                    case '男': return 'M';
-                    case '女': return 'F';
-                    case '非常規性別': return 'NC';
-                    case '不提供': return 'NS';
-                    case 'M': case 'F':
-                    case 'NC': case 'NS':
-                        return $value;
-                    default: return null;
-                }
+                return match ($value) {
+                    '男' => 'M', 
+		    '女' => 'F',
+                    '非常規性別' => 'NC', 
+		    '不提供' => 'NS',
+                    'M', 'F', 'NC', 'NS' => $value,
+                    default => null,
+                };
             },
             get: fn ($value) => $value
         );
@@ -353,15 +338,13 @@ class Applicant extends Model
 
     protected function genderChn(): Attribute
     {
-        return Attribute::make(
-            get: fn () => match ($this->gender) {
-                'M' => '男',
-                'F' => '女',
-                'NC' => '非常規性別',
-                'NS' => '不提供',
-                default => '-',
-            }
-        );
+        return Attribute::get(fn () => match ($this->gender) {
+            'M' => '男', 
+	    'F' => '女',
+            'NC' => '非常規性別', 
+	    'NS' => '不提供',
+            default => '-',
+        });
     }
 
 
@@ -391,17 +374,15 @@ class Applicant extends Model
 
     protected function isAttendChn(): Attribute
     {
-        return Attribute::make(
-            get: fn () => match ($this->is_attend) {
-                0 => '不參加',
-                1 => '參加',
-                2 => '尚未決定',
-                3 => '聯絡不上',
-                4 => '無法全程',
-                5 => '尚未聯絡',
-                default => '尚未聯絡',
-            }
-        );
+        return Attribute::get(fn () => match ($this->is_attend) {
+            0 => '不參加', 
+	    1 => '參加', 
+	    2 => '尚未決定',
+            3 => '聯絡不上', 
+	    4 => '無法全程', 
+	    5 => '尚未聯絡',
+            default => '尚未聯絡',
+        });
     }
 
     public function contactlogHTML($isShowVolunteers = false, $applicant, $camp = null)
@@ -438,24 +419,6 @@ class Applicant extends Model
         return $str;
     }
 
-    /*public function getBirthdateAttribute()
-    {
-        return match ($this->birthyear && $this->birthmonth && $this->birthday) {
-            true => Carbon::parse("{$this->birthyear}-{$this->birthmonth}-{$this->birthday}")->format('Y-m-d'),
-            false => match ($this->birthyear && $this->birthmonth) {
-                true => Carbon::parse("{$this->birthyear}-{$this->birthmonth}")->format('Y-m'),
-                false => match ($this->birthyear && 1) {
-                    // 單獨使用年為參數，要注意 1959 以前（包含 1959）的年份，也可被視為時間，因而造成誤判
-                    // https://github.com/php/php-src/issues/15945
-                    // true => Carbon::parse(mktime(0, year: "{$this->birthyear}",))->format('Y'),
-
-                    // 如果只有一個year參數(1)補齊month,day(2)再create完整日期('Y-m-d')，而非'Y'，不然有可能出現奇怪數字。
-                    true => Carbon::parse(mktime(0, year: "{$this->birthyear}", month: "7", day: "1"))->format('Y-m-d'),
-                    false => null,
-                },
-            },
-        };
-    }*/
 
     /* 換個方式處理birthdate, 分成顯示用display及計算用valid */
     /**
@@ -467,18 +430,17 @@ class Applicant extends Model
             set: function ($value) {
                 if (empty($value)) {
                     return [
-                        'birthyear' => null,
-                        'birthmonth' => null,
-                        'birthday' => null
-                    ];
+		    	'birthyear' => null, 
+		    	'birthmonth' => null, 
+		    	'birthday' => null
+		    ];
                 }
-                $date = \Illuminate\Support\Carbon::parse($value);
-
+                $date = Carbon::parse($value);
                 return [
-                    'birthyear'  => $date->year,
-                    'birthmonth' => $date->month,
-                    'birthday'   => $date->day,
-                ];
+			'birthyear' => $date->year, 
+			'birthmonth' => $date->month, 
+			'birthday' => $date->day
+		];
             },
             get: fn () => sprintf(
                 '%04d-%02d-%02d',

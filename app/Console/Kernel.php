@@ -41,7 +41,7 @@ class Kernel extends ConsoleKernel
      */
     private function scheduleAccountingChecks(Schedule $schedule)
     {
-        $schedule->command('check:Accounting utcamp')->dailyAt("16:30");
+        $schedule->command('check:Accounting ycamp')->dailyAt("16:30");
     }
 
     /**

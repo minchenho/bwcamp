@@ -91,14 +91,21 @@ class AdmittedMail extends Mailable
             $headers->addTextHeader('time', time());
         });
 
+        //2026 special
+        if ($this->camp_info->id == 130) {
+            $mail_subject = '錄取通知<更正交通資訊>';
+        } else {
+            $mail_subject = '錄取通知';
+        }
+
         if ($this->camp_info->table == 'ceocamp' || $this->camp_info->table == 'ecamp' 
                 || !$this->attachment) {
             // ceocamp/ecamp 不附加PDF，或attachment為空時不附加PDF
-            return $this->subject($this->camp_info->abbreviation . '錄取通知')
+            return $this->subject($this->camp_info->abbreviation . $mail_subject)
                 ->view('camps.' . $this->camp_info->table . ".admittedMail", compact('applicant', 'camp_info', 'carers', 'content_link_chn', 'content_link_eng'));
         } else {
             // 其他營隊附加PDF
-            return $this->subject($this->camp_info->abbreviation . '錄取通知')
+            return $this->subject($this->camp_info->abbreviation . $mail_subject)
                 ->view('camps.' . $this->camp_info->table . ".admittedMail", compact('applicant', 'camp_info', 'carers', 'content_link_chn', 'content_link_eng'))
                 ->attachData($this->attachment, '繳費暨錄取通知單' . \Carbon\Carbon::now()->format('YmdHis') . $this->camp_info->table . $this->applicant->group . $this->applicant->number . '.pdf', [
                     'mime' => 'application/pdf',
