@@ -241,6 +241,9 @@ return [
         ],
         'sec_file_upload' => [
             'is_shown' => 1,
+            'file_type' => 'file',
+            'num_files' => 2,
+            'title' => '上傳檔案',
         ],
         'sec_adv1' => [
             'is_shown' => 1,
@@ -348,6 +351,12 @@ return [
         ],
         'sec_traffic' => [
             'is_shown' => 0,
+        ],
+        'sec_file_upload' => [
+            'is_shown' => 1,
+            'file_type' => 'file',
+            'num_files' => 2,
+            'title' => '上傳檔案',
         ],
         'sec_adv1' => [
             'is_shown' => 1,
@@ -548,6 +557,8 @@ return [
         ],
         'sec_file_upload' => [
             'is_shown' => 1,
+            'file_type' => 'image',
+            'num_files' => 1,
             'title' => '上傳學員照片',
         ],
         'sec_adv1' => [  //聯絡方式
