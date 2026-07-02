@@ -8,7 +8,8 @@ class Lrcamp extends Model
 {
     //
     protected $table = 'lrcamp';
-
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
     public $resourceNameInMandarin = '研討班特殊欄位';  //copy from ecamp
 
     protected $fillable = [
@@ -18,4 +19,13 @@ class Lrcamp extends Model
     ];
 
     protected $guarded = [];
+    
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$lrcamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 }

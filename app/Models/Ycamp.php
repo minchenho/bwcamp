@@ -8,7 +8,8 @@ class Ycamp extends Model
 {
     //
     protected $table = 'ycamp';
-
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
     public $resourceNameInMandarin = '大專營特殊欄位';
 
     protected $fillable = [
@@ -16,4 +17,13 @@ class Ycamp extends Model
     ];
 
     protected $guarded = [];
+
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$ycamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 }

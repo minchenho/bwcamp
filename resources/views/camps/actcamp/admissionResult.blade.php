@@ -6,7 +6,7 @@
         }
     </style>
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }}</h4>
+        <h4>{{ $camp_info->fullName }}</h4>
     </div>
     <div class="row">
         @if($applicant->is_admitted)
@@ -17,7 +17,7 @@
                     </div>
                     <div class="card-body">
                         <p class="card-text">
-                            恭喜您錄取「{{ $camp_data->fullName }}」！竭誠歡迎您的到來，期待與您共享這場心靈饗宴，希望您能獲得豐盛的收穫。以下幾點事情需要您的協助與配合：
+                            恭喜您錄取「{{ $camp_info->fullName }}」！竭誠歡迎您的到來，期待與您共享這場心靈饗宴，希望您能獲得豐盛的收穫。以下幾點事情需要您的協助與配合：
                             <h4>研習期間</h4>
                                 <div class="ml-4 mb-2">2021年1月30日（六）至1月31日（日），共2天（北桃竹嘉南高）<br>
                                 2021年2月3日（三）至2月4日（四），共2天（中）</div>
@@ -56,7 +56,7 @@
                             </ul>
                         </p>
                         <input type='button' class='btn btn-warning' value='回上一頁' onclick=self.history.back()>
-                        <a href="{{ $camp_data->site_url }}" class="btn btn-primary">回營隊首頁</a>
+                        <a href="{{ $camp_info->site_url }}" class="btn btn-primary">回營隊首頁</a>
                     </div>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                         <p class="card-text text-right">財團法人福智文教基金會</p>
                         <p class="card-text text-right">謹此 2020 年 {{ \Carbon\Carbon::now()->month }} 月 {{ \Carbon\Carbon::now()->day }} 日</p>
                         <input type='button' class='btn btn-warning' value='回上一頁' onclick=self.history.back()>
-                        <a href="{{ $camp_data->site_url }}" class="btn btn-primary">回營隊首頁</a>
+                        <a href="{{ $camp_info->site_url }}" class="btn btn-primary">回營隊首頁</a>
                     </div>
                 </div>
             </div>

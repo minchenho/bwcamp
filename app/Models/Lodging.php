@@ -8,6 +8,9 @@ class Lodging extends Model
 {
     //
     protected $table = 'lodging';
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
+
     public $resourceNameInMandarin = '住宿資料';
     public $resourceDescriptionInMandarin = '住宿資料，含房型、天數、費用、繳費金額等';
 

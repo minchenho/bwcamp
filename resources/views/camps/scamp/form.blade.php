@@ -9,11 +9,11 @@
 @section('content')
     @include('partials.counties_areas_script')
     <div class='alert alert-info' role='alert'>
-        您在本網站所填寫的個人資料，僅用於此次「{{ $camp_data->fullName }}」的報名及活動聯絡之用。
+        您在本網站所填寫的個人資料，僅用於此次「{{ $camp_info->fullName }}」的報名及活動聯絡之用。
     </div>
 
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }} 線上報名表</h4>
+        <h4>{{ $camp_info->fullName }} 線上報名表</h4>
         課程資訊聯絡人：0939349349 陳小姐<br>
     </div>
 

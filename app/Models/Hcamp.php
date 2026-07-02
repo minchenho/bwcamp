@@ -8,7 +8,8 @@ class Hcamp extends Model
 {
     //
     protected $table = 'hcamp';
-
+    protected $primaryKey = 'applicant_id';
+    public $incrementing = false;
     public $resourceNameInMandarin = '快樂營特殊欄位';
 
     protected $fillable = [
@@ -16,4 +17,13 @@ class Hcamp extends Model
     ];
 
     protected $guarded = [];
+
+    /**
+     * 🚀 建議補上：與學員主表的直系關聯
+     * 用法：$hcamp->applicant
+     */
+    public function applicant()
+    {
+        return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
+    }
 }

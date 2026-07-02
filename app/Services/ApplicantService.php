@@ -9,6 +9,8 @@ use App\Services\LodgingService;
 use App\Services\TrafficService;
 use Enums\Gender;
 use Enums\AttendStatus;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Log; // 如果需要記錄錯誤日誌
 
 class ApplicantService
 {
@@ -94,11 +96,10 @@ class ApplicantService
      */
     public function fetchApplicantData($camp_id, $table, $idOrName = null, $group = null, $number = null)
     {
-        $applicant = Applicant::select('applicants.*', $table . '.*', $table . '.id as ""')
+        // 🚀 【重大優化】利用新欄位 camp_id 直球對決，移除原本對 batchs 和 camps 的龐大 JOIN
+        $applicant = Applicant::select('applicants.*', $table . '.*')
             ->join($table, 'applicants.id', '=', $table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
-            ->where('camps.id', $camp_id)
+            ->where('applicants.camp_id', $camp_id) // 完美啟動 idx_camp_active_applicants 複合索引！
             ->where(function ($query) use ($idOrName, $group, $number) {
                 if ($idOrName) {
                     $query->where('applicants.id', $idOrName);
@@ -126,50 +127,93 @@ class ApplicantService
         return $applicant;
     }
 
-    /* another version of fetchApplicantData, using eager loading to get related data, and then flatten the array
+    /**
+     * 依據指定條件與營隊資訊，通用查找學員（包含預加載關聯與軟刪除資料）
      *
-     * @param 營隊 ID
-     * @param 營隊類型 xccamp
-     * @param 交通
-     * @param 住宿
-     * @return array
+     * @param array $criteria 查詢條件陣列，例如 ['name' => '張三', 'email' => 'abc@test.com']
+     * @param object|array $campInfo 營隊資訊物件或陣列，必須包含 id 和 table 屬性
+     * @return Applicant|null
      */
-    public function getApplicantData($applicantId, $campTable, $name = null)
+    public function findApplicantWithCriteria(array $criteria, $campInfo)
     {
-        // 一次性加載多個關聯
-        if ($name) {
-            $applicant = Applicant::with([$campTable, 'batch', 'lodging', 'traffic'])
-            ->where('name', $name)
-            ->withTrashed()->findOrFail($applicantId);
-        } else {
-            $applicant = Applicant::with([$campTable, 'batch', 'lodging', 'traffic'])
-            ->withTrashed()->findOrFail($applicantId);
+        // 1. 動態取得營隊主表名稱與營隊 ID
+        $campId = is_array($campInfo) ? $campInfo['id'] : $campInfo->id;
+        $campTable = is_array($campInfo) ? $campInfo['table'] : $campInfo->table;
+
+        // 2. 建立基礎查詢並預加載標準關聯（包含動態的營隊主表）
+        $query = Applicant::with([$campTable, 'batch', 'lodging', 'traffic'])
+            ->where('camp_id', $campId)
+            ->withTrashed();
+
+        // 3. 動態將傳入的條件（如 name, email 等）加入查詢中
+        foreach ($criteria as $column => $value) {
+            if (!is_null($value)) {
+                $query->where($column, $value);
+            }
         }
-        $applicant->offsetUnset('files'); // files 僅供後台備註使用，同時，現在 files 的記錄方式若轉為 Json，在前端會出錯
-        //$applicant->applicant_id = $applicantId;
 
-        // 將主表與關聯表打平合併
-        $mergedData = array_merge(
-            $applicant->toArray(),
-            $applicant->$campTable ? $applicant->$campTable->toArray() : [],
-            $applicant->lodging ? $applicant->lodging->toArray() : [],
-            $applicant->traffic ? $applicant->traffic->toArray() : []
-        );
-        $mergedData ['applicant_id'] = $applicantId;
-        $mergedData [$campTable.'_id'] = $applicant->$campTable ? $applicant->$campTable->id : null;
-        $mergedData ['lodging_id'] = $applicant->lodging ? $applicant->lodging->id : null;
-        $mergedData ['traffic_id'] = $applicant->traffic ? $applicant->traffic->id : null;
-
-        // 移除掉原本嵌套的物件，避免傳輸冗餘資料
-        unset($mergedData[$campTable], $mergedData['lodging'], $mergedData['traffic']);
-        $applicant_data = json_encode($mergedData, JSON_UNESCAPED_UNICODE);
-        $applicant_data = str_replace("\\r", "", $applicant_data);
-        $applicant_data = str_replace("\\n", "", $applicant_data);
-        $applicant_data = str_replace("\\t", "", $applicant_data);
-        $applicant_data = str_replace("'", "\\'", $applicant_data);
-
-        return [$applicant, $applicant_data];
+        // 4. 回傳查到的第一筆資料（若無則回傳 null）
+        return $query->first();
     }
+    
+    /**
+     * 取得並清理申請人資料
+     * * @param int|Applicant $applicantOrId 傳入 ID 或是已經查出來的 Applicant 物件
+     * @param string $campTable
+     * @param string|null $name
+     */
+    public function getApplicantData($applicantOrId, $campTable, $name = null)
+    {
+        try {
+            // 【核心優化】如果傳進來的是物件，就直接使用，不再查資料庫！
+            if ($applicantOrId instanceof Applicant) {
+                $applicant = $applicantOrId;
+                
+                // 確保關聯已經被載入（如果 Controller 沒載入，這裡補載入，只查關聯，不查主表）
+                $applicant->loadMissing([$campTable, 'batch', 'lodging', 'traffic']);
+            } else {
+                // 如果傳進來的是 ID，才去查資料庫
+                $query = Applicant::with([$campTable, 'batch', 'lodging', 'traffic'])->withTrashed();
+                if ($name) {
+                    $query->where('name', $name);
+                }
+                $applicant = $query->findOrFail($applicantOrId);
+            }
+
+            // --- 底下維持你原本精妙的資料處理邏輯 ---
+            $applicant->offsetUnset('files'); 
+
+            $mergedData = array_merge(
+                $applicant->toArray(),
+                $applicant->$campTable ? $applicant->$campTable->toArray() : [],
+                $applicant->lodging ? $applicant->lodging->toArray() : [],
+                $applicant->traffic ? $applicant->traffic->toArray() : []
+            );
+
+            $mergedData['applicant_id'] = $applicant->id; // 改用 $applicant->id
+            $mergedData[$campTable.'_id'] = $applicant->$campTable ? $applicant->$campTable->id : null;
+            $mergedData['lodging_id'] = $applicant->lodging ? $applicant->lodging->id : null;
+            $mergedData['traffic_id'] = $applicant->traffic ? $applicant->traffic->id : null;
+
+            unset($mergedData[$campTable], $mergedData['lodging'], $mergedData['traffic']);
+
+            $applicant_data = json_encode($mergedData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $applicant_data = str_replace(["\r", "\n", "\t"], "", $applicant_data);
+            $applicant_data = addslashes($applicant_data);
+
+            return [$applicant, $applicant_data];
+
+        } catch (ModelNotFoundException $e) {
+            // 狀況 A：找不到該申請人資料
+            Log::warning("找不到報名者. ID: {$applicantId}, Name: {$name}");         
+            throw $e; 
+        } catch (\Throwable $e) {
+            // 狀況 B：其他任何非預期的系統錯誤（如語法錯誤、資料庫斷線等）
+            Log::error("系統錯誤: " . $e->getMessage());
+            throw new \Exception("資料處理失敗，請稍後再試");
+        }
+    }
+
     public function checkIfPaidEarlyBird($applicant)
     {
         $is_admitted = $applicant->is_admitted?? false;

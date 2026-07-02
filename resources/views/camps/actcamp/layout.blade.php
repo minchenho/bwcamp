@@ -4,14 +4,14 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <meta name='description' content='{{ $camp_data->fullName }}' />
+    <meta name='description' content='{{ $camp_info->fullName }}' />
     <meta name='author' content='福智文教基金會'>
     <meta property='og:url' content='https://bwfoce.org/web/'/>
-    <meta property='og:title' content='{{ $camp_data->abbreviation }}'/>
-    <meta property='og:description' content='{{ $camp_data->fullName }}' />
+    <meta property='og:title' content='{{ $camp_info->abbreviation }}'/>
+    <meta property='og:description' content='{{ $camp_info->fullName }}' />
     <meta property='og:image' content=''/>
     {{-- <link rel='icon' href='/camp/favicon.ico'> --}}
-    <title> {{ $camp_data->fullName }} </title>
+    <title> {{ $camp_info->fullName }} </title>
     <!-- Bootstrap core CSS -->
     <link href='{{ asset('css/bootstrap.min.css') }}' rel='stylesheet'>
     <!-- Custom styles for this template -->
@@ -37,7 +37,7 @@
 @else
     <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background-color: #ebfbeb;">
         <div class="container">
-            <a class='navbar-brand' href=''>{{ $camp_data->abbreviation }}</a>
+            <a class='navbar-brand' href=''>{{ $camp_info->abbreviation }}</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -56,7 +56,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('query', $batch_id) }}">報名查詢/修改/取消</a>
                     </li>
-                    {{-- @if(\Carbon\Carbon::now() >= \Carbon\Carbon::createFromFormat("Y-m-d", $camp_data->admission_announcing_date))
+                    {{-- @if(\Carbon\Carbon::now() >= \Carbon\Carbon::createFromFormat("Y-m-d", $camp_info->admission_announcing_date))
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('queryadmitGET', $batch_id) }}">錄取查詢</a>
                         </li>

@@ -20,7 +20,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     @if(isset($applicant_raw_data) && $applicant_raw_data->trashed())
         <div class='alert alert-danger' role='alert'>
             您已於 {{ $applicant_raw_data->deleted_at }} 取消報名 / 取消參加。
-            @if($camp_data->cancellation_deadline && \Carbon\Carbon::now()->lt($camp_data->cancellation_deadline->addDay()))
+            @if($camp_info->cancellation_deadline && \Carbon\Carbon::now()->lt($camp_info->cancellation_deadline->addDay()))
                 <form action="{{ route('restoreCancellation', $batch_id) }}" method="POST" style="margin-top:10px; margin-bottom: 0">
                     @csrf
                     <input type="hidden" name="sn" value="{{ $applicant_id }}">
@@ -34,7 +34,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     @endif
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }}線上報名表</h4>
+        <h4>{{ $camp_info->fullName }}線上報名表</h4>
     </div>
     {{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}
     @if(!isset($isModify) || $isModify)

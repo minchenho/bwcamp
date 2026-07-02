@@ -18,7 +18,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     @endif
 
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }} 線上報名表</h4>
+        <h4>{{ $camp_info->fullName }} 線上報名表</h4>
     </div>
 {{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}
 @if(!isset($isModify) || $isModify)

@@ -7,11 +7,11 @@
     <meta name='description' content='「光點無距愛無懼」邀請您報名參加卓越青年生命探索營。' />
     <meta name='author' content='福智文教基金會'>
     <meta property='og:url' content='http://www.youngone.org.tw/camp/'/>
-    <meta property='og:title' content='{{ $camp_data->abbreviation }}'/>
+    <meta property='og:title' content='{{ $camp_info->abbreviation }}'/>
     <meta property='og:description' content='「光點無距愛無懼」邀請您報名參加卓越青年生命探索營。' />
     <meta property='og:image' content='http://www.youngone.org.tw/camp/img/header/slide1.png'/>
     {{-- <link rel='icon' href='/camp/favicon.ico'> --}}
-    <title> {{ $camp_data->fullName }} </title>
+    <title> {{ $camp_info->fullName }} </title>
     <!-- Bootstrap core CSS -->
     <link href='{{ asset('css/bootstrap.min.css') }}' rel='stylesheet'>
     <!-- Custom styles for this template -->
@@ -65,7 +65,7 @@
 @else
     <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background-color: #ebfbeb;">
         <div class="container">
-            <a class='navbar-brand' href=''>{{ $camp_data->abbreviation }}</a>
+            <a class='navbar-brand' href=''>{{ $camp_info->abbreviation }}</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -82,7 +82,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('query', $batch_id) }}">報名查詢/修改</a>
                     </li>
-                    @if(\Carbon\Carbon::now() >= $camp_data->admission_announcing_date)
+                    @if(\Carbon\Carbon::now() >= $camp_info->admission_announcing_date)
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route("queryadmitGET", $batch_id) }}">錄取查詢</a>
                         </li>
