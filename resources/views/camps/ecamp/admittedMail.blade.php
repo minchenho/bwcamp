@@ -11,23 +11,21 @@ $header_path = $message->embed(public_path() . $str1);
 $footer_path = $message->embed(public_path() . $str2);
 @endphp
 <body style="font-size:16px;">
-<table role="presentation"  cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
     <tr><td><img width="100%" src="{{ $header_path }}" /></td></tr>
     <tr><td>
         <table width="80%" border="0" cellpadding="0" cellspacing="0" align="center">
             <tr><td>
-            <h2 class="center">{{ $applicant->batch->camp->fullName }}<br>錄&nbsp;取&nbsp;通&nbsp;知&nbsp;函</h2>
+            <h2 class="center">{{ $applicant->batch->camp->fullName }}<br> 錄&nbsp;取&nbsp;通&nbsp;知&nbsp;函</h2>
             </td></tr>
         </table>
         <table width="100%" style="table-layout:fixed; border: 0;">
-            <tr>
-                <td>
+            <tr><td>
                 姓名：{{ $applicant->name }}<br>
                 序號：{{ $applicant->id }}<br>
-                組別：{{ $applicant->groupRelation?->alias ?? "[異常，請回報主辦單位]" }}<br> 
+                組別：{{ $applicant->groupRelation?->alias ?? "[異常，請回報主辦單位]" }}<br>
                 場次：{{ $applicant->batch->name }}({{ $applicant->batch->locationName }})
-                </td>
-            </tr>
+            </td></tr>
         </table><br>
     <tr><td>
         親愛的企業主管您好 :<br><br>
@@ -87,6 +85,8 @@ $footer_path = $message->embed(public_path() . $str2);
         <a class="right">{{ $today->format('Y 年 n 月 j 日') }}</a>
     </td></tr>
     
-    <tr><td><br><br><img width="100%" height="20%" src="{{ $footer_path }}" /></td></tr>
+    <tr><td><br><br>
+        <img width="100%" height="20%" src="{{ $footer_path }}" />
+    </td></tr>
 </table>
 </body>
