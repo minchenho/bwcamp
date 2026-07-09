@@ -223,9 +223,6 @@
                 <b>公司員工人數</b>：{{$applicant->employees}} 人<br>
                 <b>直屬管轄人數</b>：{{$applicant->direct_managed_employees}} 人<br>
                 <b>產業別</b>：{{$applicant->industry}}<br>
-                <b>同意個資使用</b>：@if($applicant->profile_agree) 是 @else 否
-                @endif<br>
-                <b>同意肖像權使用</b>：@if($applicant->portrait_agree) 是 @else 否 @endif<br>
                 <b>方便參加課程時段</b>：
                 @if(isset($applicant->after_camp_available_day_split))
                 @foreach($applicant->after_camp_available_day_split as $available_day){{$available_day}}、@endforeach
