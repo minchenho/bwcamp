@@ -152,7 +152,7 @@ class BackendController extends Controller
         View::share('batch_id', $this->batch_id);
         View::share('batch', $this->batch);
         View::share('camp_id', $this->camp_id);
-        View::share('camp', $this->camp); //??
+        View::share('camp', $this->camp);
         View::share('camp_info', $this->camp_info);
         View::share('camp_table', $this->camp_table);
 
@@ -538,10 +538,7 @@ class BackendController extends Controller
                 if ($applicant) {   //if exist, update
                     $applicant->update($title_data);
                     $model = '\\App\\Models\\' . ucfirst($table);
-                    //extended data
-                    $xcamp = $model::select($table.'.*')
-                        ->where('applicant_id', $applicant->id)
-                        ->first();
+                    $xcamp = $model::where('applicant_id', $applicant->id)->first();
                     $xcamp->update($title_data);
                     $xcamp->save();
                     $update_count++;
@@ -596,9 +593,10 @@ class BackendController extends Controller
 
         ini_set('max_execution_time', 1200);
 
-        $batches = Batch::where("camp_id", $this->camp_id)->get();
-        //change to this? $batches = $this->campFullData->batchs;
+        $batches = $this->camp_info->batches;
+
         if (isset($request->region)) {
+            // 🚀 【重大優化】利用 camp_id 直球篩選，將多重 JOIN 縮減、大副解放資料庫壓力
             $query = Applicant::select("applicants.*", $this->camp_table . ".*", "batchs.name as bName", "applicants.id as sn", "applicants.created_at as applied_at")
                         ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
                         ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
@@ -1222,7 +1220,8 @@ class BackendController extends Controller
             return view('backend.in_camp.groupAttend', compact('applicants'));
         }
         foreach ($applicants as $applicant) {
-            $traffic = Traffic::where('applicant_id', '=', $applicant->applicant_id)->first();
+            // 🚀 【優化點】利用一對一主鍵直連，效能飛越
+            $traffic = Traffic::find($applicant->applicant_id);
             if ($traffic == null) {
                 $applicant->depart_from = '尚未登記';
                 $applicant->back_to = '尚未登記';
@@ -1831,200 +1830,116 @@ class BackendController extends Controller
         return redirect()->route("showAttendeeInfoGET", ["camp_id" => $request->camp_id, "snORadmittedSN" => $request->applicant_id]);
     }
 
-    public function showLearners(Request $request)
-    {
-        $user = \App\Models\User::findOrFail(auth()->user()->id);
-        view()->share('user', $user);
-        $batches = Batch::where("camp_id", $this->camp_id)->get();
+public function showLearners(Request $request)
+{
+    // 1. 權限與時間前置檢查
+    $user = \App\Models\User::findOrFail(auth()->id());
+    view()->share('user', $user);
 
-        $dynamic_stats = collect();
-        $roles = $user->roles?->where('camp_id', $this->camp_id) ?? null;
-        foreach ($roles as $role) {
-            $dynamic_stats = $dynamic_stats->merge($role->dynamic_stats ?? null);
-        }
-
-        if (!$user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $user->id > 2) {
-            return "<h3>沒有權限瀏覽任何學員，或您尚未被指派任何學員</h3>";
-        }
-        if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
-            return "<h3>權限已關閉。</h3>";
-        }
-        ini_set('max_execution_time', -1);
-        ini_set("memory_limit", -1);
-        if ($request->isMethod("post")) {
-            $payload = $request->all();
-            if (count($payload) == 1) {
-                return back()->withErrors(['未設定任何條件。']);
-            }
-            foreach ($payload as $key => &$value) {
-                if (!is_array($value)) {
-                    unset($payload[$key]);
-                }
-            }
-            $queryStr = $this->backendService->queryStringParser($payload, $request);
-        }
-        $query = Applicant::with('groupRelation', 'groupOrgRelation', 'batch')
-                        ->select("applicants.*", $this->camp_table . ".*", "batchs.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
-                        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                        ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-                        ->where('applicants.camp_id', $this->camp_id)->withTrashed()->orderBy('deleted_at', 'asc')->orderBy('applicants.id', 'asc');
-        if ($request->batch_id) {
-            $query->where('batchs.id', $request->batch_id);
-        }
-        if ($request->isMethod("post")) {
-            $query = $queryStr != "" ? $query->whereRaw(\DB::raw($queryStr)) : $query;
-            $request->flash();
-        }
-        $applicants = $query->get();
-        $applicants = $applicants->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
-        if ($request->isSetting == 1) {
-            $isSetting = 1;
-        } else {
-            $isSetting = 0;
-        }
-
-        if ($request->isSettingCarer) {
-            $target_group_ids = $user->roles()->where('camp_id', $this->camp_id)->where('camp_org.position', 'like', '%關懷小組第%')->get()->pluck('group_id');
-            $all_groups = $user->roles()->where('camp_id', $this->camp_id)->where('camp_org.section', 'like', '%關懷大組%')->where('all_group', 1)->get();
-            if (!count($target_group_ids) && ($user->canAccessResource(new \App\Models\CarerApplicantXref(), 'create', $this->campFullData, target: $this->campFullData->vcamp) || $user->canAccessResource(new \App\Models\CarerApplicantXref(), 'assign', $this->campFullData, target: $this->campFullData->vcamp))) {
-                $permissions = $user->load('roles.permissions')->roles->pluck("permissions")->flatten()->filter(
-                    static fn ($permission) => $permission->name == '\App\Models\CarerApplicantXref.create' || $permission->name == '\App\Models\CarerApplicantXref.assign'
-                );
-                $carers = collect([]);
-                $target_group_ids = $this->campFullData->organizations()->where('camp_org.camp_id', $this->camp_id)->where('camp_org.position', 'like', '%關懷小組第%')->get()->pluck('group_id');
-                foreach ($permissions as $permission) {
-                    if ($permission->range == 'na' || $permission->range == 'all') {
-                        $carers = $carers->merge(\App\Models\User::with(
-                            [
-                            'groupOrgRelation' => function ($query) use ($request) {
-                                $query->where('camp_id', $this->camp_id);
-                                if ($request->batch_id) { $query->where('batch_id', $request->batch_id); }
-                            },
-                            'groupOrgRelation.region',
-                            'groupOrgRelation.batch']
-                        )->whereHas('groupOrgRelation', function ($query) use ($request, $target_group_ids) {
-                            $query->where('camp_id', $this->camp_id)->whereIn('group_id', $target_group_ids);
-                            if ($request->batch_id) { $query->where('batch_id', $request->batch_id); }
-                        })->get());
-                        break;
-                    }
-                }
-            } else {
-                if ($request->batch_id) {
-                    $carers = \App\Models\User::with([
-                        'groupOrgRelation' => function ($query) use ($request, $target_group_ids) {
-                            $query->where('camp_id', $this->camp_id)->where('batch_id', $request->batch_id)->whereIn('group_id', $target_group_ids);
-                        },
-                        'groupOrgRelation.region',
-                        'groupOrgRelation.batch'
-                    ])->whereHas('groupOrgRelation', function ($query) use ($request, $target_group_ids) {
-                        $query->where('batch_id', $request->batch_id)->whereIn('group_id', $target_group_ids);
-                    })->get();
-                } else {
-                    $carers = \App\Models\User::with([
-                        'groupOrgRelation' => function ($query) use ($target_group_ids) {
-                            $query->where('camp_id', $this->camp_id)->whereIn('group_id', $target_group_ids);
-                        },
-                        'groupOrgRelation.region',
-                        'groupOrgRelation.batch'
-                    ])->whereHas('groupOrgRelation', function ($query) use ($target_group_ids) {
-                        $query->where('camp_id', $this->camp_id)
-                            ->whereIn('group_id', $target_group_ids);
-                    })->get();
-                }
-            }
-        }
-
-        if ($this->usePermissionOptimization) {
-            $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->camp_info);
-            $applicants = $applicants->filter(fn ($applicant) => $accessResults->get($applicant->id, false));
-        } else {
-            $applicants = $applicants->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant));
-        }
-
-        // $applicants = $applicants->filter(function ($applicant) {
-        //     // 先檢查快取
-        //     $cacheKey = "user_{$this->user->id}_can_access_{$applicant->id}";
-        //     return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($applicant) {
-        //         return $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant);
-        //     });
-        // });
-
-        // $chunks = $applicants->chunk(100);
-        // $filteredApplicants = new \Illuminate\Database\Eloquent\Collection;
-
-        // foreach ($chunks as $chunk) {
-        //     $jobs = $chunk->map(function ($applicant) {
-        //         return new CheckResourceAccessJob($applicant, $this->user, $this->camp_info);
-        //     });
-
-        //     Bus::batch($jobs)->dispatch();
-
-        //     // 處理結果
-        //     $filtered = $chunk->filter(fn ($applicant) => $applicant->access_granted);
-        //     $filteredApplicants = $filteredApplicants->merge($filtered);
-        // }
-
-        // $applicants = $filteredApplicants;
-
-        /*// 使用多執行緒處理
-        $chunkSize = 100; // 調整批次大小
-        $chunks = $applicants->chunk($chunkSize);
-        $filteredApplicants = new \Illuminate\Database\Eloquent\Collection;
-
-        // 創建一個程序池
-        $pool = \Spatie\Async\Pool::create();
-        $user_id = $this->user->id;
-        $camp_id = $this->camp_id;
-
-        foreach ($chunks as $chunk) {
-            $pool->add(function() use ($chunk, $user_id, $camp_id) {
-                // 在子程序中重新取得資源
-                $user = \App\Models\User::find($user_id);
-                $camp = \App\Models\Camp::find($camp_id);
-
-                return $chunk->filter(function ($applicant) use ($user, $camp) {
-                    return $user->canAccessResource($applicant, 'read', $camp, target: $applicant);
-                })->values()->toArray();
-            })->then(function($result) use (&$filteredApplicants) {
-                // 將陣列轉回 Eloquent 集合
-                $collection = new \Illuminate\Database\Eloquent\Collection;
-                foreach ($result as $item) {
-                    $model = new \App\Models\Applicant;
-                    $model->setRawAttributes($item, true);
-                    $collection->push($model);
-                }
-                $filteredApplicants = $filteredApplicants->merge($collection);
-            });
-        }
-
-        $pool->wait();
-        $applicants = $filteredApplicants;*/
-
-        $columns_zhtw = config('camps_fields.display.' . $this->camp_table);
-
-        $request->flash();
-        return response()->view('backend.integrated_operating_interface.theList', [
-                'applicants' => $applicants,
-                'batches' => $batches,
-                'current_batch' => Batch::find($request->batch_id),
-                'isShowVolunteers' => 0,
-                'isSetting' => $isSetting,
-                'isSettingCarer' => $request->isSettingCarer ?? 0,
-                'carers' => $carers ?? null,
-                'isShowLearners' => 1,
-                'is_ingroup' => 0,
-                'groupName' => '',
-                'columns_zhtw' => $columns_zhtw,
-                'fullName' => $this->camp_info->fullName,
-                'queryStr' => $queryStr ?? null,
-                'groups' => $this->camp_info->groups,
-                'targetGroupIds' => $target_group_ids ?? null,
-                'dynamic_stats' => $dynamic_stats
-            ])
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->header('Pragma', 'no-cache');
+    if (!$user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && $user->id > 2) {
+        return "<h3>沒有權限瀏覽任何學員，或您尚未被指派任何學員</h3>";
     }
+    if (!$this->isVcamp && $this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
+        return "<h3>權限已關閉。</h3>";
+    }
+
+    // 2. 基礎資料獲取
+    $batches = Batch::where("camp_id", $this->camp_id)->get();
+    
+    // 用 Eloquent 關聯與 Collection 語法簡化
+    $dynamic_stats = $user->roles()
+        ->where('camp_id', $this->camp_id)
+        ->get()
+        ->pluck('dynamic_stats')
+        ->filter()
+        ->flatten();
+
+    // 3. 處理 POST 篩選條件
+    $queryStr = null;
+    if ($request->isMethod("post")) {
+        $payload = collect($request->all())->filter(fn($val) => is_array($val))->toArray();
+        if (empty($payload)) {
+            return back()->withErrors(['未設定任何條件。']);
+        }
+        $queryStr = $this->backendService->queryStringParser($payload, $request);
+    }
+
+    // 4. 構建學員查詢 (💡 預載入 carers 與 contactlog，消滅 N+1 地獄)
+    $query = Applicant::with('groupRelation', 'groupOrgRelation', 'batch', 'carers', 'contactlog')
+        ->select(
+            "applicants.*", 
+            "{$this->camp_table}.*", 
+            "batchs.name as bName", 
+            "applicants.id as applicant_id", 
+            "applicants.created_at as applied_at"
+        )
+        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
+        ->join($this->camp_table, 'applicants.id', '=', "{$this->camp_table}.applicant_id")
+        ->where('applicants.camp_id', $this->camp_id)
+        ->withTrashed()
+        ->orderBy('deleted_at', 'asc')
+        ->orderBy('applicants.id', 'asc');
+
+    if ($request->batch_id) {
+        $query->where('batchs.id', $request->batch_id);
+    }
+
+    if ($request->isMethod("post") && !empty($queryStr)) {
+        $query->whereRaw(\DB::raw($queryStr));
+        $request->flash();
+    }
+
+    // 使用 paginate(100) 取代 get()
+    $applicants = $query->paginate(100);
+    
+    // 修正主鍵對應 (注意：分頁物件要用 getCollection() 分離出集合才能跑 each)
+    $applicants->getCollection()->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
+
+    // 5. 權限過濾 (保持 Paginator 結構)
+    if ($this->usePermissionOptimization) {
+        $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->camp_info);
+        $filteredItems = $applicants->getCollection()->filter(fn ($applicant) => $accessResults->get($applicant->id, false));
+        $applicants->setCollection($filteredItems);
+    } else {
+        $filteredItems = $applicants->getCollection()->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant));
+        $applicants->setCollection($filteredItems);
+    }
+
+    // 6. 處理 Carer 邏輯
+    $carers = null;
+    $target_group_ids = null;
+    if ($request->isSettingCarer) {
+        [$carers, $target_group_ids] = $this->getCarersData($user, $request);
+    }
+
+    // 7. 回傳視圖
+    $columns_zhtw = config('camps_fields.display.' . $this->camp_table);
+    $request->flash();
+
+    return response()->view('backend.integrated_operating_interface.theList', [
+            'applicants' => $applicants,
+            'batches' => $batches,
+            'current_batch' => Batch::find($request->batch_id),
+            'isShowVolunteers' => 0,
+            'isSetting' => $request->isSetting == 1 ? 1 : 0,
+            'isSettingCarer' => $request->isSettingCarer ?? 0,
+            'carers' => $carers,
+            'isShowLearners' => 1,
+            'is_ingroup' => 0,
+            'groupName' => '',
+            'columns_zhtw' => $columns_zhtw,
+            'fullName' => $this->camp_info->fullName,
+            'queryStr' => $queryStr,
+            'groups' => $this->camp_info->groups,
+            'targetGroupIds' => $target_group_ids,
+            'dynamic_stats' => $dynamic_stats,
+            
+            // 💡 關鍵新增：傳入空陣列，確保與義工頁面共用的乾淨新版 applicant-list 元件不會因為變數未定義而噴錯
+            'users_applicants' => [] 
+        ])
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        ->header('Pragma', 'no-cache');
+}
 
     public function showVolunteers(Request $request)
     {
