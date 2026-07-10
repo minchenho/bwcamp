@@ -17,8 +17,6 @@ class Wcamp extends Model
         'speak_experiences', 'character', 'potential', 'comments'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$wcamp->applicant

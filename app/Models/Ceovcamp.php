@@ -19,8 +19,6 @@ class Ceovcamp extends Model
         'unit', 'industry', 'title', 'job_property', 'employees', 'direct_managed_employees',
         'capital', 'org_type', 'years_operation'
     ];
-
-    protected $guarded = [];
     
     /**
      * 🚀 建議補上：與學員主表的直系關聯

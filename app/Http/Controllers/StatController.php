@@ -36,8 +36,8 @@ class StatController extends BackendController
         // 1. 撈取基礎數據 (包含 region)
         $applicantsData = Applicant::select(\DB::raw('applicants.birthyear, applicants.region, count(*) as total, MAX(applicants.id) as sample_id'))
             ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->where('batchs.camp_id', $this->camp_id)
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->where('batches.camp_id', $this->camp_id)
             ->whereNull('applicants.deleted_at')
             ->groupBy('applicants.birthyear', 'applicants.region')
             ->get();
@@ -154,8 +154,8 @@ class StatController extends BackendController
                 count(*) as total
             '))
             ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->where('camps.id', $this->camp_id)
             ->whereNull('applicants.deleted_at')
             ->groupBy('date', 'applicants.region')
@@ -263,8 +263,8 @@ class StatController extends BackendController
 
     public function favoredEventStat(){
         $applicants = Applicant::select(\DB::raw('ecamp.favored_event as event, count(*) as total'))
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+        ->join('camps', 'camps.id', '=', 'batches.camp_id')
         ->join('ecamp', 'ecamp.applicant_id', '=', 'applicants.id')
         ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
@@ -335,8 +335,8 @@ class StatController extends BackendController
                 count(*) as total
             '))
             ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->where('camps.id', $this->camp_id)
             ->whereNull('applicants.deleted_at')
             ->groupBy('applicants.gender', 'applicants.region')
@@ -451,8 +451,8 @@ class StatController extends BackendController
         }
 
         $applicants = $query->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->where('camps.id', $this->camp_id)
             ->whereNull('applicants.deleted_at')
             ->groupBy('county')
@@ -489,12 +489,12 @@ class StatController extends BackendController
     }
 
     public function batchesStat(){
-        $applicants = Applicant::select(\DB::raw('batchs.name as batch, count(*) as total'))
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+        $applicants = Applicant::select(\DB::raw('batches.name as batch, count(*) as total'))
+        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+        ->join('camps', 'camps.id', '=', 'batches.camp_id')
         ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
-        ->groupBy('batchs.name')->get();
+        ->groupBy('batches.name')->get();
         $rows = $applicants->count(); 
         $array = $applicants->toArray();
 
@@ -523,8 +523,8 @@ class StatController extends BackendController
     public function regionStat(){
         $applicants = Applicant::select(\DB::raw('applicants.region, count(*) as total'))
         ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+        ->join('camps', 'camps.id', '=', 'batches.camp_id')
         ->where('camps.id', $this->camp_id)
         ->whereNull('applicants.deleted_at')
         ->groupBy('applicants.region')->get();
@@ -554,8 +554,8 @@ class StatController extends BackendController
 
     public function schoolOrCourseStat(){
         $applicants = Applicant::select(\DB::raw('tcamp.school_or_course as school_or_course, count(*) as total'))
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+        ->join('camps', 'camps.id', '=', 'batches.camp_id')
         ->join('tcamp', 'tcamp.applicant_id', '=', 'applicants.id')
         ->where('camps.id', $this->camp_id)
         ->groupBy('tcamp.school_or_course')->get();
@@ -585,12 +585,12 @@ class StatController extends BackendController
     }
 
     public function admissionStat(){
-        $applicants = Applicant::select(\DB::raw('batchs.name, count(*) as total'))
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+        $applicants = Applicant::select(\DB::raw('batches.name, count(*) as total'))
+        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+        ->join('camps', 'camps.id', '=', 'batches.camp_id')
         ->where('camps.id', $this->camp_id)
         ->where('is_admitted', 1)
-        ->groupBy('batchs.name')->get();
+        ->groupBy('batches.name')->get();
         $rows = $applicants->count();
         $array = $applicants->toArray();
 
@@ -618,8 +618,8 @@ class StatController extends BackendController
 
     public function checkinStat(){
         $applicants = Applicant::select(\DB::raw('check_in.check_in_date, count(*) as total'))
-        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-        ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+        ->join('camps', 'camps.id', '=', 'batches.camp_id')
         ->join('check_in', 'applicants.id', '=', 'check_in.applicant_id')
         ->where('camps.id', $this->camp_id)
         ->where('is_admitted', 1)
@@ -765,8 +765,8 @@ class StatController extends BackendController
     {
         // 1. 撈出該欄位與區域的原始統計數據 (將欄位動態代入 $type)
         $applicants = Applicant::select(\DB::raw($this->camp_table.'.'.$type.' as option_key, applicants.region, count(*) as total'))
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->join($this->camp_table, $this->camp_table.'.applicant_id', '=', 'applicants.id')
             ->where('camps.id', $this->camp_id)
             ->whereNull('applicants.deleted_at')

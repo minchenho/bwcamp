@@ -16,8 +16,6 @@ class Avcamp extends Model
         'applicant_id', 'lrclass_level', 'lrclass'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$ecamp->applicant

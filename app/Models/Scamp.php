@@ -16,8 +16,6 @@ class Scamp extends Model
         'applicant_id', 'unit', 'address_work', 'department', 'title', 'seniority', 'way', 'way_other', 'expectation', 'is_allow_informed', 'participation_mode', 'exam_format', 'last5'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$scamp->applicant

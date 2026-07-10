@@ -16,8 +16,6 @@ class Actvcamp extends Model
         'applicant_id','transportation','self_intro'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$actvcamp->applicant

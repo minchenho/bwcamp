@@ -357,7 +357,7 @@ class BackendService
 
     public function getBatchGroups(Camp $camp): Collection | null
     {
-        return $camp->batchs()->with('groups')->get() ?? null;
+        return $camp->batches()->with('groups')->get() ?? null;
     }
 
     public static function getAvailableModels()

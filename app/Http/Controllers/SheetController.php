@@ -373,8 +373,8 @@ class SheetController extends Controller
     {
         return Applicant::select('applicants.*', $table . '.*')
             ->join($table, 'applicants.id', '=', $table . '.applicant_id')
-            ->join('batchs', 'applicants.batch_id', '=', 'batchs.id')
-            ->join('camps', 'batchs.camp_id', '=', 'camps.id')
+            ->join('batches', 'applicants.batch_id', '=', 'batches.id')
+            ->join('camps', 'batches.camp_id', '=', 'camps.id')
             ->where('camps.id', $campId)
             ->orderBy('applicants.id')
             ->get();

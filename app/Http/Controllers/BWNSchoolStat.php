@@ -105,8 +105,8 @@ class BWNSchoolStat extends BackendController{
         
         $bwclubbersBySchool = Applicant::select(\DB::raw('school, count(*) as total, school_location'))
             ->join('ycamp', 'applicants.id', '=', 'ycamp.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->where('camps.id', $request->camp_id)
             ->groupBy('school','school_location')->get();
 

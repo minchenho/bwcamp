@@ -19,8 +19,6 @@ class Nycamp extends Model
         'dietary_needs', 'other_needs', 'accommodation_needs', 'companion_name', 'companion_as_roommate', 'motivation', 'info_source'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$nycamp->applicant

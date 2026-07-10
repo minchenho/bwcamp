@@ -17,8 +17,6 @@ class ContactLog extends Model
         'applicant_id', 'user_id', 'notes'
     ];
 
-    protected $guarded = [];
-
     public function applicant()
     {
         return $this->belongsTo('App\Models\Applicant');

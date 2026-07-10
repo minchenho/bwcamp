@@ -20,8 +20,6 @@ class Evcamp extends Model
         'capital', 'capital_unit', 'org_type', 'years_operation'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$evcamp->applicant

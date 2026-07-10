@@ -16,8 +16,6 @@ class Icamp extends Model
         'applicant_id', 'lrclass', 'passport_expiry_year', 'passport_expiry_month', 'passport_expiry_day', 'participation_mode', 'participation_dates', 'transportation_depart', 'transportation_back', 'transportation_back_location', 'acommodation_needs', 'dietary_needs', 'other_needs', 'questions'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$icamp->applicant

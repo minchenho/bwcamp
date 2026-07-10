@@ -16,8 +16,6 @@ class Wvcamp extends Model
         'applicant_id', 'lrclass', 'self_intro'
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$wvcamp->applicant

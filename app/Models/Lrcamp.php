@@ -17,8 +17,6 @@ class Lrcamp extends Model
         'title', 'level', 'job_property', 'experience', 'employees',
         'direct_managed_employees', 'industry', 'after_camp_available_day', 'favored_event'
     ];
-
-    protected $guarded = [];
     
     /**
      * 🚀 建議補上：與學員主表的直系關聯

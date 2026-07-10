@@ -18,7 +18,7 @@ class ApiController extends Controller
         $camp = $request->camp;
         $year = $request->year;
 
-        $data = Camp::with('batchs', 'batchs.applicants', 'batchs.applicants.checkInData', 'batchs.applicants.signData')
+        $data = Camp::with('batches', 'batches.applicants', 'batches.applicants.checkInData', 'batches.applicants.signData')
                         ->where('table', $camp)
                         ->where(function($query) use ($year) {
                             $query->where('fullName', 'like', '%' . $year . '%')

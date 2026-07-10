@@ -27,7 +27,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'remember_token', 'permission',
     ];
 
     /**
@@ -64,6 +64,12 @@ class User extends Authenticatable
                 return \DB::table('roles')->whereIn('id', $this->role_relations->pluck('role_id'))->orderBy('level', 'desc')->get();
             }
         }
+    }
+
+    // $user->isSuperuser or $user->is_superuser 都可以
+    public function getIsSuperuserAttribute(): bool
+    {
+        return $this->permission === 'superuser';
     }
 
     public function role_relations(){

@@ -16,8 +16,6 @@ class Actcamp extends Model
         'applicant_id','category','lrclass_year','lrclass_number', 
         'transportation','participants','children_ages'
     ];
-
-    protected $guarded = [];
     
     /**
      * 🚀 建議補上：與學員主表的直系關聯

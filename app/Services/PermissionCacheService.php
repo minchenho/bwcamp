@@ -93,7 +93,7 @@ class PermissionCacheService
 
             // 預載入關懷學員資料
             $caresLearners = $user->caresLearners()
-                ->whereIn('batch_id', $camp->batchs->pluck('id'))
+                ->whereIn('batch_id', $camp->batches->pluck('id'))
                 ->select('id', 'batch_id', 'region_id', 'group_id')
                 ->get();
 

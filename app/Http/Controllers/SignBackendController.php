@@ -24,7 +24,7 @@ class SignBackendController extends BackendController
         //
         $instant = false;
 
-        $batches = $this->campFullData->batchs;
+        $batches = $this->camp_info->batches;
         foreach($batches as &$batch) {
             $daysIterator = new \DatePeriod(
                 new \DateTime($batch->batch_start),

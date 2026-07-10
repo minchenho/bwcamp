@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 class Vbatch extends Model
 {
     //
-    protected $table = 'batchs';
+    protected $table = 'batches';
 
     public $resourceNameInMandarin = '義工梯次資料';
 

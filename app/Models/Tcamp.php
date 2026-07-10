@@ -21,7 +21,6 @@ class Tcamp extends Model
         'is_blisswisdom', 'blisswisdom_type', 'blisswisdom_type_complement', 'lrclass','transportation_depart', 'transportation_back'
     ];
 
-    protected $guarded = [];
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$tcamp->applicant

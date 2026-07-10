@@ -56,8 +56,8 @@ class TestExport implements FromView, WithDrawings
             }
         }
         $this->applicants = Applicant::select("applicants.*")
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-            ->join('camps', 'camps.id', '=', 'batchs.camp_id')
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+            ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->where('camps.id', $this->camp_id)
             ->withTrashed()->get();
         $applicants = $this->applicants;

@@ -62,8 +62,8 @@ class SemiApiController extends Controller
     {
         $campId = $request->input('camp_id');
         $camp = Camp::findOrFail($campId);
-        $batchs = $camp->batchs;
-        $batchs->each(function ($batch) {
+        $batches = $camp->batches;
+        $batches->each(function ($batch) {
             $this->backendService->groupsCreation($batch);
         });
         return response()->json(true);
@@ -74,7 +74,7 @@ class SemiApiController extends Controller
         $campId = $request->input('camp_id');
         $camp = Camp::findOrFail($campId);
         $vcamp = Camp::find($camp->vcamp?->id ?? null);
-        $vbatches = $vcamp?->batchs ?? null;
+        $vbatches = $vcamp?->batches ?? null;
         $orgs = $this->backendService
                     ->getCampOrganizations($camp);
         $orgs = $orgs->map(function ($org) use ($vbatches) {
@@ -139,7 +139,7 @@ class SemiApiController extends Controller
         // todo: 臨時性，待更完整
         $campId = $request->input('camp_id');
         $camp = Camp::findOrFail($campId);
-        $theVcamp = Camp::with(['batchs', 'batchs.applicants'])
+        $theVcamp = Camp::with(['batches', 'batches.applicants'])
                     ->where('table', 'like', '%vcamp%')
                     ->where('table', 'like', '%' . str_replace('camp', '', $camp->table) . '%')
                     ->where('year', $camp->year)
