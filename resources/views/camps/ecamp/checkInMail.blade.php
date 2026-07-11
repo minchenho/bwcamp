@@ -83,7 +83,7 @@ $footer_path = $message->embed(public_path() . $str2);
                 </ul>
                 <br>
                 若有任何問題，歡迎與關懷員們聯絡。<br>
-                或來電本會&nbsp;(02)7751-6799&nbsp;分機&nbsp;611203&nbsp;企業營報名報到組。<br><br>
+                或來電本會&nbsp;(02)7751-6799&nbsp;分機&nbsp;611203&nbsp;企業營報名報到組。<br>
             @elseif(str_contains($applicant->batch->name, "南區"))
                 親愛的企業主管您好 : <br><br>
                 &emsp;&emsp;歡迎您參加「{{ $applicant->batch->camp->fullName }}」，我們誠摯期待您的到來，希望您能獲得豐盛的收穫。〈<u>請於報到時攜帶電子郵件中，附件內含之QR&nbsp;Code報到。</u>〉<br><br>
@@ -159,8 +159,8 @@ $footer_path = $message->embed(public_path() . $str2);
                 <br>
                 <br>
                 若有任何問題，歡迎與關懷員聯絡，或來電本會<b>04-3706-9300&nbsp;(分機621201)</b>企業營報名報到組。
-
             @endif
+            <br><br>
             <a class="right">主辦單位：財團法人福智文教基金會&emsp;敬啟</a><br>
             <a class="right">{{ $today->format('Y 年 n 月 j 日') }}</a>
         </td></tr>
