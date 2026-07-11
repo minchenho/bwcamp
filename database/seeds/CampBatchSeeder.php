@@ -22,7 +22,7 @@ class CampBatchSeeder extends Seeder
             'admission_announcing_date' => '2020-10-07',
             'admission_confirming_end' => '2020-10-15'
         ]);
-        \DB::table('batchs')->insert([
+        \DB::table('batches')->insert([
             'camp_id' => $camp->id, 
             'name' => '測試大學',
             'batch_start' => '2020-12-01',
@@ -39,13 +39,13 @@ class CampBatchSeeder extends Seeder
             'admission_announcing_date' => '2020-10-07',
             'admission_confirming_end' => '2020-10-15'
         ]);
-        \DB::table('batchs')->insert([
+        \DB::table('batches')->insert([
             'camp_id' => $camp->id, 
             'name' => '台北場',
             'batch_start' => '2020-12-01',
             'batch_end' => '2020-12-11'
         ]);
-        \DB::table('batchs')->insert([
+        \DB::table('batches')->insert([
             'camp_id' => $camp->id, 
             'name' => '高雄場',
             'batch_start' => '2020-12-06',

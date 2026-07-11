@@ -21,8 +21,6 @@ class Ecamp extends Model
         'is_membership', 'after_camp_available_day', 'favored_event', 'created_at'
     ];
 
-    protected $guarded = [];
-
     protected $casts = [];
 
     /**

@@ -19,12 +19,6 @@ class Ceocamp extends Model
         'substitute_name', 'substitute_phone', 'substitute_email', 'is_lrclass', 'lrclass'
     ];
 
-    protected $guarded = [];
-
-    protected $appends = [
-        //'contact_time_csv',
-    ];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$ceocamp->applicant

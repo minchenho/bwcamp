@@ -16,8 +16,6 @@ class Ycamp extends Model
         'applicant_id', 'school', 'school_location', 'day_night', 'system', 'department', 'grade', 'way', 'is_blisswisdom', 'blisswisdom_type', 'blisswisdom_type_other', 'father_name', 'father_lamrim', 'father_phone', 'mother_name', 'mother_lamrim', 'mother_phone', 'is_inperson', 'agent_name', 'agent_phone', 'habbit', 'club', 'goal',
     ];
 
-    protected $guarded = [];
-
     /**
      * 🚀 建議補上：與學員主表的直系關聯
      * 用法：$ycamp->applicant

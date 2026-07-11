@@ -3,7 +3,7 @@
     <h2>{{ $campFullData->fullName }} ({{ $campFullData->abbreviation }})</h2>
     <p>請選擇欲報名梯次：</p>
     <ol>
-        @foreach ($campFullData->batchs as $key => $batch)
+        @foreach ($campFullData->batches as $key => $batch)
             @if($user_batch_or_region && $user_batch_or_region != 'empty')
                 @if($user_batch_or_region->id == $batch->id)
                     <li>

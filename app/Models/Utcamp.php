@@ -30,9 +30,6 @@ class Utcamp extends Model
         'is_civil_certificate_display',
         'is_bwfoce_certificate_display',
     ];
-
-
-    protected $guarded = [];
     
     /**
      * 🚀 建議補上：與學員主表的直系關聯

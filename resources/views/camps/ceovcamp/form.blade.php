@@ -30,7 +30,7 @@
     <hr>
     <h5 class='form-control-static text-warning bg-secondary'>若您曾報名{{ $last_year }}年菁英營義工，請點選下面連結，查詢並使用{{ $last_year }}年菁英營義工報名資料<br>
             @foreach($last_year_camps as $lycamp)
-            @foreach($lycamp->batchs as $lybatch)
+            @foreach($lycamp->batches as $lybatch)
             <a href="{{ route('query', $lybatch->id) }}?batch_id_from={{ $batch_id }}" class="text-warning bg-secondary">
                 ＊<u>@foreach($lycamp->regions as $lyregion) {{ $lyregion->name }} @endforeach</u>＊</a>
             @endforeach

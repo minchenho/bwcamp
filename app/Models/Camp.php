@@ -4,19 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Carbon\Carbon;
 
 class Camp extends Model
 {
     protected $table = 'camps';
+    
     public $resourceNameInMandarin = '學員營隊資料';
     public $resourceDescriptionInMandarin = '每年學員營隊有關的資料，包括營隊名稱、簡稱、舉辦年、報名日期、錄取日期……等資料。';
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
+     * 可批量賦值的欄位
      */
     protected $fillable = [
         'fullName', 'test', 'abbreviation', 'site_url', 'icon', 'table', 'year', 'variant', 'mode',
@@ -30,24 +32,11 @@ class Camp extends Model
     protected $guarded = [];
 
     /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array
-     */
-    protected $hidden = [
-
-    ];
-
-    /**
-     * The attributes that should be cast to native types.
-     *
-     * @var array
+     * 屬性類型轉換
      */
     protected $casts = [
-        //'email_verified_at' => 'datetime',
         'registration_start' => 'date:Y-m-d',
         'registration_end' => 'date:Y-m-d',
-        'final_registration_end' => 'date:Y-m-d:',
         'admission_announcing_date' => 'date:Y-m-d',
         'final_registration_end' => 'date:Y-m-d',
         'rejection_showing_date' => 'date:Y-m-d',
@@ -61,9 +50,9 @@ class Camp extends Model
         'discount_last_day' => 'date:Y-m-d',
     ];
 
-    /*
-        put attribute in $appends，這樣當把 Model 轉成 JSON 時，這些欄位才會出現
-    */
+    /**
+     * 追加追加至 JSON 序列化的虛擬屬性
+     */
     protected $appends = [
         'registration_start_weekday',
         'registration_start_weekday_eng',
@@ -85,47 +74,22 @@ class Camp extends Model
         'batch_end_latest',
     ];
 
-    //to correct spelling mistake in table name, but keep the old one for compatibility
-    public function batches()
+    /* -------------------------------------------------------------------------- */
+    /* 核心標準關聯                                 */
+    /* -------------------------------------------------------------------------- */
+
+    public function batches(): HasMany
     {
-        return $this->hasMany('App\Models\Batch');
+        return $this->hasMany(Batch::class);
     }
 
-    public function batchs()
+    public function currencies(): BelongsToMany
     {
-        return $this->batches();
-    }
-
-    // 取得該營隊所有 batches 最早的 batch_start 日期
-    protected function batchStartEarliest(): Attribute
-    {
-        return Attribute::make(
-            // min('batch_start') 會直接在資料庫層級下 query，效率不錯
-            get: fn () => $this->batches()->min('batch_start'),
-        );
-    }
-
-    // 取得該營隊所有 batches 最晚的 batch_end 日期
-    protected function batchEndLatest(): Attribute
-    {
-        return Attribute::make(
-            // max('batch_end') 會直接在資料庫層級下 query，效率不錯
-            get: fn () => $this->batches()->max('batch_end'),
-        );
-    }
-
-    public function currencies()
-    {
-        /*
-        return $this->hasMany(CurrencyCampXref::class)
-            ->join('currencies', 'currencies.id', '=', 'currency_camp_xref.currency_id')
-            ->get();
-        */
         return $this->belongsToMany(Currency::class, 'currency_camp_xref', 'camp_id', 'currency_id')
-            ->withPivot('is_std', 'is_fix_xrate', 'xrate_to_std');
+                    ->withPivot('is_std', 'is_fix_xrate', 'xrate_to_std');
     }
 
-    public function regions()
+    public function regions(): BelongsToMany
     {
         $order = [
             "北苑", "基隆", "台北", "桃園", "新竹", "台中", "雲嘉", "雲林", "嘉義", "台南", "高屏", "高雄", "屏東", "宜蘭", "花蓮", "金馬",
@@ -135,111 +99,29 @@ class Camp extends Model
         ];
         $placeholders = implode(',', array_fill(0, count($order), '?'));
         return $this->belongsToMany(Region::class, 'region_camp_xref', 'camp_id', 'region_id')
-                ->orderByRaw("FIELD(name, $placeholders)", $order);
+                    ->orderByRaw("FIELD(name, $placeholders)", $order);
     }
 
-    public function applicants()
+    public function applicants(): HasManyThrough
     {
         return $this->hasManyThrough(Applicant::class, Batch::class);
     }
 
-    public function orgs()
-    {
-        return $this->hasMany(CampOrg::class);
-    }
-
-    //for compatibility
-    public function organizations()
-    {
-        return $this->orgs();
-    }
-
-    public function org_root()
-    {
-        return $this->hasMany(CampOrg::class)->firstWhere('prev_id', 0);
-    }
-
-    public function org_layer1() //第一層組織:大組
-    {
-        $prev_id = $this->org_root()?->id;
-        return $this->hasMany(CampOrg::class)->where('prev_id', $prev_id);
-    }
-
-    public function org_layerx($prev_id) //第N層組織:小組
-    {
-        return $this->hasMany(CampOrg::class)->where('prev_id', $prev_id);
-    }
-
-    public function roles()
-    {
-        return $this->hasMany(CampOrg::class)->where('position', 'not like', 'root');
-    }
-
-    public function layer1_sections() //第一層組織:大組
-    {
-        return $this->hasMany(CampOrg::class)->where('section', '=', 'root');
-    }
-
-    public function layer2_sections() //第二層組織:小組
-    {
-        $layer1_ids = $this->layer1_sections->pluck('id');
-        return $this->hasMany(CampOrg::class)->whereIn('prev_id', $layer1_ids);
-    }
-
-    public function groups()
+    public function groups(): HasManyThrough
     {
         return $this->hasManyThrough(ApplicantsGroup::class, Batch::class);
     }
 
     public function vcamp()
     {
-        return $this->hasOneThrough(Vcamp::class, CampVcampXref::class, 'camp_id', 'id', 'id', 'vcamp_id');
-    }
-
-    public function is_vcamp(): bool
-    {
-        return (str_contains($this->attributes['table'], 'vcamp') ? true : false);
-    }
-
-    public function allSignAvailabilities()
-    {
-        return $this->hasManyThrough(BatchSignInAvailibility::class, Batch::class);
-    }
-
-    // 決定當下的費用是原價或早鳥價
-    public function getSetFeeAttribute()
-    {
-        if ($this->early_bird_last_day) {
-            $early_bird_last_day = Carbon::createFromFormat('Y-m-d', $this->early_bird_last_day);
-            if ($this->has_early_bird && Carbon::today()->lte($early_bird_last_day)) {
-                return $this->early_bird_fee;
-            } else {
-                return $this->fee;
-            }
-        }
-        // 或根本沒早鳥
-        return $this->fee;
-    }
-
-    // 決定當下的繳費期限是最終繳費期限或早鳥繳費期限
-    public function getSetPaymentDeadlineAttribute()
-    {
-        if ($this->has_early_bird) {
-            $early_bird_last_day = Carbon::createFromFormat('Y-m-d', $this->early_bird_last_day);
-            if (Carbon::today()->lte($early_bird_last_day) &&
-                ($this->attributes['table'] == 'tcamp' || $this->attributes['table'] == 'hcamp')) {
-                return $early_bird_last_day->subYears(1911)->format('ymd');
-            } else {
-                return $this->payment_deadline;
-            }
-        } else {
-            return $this->payment_deadline;
-        }
-    }
-
-    public static function getCampTable($batch_id)
-    {
-        return Camp::select('table as tableName')->join('batchs', 'batchs.camp_id', '=', 'camps.id')->where('batchs.id', $batch_id)->first()->tableName;
+        return $this->hasOneThrough(
+            Camp::class, 
+            CampVcampXref::class, 
+            'camp_id',    
+            'id',         
+            'id',         
+            'vcamp_id'    
+        )->withDefault(); // ✨ 加上這行防禦大絕招！
     }
 
     public function dynamic_stats(): MorphMany
@@ -247,124 +129,224 @@ class Camp extends Model
         return $this->morphMany(DynamicStat::class, 'urltable');
     }
 
-    /*
-     * 取得 registration_start 日期的星期幾
+    /* -------------------------------------------------------------------------- */
+    /* 全新現代化：樹狀組織關係鏈                            */
+    /* -------------------------------------------------------------------------- */
+
+    public function orgs(): HasMany
+    {
+        return $this->hasMany(CampOrg::class);
+    }
+
+    /**
+     * 獲取該營隊的頂層根節點 (大會: depth = 0)
      */
-    protected function registrationStartWeekday(): Attribute
+    public function orgRoot()
+    {
+        return $this->orgs()->where('depth', 0)->first();
+    }
+
+    /**
+     * 獲取第一層大組清單 (如：行政組、活動組、課務組: depth = 1)
+     */
+    public function orgDepth1(): HasMany
+    {
+        return $this->orgs()->where('depth', 1)->orderBy('order');
+    }
+
+    /**
+     * 動態獲取指定深度 (Depth) 的所有組別/職務
+     */
+    public function orgsAtDepth($depth): HasMany
+    {
+        return $this->orgs()->where('depth', $depth)->orderBy('order');
+    }
+
+    /**
+     * 獲取非大會以外的所有實體工作職務
+     */
+    public function roles(): HasMany
+    {
+        return $this->orgs()->where('depth', '>', 0);
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 歷史包袱安全防護區：保留舊拼法與舊 Layer/Section 方法名，內部重新導向新架構 */
+    /* -------------------------------------------------------------------------- */
+    
+    public function batchs(): HasMany { return $this->batches(); }
+    public function organizations(): HasMany { return $this->orgs(); }
+    public function org_root() { return $this->orgRoot(); }
+    public function org_layer1() { return $this->orgDepth1(); }
+    public function org_layerx($prev_id) { return $this->orgs()->where('prev_id', $prev_id)->orderBy('order'); }
+    public function layer1_sections() { return $this->orgDepth1(); }
+    public function layer2_sections() 
+    {
+        $layer1_ids = $this->orgDepth1()->pluck('id');
+        return $this->orgs()->whereIn('prev_id', $layer1_ids)->orderBy('order');
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 商業邏輯運算                                 */
+    /* -------------------------------------------------------------------------- */
+
+    // 🌟 加上 get...Attribute 變成標準 Accessor
+    // 使用：$camp->isVcamp 或 $camp->is_vcamp 都可以
+    public function getIsVcampAttribute(): bool
+    {
+        return str_contains($this->attributes['table'] ?? '', 'vcamp');
+    }
+
+    public function allSignAvailabilities(): HasManyThrough
+    {
+        return $this->hasManyThrough(BatchSignInAvailibility::class, Batch::class);
+    }
+
+    public static function getCampTable($batch_id)
+    {
+        return self::select('table as tableName')
+            ->join('batches', 'batches.camp_id', '=', 'camps.id')
+            ->where('batches.id', $batch_id)
+            ->first()?->tableName;
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 現代化 Laravel Attribute 修改器                        */
+    /* -------------------------------------------------------------------------- */
+
+    /**
+     * 決定當下的費用（原價或早鳥價）
+     */
+    protected function currentFee(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->registration_start?->locale('zh_TW')->minDayName, // 星期一
+            get: function () {
+                if ($this->early_bird_last_day) {
+                    $earlyBirdLastDay = Carbon::createFromFormat('Y-m-d', $this->early_bird_last_day);
+                    if ($this->has_early_bird && Carbon::today()->lte($earlyBirdLastDay)) {
+                        return $this->early_bird_fee;
+                    }
+                }
+                return $this->fee;
+            }
         );
+    }
+
+    // 舊版呼叫相容
+    public function getSetFeeAttribute() { return $this->current_fee; }
+
+    /**
+     * 決定當下的繳費期限（最終期限或早鳥期限）
+     */
+    protected function currentPaymentDeadline(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->has_early_bird && $this->early_bird_last_day) {
+                    $earlyBirdLastDay = Carbon::createFromFormat('Y-m-d', $this->early_bird_last_day);
+                    if (Carbon::today()->lte($earlyBirdLastDay) && ($this->table == 'tcamp' || $this->table == 'hcamp')) {
+                        return $earlyBirdLastDay->subYears(1911)->format('ymd');
+                    }
+                }
+                return $this->payment_deadline;
+            }
+        );
+    }
+
+    // 舊版呼叫相容
+    public function getSetPaymentDeadlineAttribute() { return $this->current_payment_deadline; }
+
+    protected function batchStartEarliest(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->batches()->min('batch_start'));
+    }
+
+    protected function batchEndLatest(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->batches()->max('batch_end'));
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 星期幾時間運算轉換區                              */
+    /* -------------------------------------------------------------------------- */
+
+    protected function registrationStartWeekday(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->registration_start?->locale('zh_TW')->minDayName);
     }
 
     protected function registrationStartWeekdayEng(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->registration_start?->format('l'), // Monday
-        );
+        return Attribute::make(get: fn () => $this->registration_start?->format('l'));
     }
 
     protected function registrationStartWeekdayShort(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->registration_start?->format('D'), // Mon
-        );
+        return Attribute::make(get: fn () => $this->registration_start?->format('D'));
     }
 
-    /*
-     * 取得 registration_end 日期的星期幾
-     */
     protected function registrationEndWeekday(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->registration_end?->locale('zh_TW')->minDayName, // 一
-        );
+        return Attribute::make(get: fn () => $this->registration_end?->locale('zh_TW')->minDayName);
     }
 
     protected function registrationEndWeekdayEng(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->registration_end?->format('l'), // Monday
-        );
+        return Attribute::make(get: fn () => $this->registration_end?->format('l'));
     }
 
     protected function registrationEndWeekdayShort(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->registration_end?->format('D'), // Mon
-        );
+        return Attribute::make(get: fn () => $this->registration_end?->format('D'));
     }
 
-    /*
-     * 取得 admission_announcing_date 日期的星期幾
-     */
     protected function admissionAnnouncingDateWeekday(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->admission_announcing_date?->locale('zh_TW')->minDayName, // 一
-        );
+        return Attribute::make(get: fn () => $this->admission_announcing_date?->locale('zh_TW')->minDayName);
     }
 
     protected function admissionAnnouncingDateWeekdayEng(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->admission_announcing_date?->format('l'), // Monday
-        );
+        return Attribute::make(get: fn () => $this->admission_announcing_date?->format('l'));
     }
 
     protected function admissionAnnouncingDateWeekdayShort(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->admission_announcing_date?->format('D'), // Mon
-        );
+        return Attribute::make(get: fn () => $this->admission_announcing_date?->format('D'));
     }
 
-    /*
-     * 取得 admission_confirming_end 日期的星期幾
-     */
     protected function admissionConfirmingEndWeekday(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->admission_confirming_end?->locale('zh_TW')->minDayName, // 一
-        );
+        return Attribute::make(get: fn () => $this->admission_confirming_end?->locale('zh_TW')->minDayName);
     }
 
     protected function admissionConfirmingEndWeekdayEng(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->admission_confirming_end?->format('l'), // Monday
-        );
+        return Attribute::make(get: fn () => $this->admission_confirming_end?->format('l'));
     }
 
     protected function admissionConfirmingEndWeekdayShort(): Attribute
     {
-        return Attribute::make(
-            get: fn () => $this->admission_confirming_end?->format('D'), // Mon
-        );
-    }
-    protected function cancellationDeadlineWeekday(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->cancellation_deadline?->locale('zh_TW')->minDayName, // 一
-        );
-    }
-    protected function paymentDeadlineWeekday(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->payment_deadline?->locale('zh_TW')->minDayName, // 一
-        );
-    }
-    protected function earlyBirdLastDayWeekday(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->early_bird_last_day?->locale('zh_TW')->minDayName, // 一
-        );
-    }
-    protected function discountLastDayWeekday(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->discount_last_day?->locale('zh_TW')->minDayName, // 一
-        );
+        return Attribute::make(get: fn () => $this->admission_confirming_end?->format('D'));
     }
 
+    protected function cancellationDeadlineWeekday(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->cancellation_deadline?->locale('zh_TW')->minDayName);
+    }
+
+    protected function paymentDeadlineWeekday(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->payment_deadline?->locale('zh_TW')->minDayName);
+    }
+
+    protected function earlyBirdLastDayWeekday(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->early_bird_last_day?->locale('zh_TW')->minDayName);
+    }
+
+    protected function discountLastDayWeekday(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->discount_last_day?->locale('zh_TW')->minDayName);
+    }
 }

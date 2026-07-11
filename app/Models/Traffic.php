@@ -43,8 +43,6 @@ class Traffic extends Model
         'sum' => 'integer'      //to beremoved
     ];
 
-    protected $guarded = [];
-
     public function applicant()
     {
         return $this->belongsTo(Applicant::class, 'applicant_id', 'id');

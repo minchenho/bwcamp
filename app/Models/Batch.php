@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Batch extends Model
 {
-    protected $table = 'batchs';
+    protected $table = 'batches';
 
     public $resourceNameInMandarin = '梯次';
 
@@ -86,10 +86,10 @@ class Batch extends Model
         return $this->hasOneThrough(Vbatch::class, BatchVbatchXref::class, 'batch_id', 'id', 'id', 'vbatch_id');
     }
 
-    public function is_vbatch(): bool
+    // 使用 $batch->isVbatch 或 $batch->is_vbatch 都可以
+    public function getIsVbatchAttribute(): bool
     {
-        //the batch is vbatch if it belongs to a vcamp
-        return ($this->camp->is_vcamp());
+        return (bool) ($this->camp?->isVcamp ?? false);
     }
 
     /*

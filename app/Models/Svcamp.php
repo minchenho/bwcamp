@@ -15,8 +15,6 @@ class Svcamp extends Model
     protected $fillable = [
         'applicant_id', 'lrclass', 'self_intro'
     ];
-
-    protected $guarded = [];
     
     /**
      * 🚀 建議補上：與學員主表的直系關聯

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 
 class Vcamp extends Camp
@@ -31,8 +32,13 @@ class Vcamp extends Camp
     {
         return $this->hasOneThrough(Camp::class, CampVcampXref::class, 'vcamp_id', 'id', 'id', 'camp_id');
     }
-    public function batchs()
+
+    public function batches(): HasMany
     {
-        return $this->hasMany('App\Models\Batch', 'camp_id');
+        // ✨ 關鍵修正：明確指定外鍵是 'camp_id'，不要讓 Laravel 瞎猜成 vcamp_id
+        return $this->hasMany(Batch::class, 'camp_id');    
     }
+
+    public function batchs(): HasMany { return $this->batches(); }
+
 }

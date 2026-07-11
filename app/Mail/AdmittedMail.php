@@ -76,7 +76,7 @@ class AdmittedMail extends Mailable
                     ->where('group_id', $this->applicant->group_id)
                     ->get();
                 $carers = $orgs->pluck("users")->flatten();
-                $vcampBatchIds = $vcamp->batchs->pluck('id');
+                $vcampBatchIds = $vcamp->batches->pluck('id');
 
                 $carers = $carers->map(function ($carer) use ($vcampBatchIds) {
                     $carer["mobile"] = $carer->application_log->whereIn('batch_id', $vcampBatchIds)->first()?->mobile ?? "";

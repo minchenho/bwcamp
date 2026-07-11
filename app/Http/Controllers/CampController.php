@@ -121,7 +121,7 @@ class CampController extends Controller
         } else {
             //prepare last_year_camps. may be null
             $last_year = $today->subYear(1)->year;
-            $last_year_camps = Camp::select('camps.*')->with('batchs')
+            $last_year_camps = Camp::select('camps.*')->with('batches')
                     ->where('year', $last_year)
                     ->where('table', $this->camp_table)
                     ->get();
@@ -326,7 +326,7 @@ class CampController extends Controller
 }
 
 
-            // 【修改處 1】優化防重複報名檢查：直接利用新增的 camp_id 欄位過濾，不再需要 JOIN batchs 表
+            // 【修改處 1】優化防重複報名檢查：直接利用新增的 camp_id 欄位過濾，不再需要 JOIN batches 表
             $applicant = Applicant::select('applicants.*')
                 ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
                 ->where('applicants.camp_id', $this->camp_id)
@@ -729,7 +729,7 @@ class CampController extends Controller
         return $pdf->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_table . $applicant->id . 'QR Code 報到單.pdf');
     }
 
-    // 【修改處 5】總人數統計優化：不再需要先撈 batchs 陣列，直接一行 SQL 用 camp_id 統計
+    // 【修改處 5】總人數統計優化：不再需要先撈 batches 陣列，直接一行 SQL 用 camp_id 統計
     public function getCampTotalRegisteredNumber()
     {
         return Applicant::where('camp_id', $this->camp_id)->withTrashed()->count();

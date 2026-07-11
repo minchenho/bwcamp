@@ -60,8 +60,6 @@ class Applicant extends Model
     public $resourceNameInMandarin = '一般學員資料';
     public $resourceDescriptionInMandarin = '學員報名表或詳細資料頁面中的資料。';
 
-    protected $guarded = [];
-
     private static $campCache;
 
     public function user()
@@ -290,23 +288,29 @@ class Applicant extends Model
         return $this->signData()->whereAvailabilityId($availability_id)->first();
     }
 
+    //學員的小組和座號
     public function groupRelation()
     {
         return $this->belongsTo(ApplicantsGroup::class, 'group_id', 'id');
-    }
-    public function groupOrgRelation()
-    {
-        return $this->belongsTo(CampOrg::class, 'group_id', 'id');
     }
     public function numberRelation()
     {
         return $this->belongsTo(GroupNumber::class, 'number_id', 'id');
     }
+    
+    //取得和學員小組相關的職務，通常是小組長，副小組長，關懷員
+    public function groupOrgRelation()
+    {
+        return $this->belongsTo(CampOrg::class, 'group_id', 'id');
+    }
 
+    //取得關懷員
     public function carers()
     {
-        return $this->belongsToMany(\App\User::class, 'carer_applicant_xrefs', 'applicant_id', 'user_id');
+        return $this->belongsToMany(\App\Models\User::class, 'carer_applicant_xrefs', 'applicant_id', 'user_id');
     }
+
+    //直接取得關懷員的名字
     public function carer_names()
     {
         //to concatenate the names of all carers

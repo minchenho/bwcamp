@@ -2,388 +2,115 @@
 @vite('resources/js/app.js')
 @section('content')
     <style>
-        .card-link{
-            color: #3F86FB!important;
-        }
-        .card-link:hover{
-            color: #33B2FF!important;
-        }
+        .card-link { color: #3F86FB!important; }
+        .card-link:hover { color: #33B2FF!important; }
+        .tree-row { padding: 8px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+        .tree-row:hover { background-color: #f8f9fa; }
+        .tree-container { background: #fff; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; margin-bottom: 20px; }
+        details summary { cursor: pointer; outline: none; font-weight: bold; padding: 8px 0; }
+        details details { border-left: 2px dashed #ddd; margin-left: 10px; }
     </style>
-    <h2 class="d-inline-block">{{ $camp->abbreviation }} 組織列表　</h2><br>
+
+    <h2 class="d-inline-block">{{ $camp->abbreviation }} 組織職務樹狀架構清單</h2><br>
+    
     @if(\Session::has('error'))
-        <div class='alert alert-danger' role='alert'>
-            {{ \Session::get('error') }}
-        </div>
+        <div class='alert alert-danger' role='alert'>{{ \Session::get('error') }}</div>
     @endif
     @if(\Session::has('message'))
-        <div class='alert alert-success' role='alert'>
-            {{ \Session::get('message') }}
-        </div>
+        <div class='alert alert-success' role='alert'>{{ \Session::get('message') }}</div>
     @endif
     <br>
 
-    {{-- 相容性：null就是不限 --}}
-    @php
-        foreach($orgs as $org) {
-            if($org->batch_id == null) $org->batch_id = 0;
-            if($org->region_id == null) $org->region_id = 0;
-            $is_batch[$org->batch_id] = 1;
-        }
-    @endphp
+    {{-- ✨ 全新優化：將原本的 3 大張 Table 合併，改用具有層次感的折疊樹狀呈現 --}}
+    <div class="tree-container">
+        <h4 class="text-primary mb-3">🎄 營隊架構樹 (點擊可展開/折疊)</h4>
+        
+        @if($orgs->isEmpty())
+            <p class="text-muted">目前尚未建立任何組織職務。</p>
+        @else
+            {{-- 這裡我們寫一個遞迴的 Blade 巨集或乾淨的區塊來渲染 --}}
+            @php
+                // 抓出所有根節點 (depth = 0)
+                $rootOrgs = $orgs->where('prev_id', 0);
+            @endphp
 
-    {{-- 一個table印一個梯次 ---}}
-    @if(isset($is_batch[0]))
-    <h4>梯次：不限</h4>
-        {{-- table1 ----- 梯次：不限 --}}
-        <table class="table table-bordered">
-            <thead>
-                <tr class="bg-primary text-white">
-                    <th colspan="10">梯次：不限</th>
-                </tr>
-                <tr class="bg-secondary text-white">
-                    <th>ID</th>
-                    {{--<th>梯次</th>--}}
-                    <th>區域</th>
-                    <th>功能組別</th>
-                    <th>職務名稱</th>
-                    <th>組織代號</th>
-                    <th>綁定的學員組別</th>
-                    <th>已設定權限數</th>
-                    <th>修改</th>
-                    <th>刪除</th>
-                    <th>新增</th>
-                </tr>
-            </thead>
-            @foreach($orgs as $org)
-                {{-- 比對梯次才印 ---}}
-                @if($org->batch_id == 0)
-                    <tr>
-                        <td>{{ $org->id }}</td>
-                        {{--<td>{{ $org->batch?->name ?? "不限" }}</td>--}}
-                        <td>{{ $org->region?->name ?? "不限" }}</td>
-                        @if($org->position == 'root')
-                        @else
-                        <td class="text-muted">{{ $org->section }}</td>
-                        @endif
-                        @if($org->position == 'root')
-                        @else
-                            <td>{{ $org->position }}</td>
-                            <td>{{ $org->order }}</td>
-                            <td>@if(!$org->all_group) {{ $org->applicant_group?->alias ?? "無" }} @else 全部學員小組 @endif</td>
-                            <td>{{ $org->permissions->count() }}</td>
-                            <td>
-                                @if(!($org->position=='大會'))
-                                <a href="{{ route('showModifyOrg', [$camp->id, $org->id]) }}" class="btn btn-primary">修改</a></td>
-                                @endif
-                            <td>
-                                <form action="{{ route('removeOrg') }}" method="post">
-                                    @csrf
-                                    <input type="hidden" name="org_id" value="{{ $org->id }}">
-                                    <input type="hidden" name="org_section" value="{{ $org->section }}">
-                                    <input type="hidden" name="org_position" value="{{ $org->position }}">
-                                    <input type="hidden" name="camp_id" value="{{ $camp->id }}">
-                                    <!--input type="submit" class="btn btn-danger" value="刪除">
-                                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#exampleModalCenter">刪除</button-->
-                                    @if(!$num_users[$org->id] && $org->is_node==0)
-                                        <button type="button" class="btn btn-danger"  onclick="confirmdelete(this.closest('form'));">刪除</button>
-                                    @endif
-                                </form>
-                            </td>
-                            <td>
-                                <a href="{{ route('showAddOrgs', [$camp->id, $org->id]) }}" class="btn btn-success">新增職務</a>
-                                @if(!($org->position=='大會'))
-                                    <a href="{{ route('duplicateOrg', [$camp->id, $org->id]) }}" class="btn btn-warning">複製職務</a>
-                                @endif
-                            </td>
-                        @endif
-                    </tr>
-                @endif
+            @foreach($rootOrgs as $root)
+                @include('..partials.org_tree_node', ['node' => $root, 'allOrgs' => $orgs, 'num_users' => $num_users])
             @endforeach
-        </table>
-    @endif
-
-    @foreach ($batches as $batch)
-    @if(isset($is_batch[$batch->id]) && !($batch->is_vbatch()))
-        @php
-            $vbatch = $batch->vbatch;
-        @endphp
-        <hr>
-        <h4>梯次：{{ $batch->name }} @if(str_contains($batch->camp->table, "vcamp")) (義工) @else {{ "(學員)" }} @endif</h4>
-        {{-- table2 ----- 梯次：各梯 --}}
-            <table class="table table-bordered">
-                <thead>
-                    <tr class="bg-primary text-white">
-                        <th colspan="10">梯次：{{ $batch->name }} @if(str_contains($batch->camp->table, "vcamp")) (義工) @else {{ "(學員)" }} @endif</th>
-                    </tr>
-                    <tr class="bg-secondary text-white">
-                        <th>ID</th>
-                        {{--<th>梯次</th>--}}
-                        <th>區域</th>
-                        <th>功能組別</th>
-                        <th>職務名稱</th>
-                        <th>組織代號</th>
-                        <th>綁定的學員組別</th>
-                        <th>已設定權限數</th>
-                        <th>修改</th>
-                        <th>刪除</th>
-                        <th>新增</th>
-                    </tr>
-                </thead>
-
-                @foreach($orgs as $org)
-                    {{-- 比對梯次和區域才印 ---}}
-                    @if($org->batch_id == $batch->id)
-                        <tr>
-                            <td>{{ $org->id }}</td>
-                            {{--<td>{{ $org->batch?->name ?? "不限" }}</td>--}}
-                            <td>{{ $org->region?->name ?? "不限" }}</td>
-                            @if($org->position == 'root')
-                            @else
-                            <td class="text-muted">{{ $org->section }}</td>
-                            @endif
-                            @if($org->position == 'root')
-                            @else
-                                <td>{{ $org->position }}</td>
-                                <td>{{ $org->order }}</td>
-                                <td>@if(!$org->all_group) {{ $org->applicant_group?->alias ?? "無" }} @else 全部學員小組 @endif</td>
-                                <td>{{ $org->permissions->count() }}</td>
-                                <td><a href="{{ route('showModifyOrg', [$camp->id, $org->id]) }}" class="btn btn-primary">修改</a></td>
-                                <td>
-                                    <form action="{{ route('removeOrg') }}" method="post">
-                                        @csrf
-                                        <input type="hidden" name="org_id" value="{{ $org->id }}">
-                                        <input type="hidden" name="org_section" value="{{ $org->section }}">
-                                        <input type="hidden" name="org_position" value="{{ $org->position }}">
-                                        <input type="hidden" name="camp_id" value="{{ $camp->id }}">
-                                        <!--input type="submit" class="btn btn-danger" value="刪除">
-                                        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#exampleModalCenter">刪除</button-->
-                                        @if(!$num_users[$org->id] && $org->is_node==0)
-                                            <button type="button" class="btn btn-danger"  onclick="confirmdelete(this.closest('form'));">刪除</button>
-                                        @endif
-                                    </form>
-                                </td>
-                                <td>
-                                    <a href="{{ route('showAddOrgs', [$camp->id, $org->id]) }}" class="btn btn-success">新增職務</a>
-                                    <a href="{{ route('duplicateOrg', [$camp->id, $org->id]) }}" class="btn btn-warning">複製職務</a>
-                                </td>
-                            @endif
-                        </tr>
-                    @endif
-                @endforeach
-            </table>
-
-        @if(isset($batch->vbatch) && isset($is_batch[$batch->vbatch->id]))
-        <hr>
-        <h4>梯次：{{ $vbatch->name }} (義工)</h4>
-        {{-- table2 ----- 梯次：各梯 --}}
-            <table class="table table-bordered">
-                <thead>
-                    <tr class="bg-primary text-white">
-                        <th colspan="10">梯次：{{ $vbatch->name }} (義工)</th>
-                    </tr>
-                    <tr class="bg-secondary text-white">
-                        <th>ID</th>
-                        {{--<th>梯次</th>--}}
-                        <th>區域</th>
-                        <th>功能組別</th>
-                        <th>職務名稱</th>
-                        <th>組織代號</th>
-                        <th>綁定的學員組別</th>
-                        <th>已設定權限數</th>
-                        <th>修改</th>
-                        <th>刪除</th>
-                        <th>新增</th>
-                    </tr>
-                </thead>
-
-                @foreach($orgs as $org)
-                    {{-- 比對梯次和區域才印 ---}}
-                    @if($org->batch_id == $vbatch->id)
-                        <tr>
-                            <td>{{ $org->id }}</td>
-                            {{--<td>{{ $org->batch?->name ?? "不限" }}</td>--}}
-                            <td>{{ $org->region?->name ?? "不限" }}</td>
-                            @if($org->position == 'root')
-                            @else
-                            <td class="text-muted">{{ $org->section }}</td>
-                            @endif
-                            @if($org->position == 'root')
-                            @else
-                                <td>{{ $org->position }}</td>
-                                <td>{{ $org->order }}</td>
-                                <td>@if(!$org->all_group) {{ $org->applicant_group?->alias ?? "無" }} @else 全部學員小組 @endif</td>
-                                <td>{{ $org->permissions->count() }}</td>
-                                <td><a href="{{ route('showModifyOrg', [$camp->id, $org->id]) }}" class="btn btn-primary">修改</a></td>
-                                <td>
-                                    <form action="{{ route('removeOrg') }}" method="post">
-                                        @csrf
-                                        <input type="hidden" name="org_id" value="{{ $org->id }}">
-                                        <input type="hidden" name="org_section" value="{{ $org->section }}">
-                                        <input type="hidden" name="org_position" value="{{ $org->position }}">
-                                        <input type="hidden" name="camp_id" value="{{ $camp->id }}">
-                                        <!--input type="submit" class="btn btn-danger" value="刪除">
-                                        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#exampleModalCenter">刪除</button-->
-                                        @if(!$num_users[$org->id] && $org->is_node==0)
-                                            <button type="button" class="btn btn-danger"  onclick="confirmdelete(this.closest('form'));">刪除</button>
-                                        @endif
-                                    </form>
-                                </td>
-                                <td>
-                                    <a href="{{ route('showAddOrgs', [$camp->id, $org->id]) }}" class="btn btn-success">新增職務</a>
-                                    <a href="{{ route('duplicateOrg', [$camp->id, $org->id]) }}" class="btn btn-warning">複製職務</a>
-                                </td>
-                            @endif
-                        </tr>
-                    @endif
-                @endforeach
-            </table>
         @endif
-    @endif
-    @endforeach
-
-    @if(count($orgs))
-        <h6 class='text-info'>＊大組/小組中無職務，才可刪除該大組/小組</h6>
-        <h6 class='text-info'>＊某個職務無人被指定，才可刪除該職務</h6>
-    @endif
-
-{{--
-    <style>
-        .modal-dialog {
-            z-index: 9999!important;
-        }
-        .modal-backdrop {
-            display: none;
-            z-index: -1!important;
-        }
-    </style>
-
-    <!-- Modal：刪除互動視窗 -->
-
-    <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLongTitle">確認刪除？</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <!--div class="modal-body">
-                    確認刪除？
-                </div-->
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-danger">確認刪除</button>
-                </div>
-            </div>
-        </div>
     </div>
---}}
 
-    @if (!count($orgs))
-        <div class="container">
-            <div class="row">
-                <div class="col-md-3">
-                    <a href="{{ route('showAddOrgs', [$camp->id, 0]) }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">新增組織</a>
-                </div>
-                <div class="col-md-9">
-                </div>
+    {{-- 當完全沒有組織時，顯示複製與初始化區塊 --}}
+    @if ($orgs->isEmpty())
+        <div class="card p-4 mt-3">
+            <div class="mb-3">
+                <a href="{{ route('showAddOrgs', [$camp->id, 0]) }}" class="btn btn-success">✨ 初始化大會組織</a>
             </div>
-        </div>
-        <form action="{{ route('copyOrgs', $camp->id) }}" method="post">
-            @csrf
-            <div class="container">
-                <div class="row">
-                    <h5>複製現有營隊組織</h5>
-                </div>
-                <div class="row">
-                    <div class="col-md-2 text-md-right">
-                        選擇要複製的營隊
-                    </div>
-                    <div class="col-md-8">
+            
+            <form action="{{ route('copyOrgs', $camp->id) }}" method="post">
+                @csrf
+                <h5>🔥 複製現有營隊組織結構</h5>
+                <div class="form-group row mt-3">
+                    <label class="col-md-2 col-form-label text-md-right">選擇目標營隊</label>
+                    <div class="col-md-7">
                         <select class='form-control' name='camp2copy' id='inputCamp2Copy' onchange='showOrgSel()'>
-                        <option value=''>- 請選擇 -</option>
-                        @foreach($camp_list as $item)
-                            @if($item->id != $camp->id)
-                                <option value='{{$item->id}}'> {{$item->id}} {{$item->fullName}} </option>
-                            @endif
-                        @endforeach
+                            <option value=''>- 請選擇 -</option>
+                            @foreach($camp_list as $item)
+                                @if($item->id != $camp->id)
+                                    <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} </option>
+                                @endif
+                            @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-primary">複製</button><br><br>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary btn-block">確認複製</button>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-2 text-md-right">
-                        選擇複製內容
-                    </div>
-                    <div class="col-md-8">
-                    <label><input type="radio" name="do_copy_permissions" value="N"> 只複製組織</label>
-                    <label><input type="radio" name="do_copy_permissions" value="Y" checked> 複製組織及權限</label>
+                <div class="form-group row">
+                    <label class="col-md-2 col-form-label text-md-right">複製選項</label>
+                    <div class="col-md-10">
+                        <div class="form-check form-check-inline pt-2">
+                            <input class="form-check-input" type="radio" name="do_copy_permissions" id="copy_N" value="0">
+                            <label class="form-check-input-label" for="copy_N">只複製組織架構</label>
+                        </div>
+                        <div class="form-check form-check-inline pt-2">
+                            <input class="form-check-input" type="radio" name="do_copy_permissions" id="copy_Y" value="1" checked>
+                            <label class="form-check-input-label" for="copy_Y">複製組織及權限關係</label>
+                        </div>
                     </div>
                 </div>
-                <div class="row">
-                    <table class="table table-bordered" style="display:none" id="org2copy">
-                        <tr>
-                            <td>
-                                Hello World!
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </form>
+            </form>
+            
+            <div id="org2copy" class="alert alert-info mt-3" style="display:none;"></div>
+        </div>
     @endif
 
     <script>
         function showOrgSel(){
-            var camp_sel = document.getElementById("inputCamp2Copy");   //obj
-            var camp_id_sel = camp_sel.options[camp_sel.selectedIndex].value;   //val
-            console.log(camp_id_sel);
-           //console.log(org_sel.style.display);
+            var camp_sel = document.getElementById("inputCamp2Copy");
+            var camp_id_sel = camp_sel.options[camp_sel.selectedIndex].value;
+            if(!camp_id_sel) return;
 
-            axios({
-                method: 'post',
-                url: '/semi-api/getOrgSel',
-                data: {
-                    //applicant_ids: window.applicant_ids,
-                    camp_id_sel: camp_sel.options[camp_sel.selectedIndex].value,
-                },
-                responseType: 'json'
-            })
+            axios.post('/semi-api/getOrgSel', { camp_id_sel: camp_id_sel })
             .then(function (response) {
-                if (response.data.status === 'success') {
-                    //window.location.reload();
-                    console.log(response.data);
-                }
-                else {
-                    var org_sel = document.getElementById("org2copy");
-                    org_sel.style.display = "block";
-                    //console.log(org_sel.style.display);
-                    let ele = ``;
-                    if (Object.keys(response.data).length == 0) {
-                        ele = `<tr><td>營隊`+ camp_id_sel + `尚未建立組織，請選擇其它營隊</td><tr>`;
-                    } else {
-                        ele = `<tr><td>欲複製營隊的組織：`;
-                        for (let i = 0; i < Object.keys(response.data).length ; i++) {
-                            if(response.data[i]['position']=='root') {
-                                ele = ele + `<br>`+ response.data[i]['section'] + `：`;
-                            }
-                            else {
-                                ele = ele + response.data[i]['position'] + `、`;
-                            }
-                        }
-                        ele = ele + `</td></tr>`;
-                    }
-                    console.log(ele);
-                    org_sel.innerHTML = ele;
+                var org_sel = document.getElementById("org2copy");
+                org_sel.style.display = "block";
+                
+                if (Object.keys(response.data).length == 0) {
+                    org_sel.innerHTML = `⚠️ 營隊 [\${camp_id_sel}] 尚未建立組織，請選擇其它營隊。`;
+                } else {
+                    let text = `<strong>欲複製的組織結構預覽：</strong><br>`;
+                    response.data.forEach(org => {
+                        text += ` • \${org.position}<br>`;
+                    });
+                    org_sel.innerHTML = text;
                 }
             });
         }
+
         function confirmdelete(form) {
-            if (confirm('確認刪除？')) {
+            if (confirm('⚠️ 警告：確認要刪除該職務？如果其下方有子層會一併受到影響。')) {
                 form.submit();
             }
         }

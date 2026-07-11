@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CampController;
+use App\Http\Controllers\CampOrgController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\StatController;
 use App\Http\Controllers\AdminController;
@@ -141,14 +142,14 @@ Route::group(["prefix" => "backend/campManage"], function () {
 
     // 組織管理
     Route::group(['prefix' => 'orgList'], function () {
-        Route::get("/{camp_id}", [AdminController::class, "showOrgs"])->name("showOrgs");
-        Route::post("/{camp_id}/add", [AdminController::class, "addOrgs"])->name("addOrgs");
-        Route::post("/{camp_id}/copy", [AdminController::class, "copyOrgs"])->name("copyOrgs");
-        Route::get("/{camp_id}/{org_id}/add", [AdminController::class, "showAddOrgs"])->name("showAddOrgs");
-        Route::get("/{camp_id}/{org_id}/duplicate", [AdminController::class, "duplicateOrg"])->name("duplicateOrg");
-        Route::get("/{camp_id}/{org_id}/modify", [AdminController::class, "showModifyOrg"])->name("showModifyOrg");
-        Route::post("/{camp_id}/{org_id}/modify", [AdminController::class, "modifyOrg"])->name("modifyOrg");
-        Route::post("/remove", [AdminController::class, "removeOrg"])->name("removeOrg");
+        Route::get("/{camp_id}", [CampOrgController::class, "showOrgs"])->name("showOrgs");
+        Route::post("/{camp_id}/add", [CampOrgController::class, "addOrgs"])->name("addOrgs");
+        Route::post("/{camp_id}/copy", [CampOrgController::class, "copyOrgs"])->name("copyOrgs");
+        Route::get("/{camp_id}/{org_id}/add", [CampOrgController::class, "showAddOrgs"])->name("showAddOrgs");
+        Route::get("/{camp_id}/{org_id}/duplicate", [CampOrgController::class, "duplicateOrg"])->name("duplicateOrg");
+        Route::get("/{camp_id}/{org_id}/modify", [CampOrgController::class, "showModifyOrg"])->name("showModifyOrg");
+        Route::post("/{camp_id}/{org_id}/modify", [CampOrgController::class, "modifyOrg"])->name("modifyOrg");
+        Route::post("/remove", [CampOrgController::class, "removeOrg"])->name("removeOrg");
     });
 });
 

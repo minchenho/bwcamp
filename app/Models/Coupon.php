@@ -15,5 +15,4 @@ class Coupon extends Model
         'applicant_id',
     ];
 
-    protected $guarded = [];
 }

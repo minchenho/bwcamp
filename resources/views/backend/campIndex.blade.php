@@ -19,7 +19,7 @@
     </ul>
     <p>本營隊梯次：</p>
     <ol>
-        @foreach ($campFullData->batchs as $key => $batch)
+        @foreach ($campFullData->batches as $key => $batch)
             <li><p>{{ $batch->name }}，{{ $batch->batch_start }} ~ {{ $batch->batch_end }}</p></li>
         @endforeach
     </ol>

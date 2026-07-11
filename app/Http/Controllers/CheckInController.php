@@ -116,7 +116,7 @@ class CheckInController extends Controller {
             }
             $ids = OrgUser::whereIn('org_id', $groups->pluck('id'))->get()->pluck('user_id')->toArray();
             $users = User::with(['application_log' => function($query) {
-                                return $query->whereIn('applicants.batch_id', $this->camp->batchs->pluck('id')->toArray());
+                                return $query->whereIn('applicants.batch_id', $this->camp->batches->pluck('id')->toArray());
                             }])->whereIn('id', $ids)->get();
             $applicants = Applicant::with(['batch',
                                            'batch.camp' => $constraint,
@@ -338,8 +338,8 @@ class CheckInController extends Controller {
     public function realtimeStat() {
         try{
             $applicants = Applicant::select('applicants.id')
-                        ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                        ->where('batchs.camp_id', $this->camp->id)
+                        ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+                        ->where('batches.camp_id', $this->camp->id)
                         ->where(function($query){
                             if($this->has_attend_data){
                                 $query->where('is_attend', 1);
@@ -373,8 +373,8 @@ class CheckInController extends Controller {
 
     public function detailedStat(Request $request) {
         $allApplicants = Applicant::select('applicants.id')
-                            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                            ->where('batchs.camp_id', $this->camp->id)
+                            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+                            ->where('batches.camp_id', $this->camp->id)
                             // 暫時性程式碼，待大專營結束後刪除
                             ->when($this->camp->id != 81 && $this->camp->id != 82, function($query){
                                 $query->where(\DB::raw("fee - deposit"), "<=", 0);
@@ -388,11 +388,11 @@ class CheckInController extends Controller {
                             })
                             ->get();
         $checkedInData = CheckIn::where('check_in_date', Carbon::today()->format('Y-m-d'))->whereIn('applicant_id', $allApplicants)->get();
-        $checkedInApplicants = Applicant::select('batchs.name', \DB::raw('count(*) as count'))
-                    ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                    ->where('batchs.camp_id', $this->camp->id)
+        $checkedInApplicants = Applicant::select('batches.name', \DB::raw('count(*) as count'))
+                    ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+                    ->where('batches.camp_id', $this->camp->id)
                     ->whereIn('applicants.id', $checkedInData->pluck('applicant_id'))
-                    ->groupBy('batchs.name')
+                    ->groupBy('batches.name')
                     ->get();
         $batches = $allApplicants->pluck('batch.name')->unique();
         $batchArray = array();
@@ -411,8 +411,8 @@ class CheckInController extends Controller {
 
     public function detailedStatOptimized(Request $request) {
         $allBatchesApplicants = Applicant::select('applicants.id')
-                            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                            ->where('batchs.camp_id', $this->camp->id)
+                            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
+                            ->where('batches.camp_id', $this->camp->id)
                             // 暫時性程式碼，待企業營及菁英營結束後刪除
                             ->when($this->camp->id == 77 || $this->camp->id == 78 || $this->camp->id == 79 || $this->camp->id == 80, function($query){
                                 $query->whereIn('batch_id', [166, 168, 183, 184]);
@@ -448,8 +448,8 @@ class CheckInController extends Controller {
         $allApplicants = null;
         $checkedInApplicants = null;
         foreach($batches as $key => $batch){
-            $allApplicants = Applicant::join('batchs', 'batchs.id', '=', 'applicants.batch_id')
-                            ->where('batchs.camp_id', $this->camp->id)
+            $allApplicants = Applicant::join('batches', 'batches.id', '=', 'applicants.batch_id')
+                            ->where('batches.camp_id', $this->camp->id)
                             // 暫時性程式碼，待大專營結束後刪除
                             ->when($this->camp->id != 81 && $this->camp->id != 82, function($query){
                                 $query->where(\DB::raw("fee - deposit"), "<=", 0);

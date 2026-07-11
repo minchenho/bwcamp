@@ -119,12 +119,12 @@ class ApplicantsExport implements WithHeadings, WithMapping, WithDrawings, FromV
         $applicants = Applicant::select(
                 "applicants.*", 
                 $campTable . ".*", 
-                "batchs.name as bName", // 如果前端仍需要梯次名稱，依然要保留 batchs 的 JOIN（見方案 B）
+                "batches.name as bName", // 如果前端仍需要梯次名稱，依然要保留 batches 的 JOIN（見方案 B）
                 "applicants.id as sn", 
                 "applicants.created_at as applied_at"
             )
             ->join($campTable, 'applicants.id', '=', $campTable . '.applicant_id')
-            ->join('batchs', 'batchs.id', '=', 'applicants.batch_id') 
+            ->join('batches', 'batches.id', '=', 'applicants.batch_id') 
             ->where('applicants.camp_id', $this->camp->id)
             ->withTrashed()->get();
 
