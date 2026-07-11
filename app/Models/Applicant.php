@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use App\Enums\Gender;
 use App\Enums\AttendanceStatus;
 use App\Services\PhoneFormatter;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 class Applicant extends Model
 {
@@ -630,6 +632,69 @@ class Applicant extends Model
     protected function profileAgreeDisplay(): Attribute
     {
         return Attribute::get(fn () => $this->profile_agree ? '同意' : '不同意');
+    }
+
+    /**
+     * 終極前置過濾篩選器：只撈出該義工有權限管理的學員
+     *
+     * @param Builder $query
+     * @param User $user 登入的義工
+     * @param mixed $camp 當前營隊物件
+     * @return Builder
+     */
+    public function scopeAccessibleBy(Builder $query, User $user, $camp): Builder
+    {        
+        // 1. 最高管理員特赦
+        if ($user->isSuperuser) { 
+            return $query->where('applicants.camp_id', $camp->id); 
+        }
+
+        // 2. 凡人義工檢查：走正門呼叫 getCampPermissions() 🚪✨
+        // 這樣不但能合法拿到資料，還能確保內部 Parser 自動被觸發！
+        $myPermission = collect($user->getCampPermissions($camp))
+            ->where('resource', '\\' . static::class)
+            ->firstWhere('action', 'read');
+
+        // 如果連一條讀取學員的權限都沒配給他，直接回傳一个「什麼都撈不到」的邊界條件
+        if (!$myPermission) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // 3. 根據大腦算出來的 range_parsed 分數（歷史包袱：0全域, 1大組, 2小組, 3個人）
+        // 完美轉譯成一槍斃命的 SQL 條件！
+        return $query->where('applicants.camp_id', $camp->id)
+            ->where(function ($subQuery) use ($user, $camp, $myPermission) {
+                switch ($myPermission['range_parsed']) {
+                    
+                    // 👑 case 0: na & case 4: all -> 不用額外限制，整個營隊隨便看
+                    case 0:
+                    case 4:
+                        return $subQuery;
+
+                    // 大組 (volunteer_large_group) -> 只能看自己大組(section)的學員
+                    case 1:
+                        if (!$camp->isVcamp) {
+                            //學員營隊沒有這個選項，什麼都不給看
+                            return $subQuery->whereRaw('1 = 0');
+                        }
+                        $sectionIds = $user->getAccessibleSections($camp)->pluck('id')->toArray();
+                        
+                    // 👥 case 2: 小組 (learner_group) -> 只能看同一個 group_id 的學員
+                    case 2:
+                        $myGroupIds = $user->getCampRoles($camp)->pluck('group_id')->filter();
+                        return $subQuery->whereIn('group_id', $myGroupIds);
+
+                    // 📄 case 3: 個人 (person) -> 只能看自己負責直接關懷的學員
+                    case 3:
+                        // 假設你的 User 關聯 caresLearners 撈出來的是學員的 ID 清單
+                        $myCaredLearnerIds = $user->caresLearners()->pluck('id');
+                        return $subQuery->whereIn('id', $myCaredLearnerIds);
+
+                    // 🛑 安全降落：不認得的範圍就什麼都不給看
+                    default:
+                        return $subQuery->whereRaw('1 = 0');
+                }
+            });
     }
 
 }

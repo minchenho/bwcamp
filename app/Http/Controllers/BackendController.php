@@ -1863,7 +1863,102 @@ class BackendController extends Controller
         return redirect()->route("showAttendeeInfoGET", ["camp_id" => $request->camp_id, "snORadmittedSN" => $request->applicant_id]);
     }
 
-    public function showLearners(Request $request)
+private function getCarersData($user, Request $request): array
+{
+
+    $myRoles = collect($user->getCampRoles($this->camp));
+
+    // 🎯 一槍斃命：乾淨、不會閃退的純 Collection 操作
+    $target_group_ids = $myRoles
+        ->filter(function ($role) {
+            // 💡 用 str_contains 代替資料庫的 like '%...%'
+            // 只要職務名稱 (position) 裡面包含「關懷小組第」，就留下來！
+            return str_contains($role->position, '關懷小組第');
+        })
+        ->pluck('group_id') // 抓出這批職務的 group_id
+        ->filter()          // 防禦防火牆：剔除掉可能是 null 或 0 的無效 ID
+        ->unique()          // 聯集去重：如果他同時兼任多個組別，只留唯一的 ID
+        ->values();         // 重新整理索引 [0 => id1, 1 => id2]
+
+    // 🧠 備用變數（優化排毒版）：找出隸屬關懷大組且具有「全組通吃（group_id = 0）」特權的職務
+    $all_groups = $myRoles->filter(function ($role) {
+        // 🎯 1. 叫職務自己去跑你寫好的 getPathString()，看看祖先鏈有沒有包含「關懷大組」
+        $isInCareSection = str_contains($role->getPathString(), '關懷大組');
+
+        // 🎯 2. 檢查是否為全組通吃特權
+        // 💡 提示：因為你新版 DDL 移除了 all_group 欄位，改用你寫好的 $role->isAllGroup() 判定！
+        $isAllGroup = $role->isAllGroup(); 
+
+        return $isInCareSection && $isAllGroup;
+    })->values(); // 重新整理索引，回傳乾淨的 CampOrg 集合
+
+    $carers = collect([]);
+
+    // 情況 A：如果目前登入者自己沒有被指派小組，但擁有大組的管理或分配權限 (全大組開放)
+    if (!count($target_group_ids) && (
+        $user->canAccessResource(new \App\Models\CarerApplicantXref(), 'create', $this->campFullData, target: $this->campFullData->vcamp) || 
+        $user->canAccessResource(new \App\Models\CarerApplicantXref(), 'assign', $this->campFullData, target: $this->campFullData->vcamp)
+    )) {
+        // 抓出擁有的特殊權限
+        $permissions = $user->load('roles.permissions')->roles->pluck("permissions")->flatten()->filter(
+            static fn ($permission) => $permission->name == '\App\Models\CarerApplicantXref.create' || $permission->name == '\App\Models\CarerApplicantXref.assign'
+        );
+
+        // 重新拉出整個營隊所有的關懷小組組別 ID
+        $target_group_ids = $this->campFullData->organizations()
+            ->where('camp_orgs.camp_id', $this->camp_id)
+            ->where('camp_orgs.position', 'like', '%關懷小組第%')
+            ->get()
+            ->pluck('group_id');
+
+        foreach ($permissions as $permission) {
+            if ($permission->range == 'na' || $permission->range == 'all') {
+                $carers = \App\Models\User::with([
+                    'groupOrgRelation' => function ($query) use ($request) {
+                        $query->where('camp_id', $this->camp_id)
+                            ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id));
+                    },
+                    'groupOrgRelation.region',
+                    'groupOrgRelation.batch'
+                ])->whereHas('groupOrgRelation', function ($query) use ($request, $target_group_ids) {
+                    $query->where('camp_id', $this->camp_id)
+                        ->whereIn('group_id', $target_group_ids)
+                        ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id));
+                })->get();
+                
+                break; // 找到對應範圍即跳出
+            }
+        }
+    } 
+    // 情況 B：只抓取自己負責的小組內的關懷員資料
+    else {
+        // 防禦性檢查：如果自己沒有組別，營隊也沒全開，直接回傳空集合，避免沒效率的 SQL 查詢
+        if ($target_group_ids->isEmpty()) {
+            return [collect([]), $target_group_ids];
+        }
+
+        // 💡 優化點：利用 when() 合併原本有無 batch_id 的重複 SQL 段落
+        $carers = \App\Models\User::with([
+            'groupOrgRelation' => function ($query) use ($request, $target_group_ids) {
+                $query->where('camp_id', $this->camp_id)
+                    ->whereIn('group_id', $target_group_ids)
+                    ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id));
+            },
+            'groupOrgRelation.region',
+            'groupOrgRelation.batch'
+        ])->whereHas('groupOrgRelation', function ($query) use ($request, $target_group_ids) {
+            $query->where('camp_id', $this->camp_id)
+                ->whereIn('group_id', $target_group_ids)
+                ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id));
+        })->get();
+    }
+
+    // 依據結構要求，回傳處理好的陣列結果以供 List 解構賦值
+    return [$carers, $target_group_ids];
+}
+
+
+/*    public function showLearners(Request $request)
     {
         if ($this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
             return "<h3>權限已關閉。</h3>";
@@ -1972,6 +2067,114 @@ class BackendController extends Controller
                 'dynamic_stats' => $dynamic_stats,
                 
                 // 💡 關鍵新增：傳入空陣列，確保與義工頁面共用的乾淨新版 applicant-list 元件不會因為變數未定義而噴錯
+                'users_applicants' => [] 
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
+    }*/
+
+    public function showLearners(Request $request)
+    {
+        if ($this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end)) {
+            return "<h3>權限已關閉。</h3>";
+        }
+        //義工營隊用showVolunteers()
+        if ($this->isVcamp) {
+            return "<h3>義工營隊無此功能</h3>";
+        }
+
+        // 1. 權限與時間前置檢查
+        $user = \App\Models\User::findOrFail(auth()->id()); // 取得新版的 user model
+        view()->share('user', $user);
+
+        // 2. 基礎資料獲取
+        $batches = $this->camp_info->batches()->get();  
+        
+        $dynamic_stats = $user->roles()
+            ->where('camp_id', $this->camp_id)
+            ->get()
+            ->pluck('dynamic_stats')
+            ->filter()
+            ->flatten();
+
+        // 3. 處理 POST 篩選條件
+        $queryStr = null;
+        if ($request->isMethod("post")) {
+            $payload = collect($request->all())->filter(fn($val) => is_array($val))->toArray();
+            if (empty($payload)) {
+                return back()->withErrors(['未設定任何條件。']);
+            }
+            $queryStr = $this->backendService->queryStringParser($payload, $request);
+        }
+        
+        // 4. 構建學員查詢 
+        // 💡 降維打擊：直接把 accessibleBy 注入到 Query 鏈的最開端！
+        
+        $query = Applicant::accessibleBy($user, $this->camp_info) // ✨ 1. 在這裡攔截！只准撈有權限的人
+            ->with('batch', 'groupRelation', 'numberRelation', 'carers', 'contactlog')
+            ->select(
+                "applicants.*", 
+                "{$this->camp_table}.*", 
+                "applicants.id as applicant_id", 
+                "applicants.created_at as applied_at"
+            )
+            ->join($this->camp_table, "{$this->camp_table}.applicant_id" , '=', 'applicants.id')
+            ->withTrashed()
+            ->orderBy('deleted_at', 'asc')
+            ->orderBy('applicants.id', 'asc');
+
+        //scope 沒有處理 batch_id
+        if ($request->batch_id) {
+            $query->where('batches.id', $request->batch_id);
+        }
+
+        if ($request->isMethod("post") && !empty($queryStr)) {
+            $query->whereRaw(\DB::raw($queryStr));
+            $request->flash();
+        }
+
+        // 使用 paginate(100) 取代 get()
+        $applicants = $query->paginate(100);
+        
+        // 修正主鍵對應
+        $applicants->getCollection()->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
+
+        // ❌ 5. 權限過濾 (原來的第 5 步直接整塊刪除、丟進垃圾桶！)
+        // -----------------------------------------------------------------
+        // 為什麼可以刪？因為在第 4 步進去資料庫時，撈出來的 $applicants 本身
+        // 就已經 100% 乾淨、全是該義工有權限看的資料了。
+        // 再也不需要跑 batchCanAccessResources 去回頭塗改分頁物件，
+        // 這下每頁「固定就是完美的 100 筆」，分頁按鈕絕對不會再錯亂！
+        // -----------------------------------------------------------------
+
+        // 6. 處理 Carer 邏輯
+        $carers = null;
+        $target_group_ids = null;
+        if ($request->isSettingCarer) {
+            [$carers, $target_group_ids] = $this->getCarersData($user, $request);
+        }
+
+        // 7. 取得營隊要顯示的欄位設定
+        $columns_zhtw = config('camps_fields.display.' . $this->camp_table);
+        $request->flash();
+
+        return response()->view('backend.integrated_operating_interface.theList', [
+                'applicants' => $applicants,
+                'batches' => $batches,
+                'current_batch' => Batch::find($request->batch_id),
+                'isShowVolunteers' => 0,
+                'isSetting' => $request->isSetting == 1 ? 1 : 0,
+                'isSettingCarer' => $request->isSettingCarer ?? 0,
+                'carers' => $carers,
+                'isShowLearners' => 1,
+                'is_ingroup' => 0,
+                'groupName' => '',
+                'columns_zhtw' => $columns_zhtw,
+                'fullName' => $this->camp_info->fullName,
+                'queryStr' => $queryStr,
+                'groups' => $this->camp_info->groups,
+                'targetGroupIds' => $target_group_ids,
+                'dynamic_stats' => $dynamic_stats,
                 'users_applicants' => [] 
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')

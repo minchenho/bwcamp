@@ -9,7 +9,7 @@
         <span class="badge badge-secondary font-weight-normal text-xs ml-2">深度: {{ $node->depth }}</span>
         @if($node->batch)
             <span class="badge badge-info font-weight-normal text-xs">
-                {{ $node->batch->isVbatch() ? '義工' : '學員' }}
+                {{ $node->batch->isVbatch ? '義工' : '學員' }}
             </span>
         @else
             <span class="badge badge-secondary font-weight-normal text-xs">不限</span>

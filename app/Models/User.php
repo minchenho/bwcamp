@@ -71,11 +71,64 @@ class User extends Authenticatable
     
     // roles() 這裡沒有定義
     // 要看 use Laratrust\Traits\LaratrustUserTrait;
+    // 以及 config/laratrust.php 裡面定義的 table
     // 其實就是去抓出 camp_orgs
     
     public function legace_roles()
     {
         return $this->belongsToMany('App\Models\Role', 'role_user', 'user_id', 'role_id');
+    }
+
+    /**
+     * 公開正門：允許外面的 Model (如 Applicant) 安全獲取成型後的營隊權限
+     */
+
+    public function getCampRoles($camp)
+    {
+        // 檢查目前的 roles 裡面，有沒有任何一條符合當前營隊的 camp_id？
+        $hasCurrentCampRoles = collect($this->camp_roles)
+            ->contains('camp_id', $camp->id);
+
+        // 如果沒有, 強制啟動 Parser，強制更新 camp_roles 和 camp_permissions
+        if (!$hasCurrentCampRoles) {
+            $this->permissionsRolesParser($camp);
+        }
+        return $this->camp_roles;
+    }
+
+    public function getCampPermissions($camp)
+    {
+        // 看看目前裝著的權限裡面，有沒有任何一條的 camp_id 符合現在要查的營隊？
+        $hasCurrentCampPermissions = collect($this->camp_permissions)
+            ->contains('camp_id', $camp->id);
+
+        // 如果沒有，啟動 Parser 更新
+        if (!$hasCurrentCampPermissions) {
+            $this->permissionsRolesParser($camp);
+        }
+        return $this->camp_permissions;
+    }
+
+    public function getAccessibleSections($camp)
+    {
+        //*** sections (大組): 是 depth = 1 的職務
+        $myRoles = collect($this->getCampRoles($camp));
+
+        if ($myRoles->isEmpty()) {
+            return collect();
+        }
+
+        // 如果是超級管理員
+        if ($this->isSuperuser) {
+            return \App\Models\CampOrg::where('camp_id', $camp->id)->where('depth', 1)->get();
+        }
+
+        // 😎 乾淨流暢的 Collection 連鎖技：
+        return $myRoles
+            ->map(fn($role) => $role->closest_section) // 👈 叫每個職務去啟動自帶的 closest_section 屬性
+            ->filter()                                 // 剔除找不到大組的邊界狀況
+            ->unique('id')                             // 聯集去重
+            ->values();                                // 重新整理索引
     }
 
     public function getPermission($top = false, $camp_id = null, $function_id = null)
@@ -142,9 +195,14 @@ class User extends Authenticatable
     //     );
     // }
 
-    public function applicants($camp_id)
+    public function applicants($camp)
     {
-        $vbatch_id = Camp::find($camp_id)->vcamp->batches->pluck('id');
+        //找到相關的
+        if ($camp->isVamp) {
+            $vbatch_id = $camp->batches->pluck('id');
+        } else {
+            $vbatch_id = $camp->vcamp->batches->pluck('id');
+        }
         $applicants_all = $this->application_log;
         $applicants_filtered = $applicants_all->whereIn('batch_id', $vbatch_id);
         return $applicants_filtered;
@@ -155,32 +213,67 @@ class User extends Authenticatable
          *  1. 取得該義工於營隊內的所有職務
          *  2. 取出所有權限的聯集，並以條列方式呈現
          */
-        $permissions = $this->roles()->where('camp_id', $camp->id)->get()
+
+        // 1. 利用 with('permissions') 做到 Eager Loading（預載入）
+        // 不論身兼幾個職務，永遠只跑「2 次 SQL」，效能直接起飛！
+        $rolesWithPermissions = $this->roles()
+            ->where('camp_id', $camp->id)
+            ->with('permissions') 
+            ->get();
+
+        // 2. 取出所有權限的聯集，因為preload，下面（filter, map）通通在記憶體完成！
+        $permissions = $rolesWithPermissions
                         ->filter(static fn ($role) => $role->permissions->count() > 0)
                         ->map(static fn ($role) => $role->permissions)
                         ->flatten()->unique('id')->values();
+
         $permissions = $permissions->sortBy(["resource", "action"]);
-        $parsed = collect();
-        $permissions->each(function ($permission) use (&$parsed) {
-            $existing = $parsed->where("resource", $permission->resource)->firstWhere("action", $permission->action);
-            if ($existing) {
-                if ($existing["range_parsed"] < $permission->range_parsed) {
-                    $existing["description"] = $permission->description;
-                    $existing["range"] = $permission->range;
-                    $existing["range_parsed"] = $permission->range_parsed;
+        $parsed = collect();    //$parsed 只是陣列
+
+        $trueWeights = [
+            "person" => 1,                 // 個人最弱
+            "learner_group" => 2,          // 小組第二
+            "volunteer_large_group" => 3,  // 大組第三
+            "all" => 4,                    // 全部(小組)
+            "na" => 5,                     // 不指定
+        ];
+
+        $permissions->each(function ($permission) use (&$parsed, $trueWeights) {
+            // 1. 改成用 search 找出這筆舊權限在 $parsed 籃子裡的「陣列索引 (0, 1, 2...)」
+            $existingIndex = $parsed->search(function ($item) use ($permission) {
+                return $item['resource'] === $permission->resource && $item['action'] === $permission->action;
+            });
+
+            // 2. 如果找得到舊權限 (search 找不到會回傳 false)
+            if ($existingIndex !== false) {
+                // 拿到本尊的資料
+                $existing = $parsed->get($existingIndex);
+                $existingWeight = $trueWeights[$existing["range"]] ?? 0;
+                
+                if ($existingWeight < $currentWeight) {
+                    // ✨ 3. 核心大招：直接用 $parsed[$existingIndex] 鎖定籃子裡的本尊進行修改！
+                    // range_parsed 必須要同步回填，因為外層的 switch 正在嗷嗷待哺等著這個數字！
+                    $parsed[$existingIndex] = [
+                        "resource"     => $permission->resource,
+                        "action"       => $permission->action,
+                        "description"  => $permission->description,
+                        "range"        => $permission->range,
+                        "range_parsed" => $permission->range_parsed,
+                    ];
                 }
             } else {
+                // 第一次見面，直接塞進籃子
                 $parsed->push([
-                    "resource" => $permission->resource,
-                    "action" => $permission->action,
-                    "description" => $permission->description,
-                    "range" => $permission->range,
+                    "resource"     => $permission->resource,
+                    "action"       => $permission->action,
+                    "description"  => $permission->description,
+                    "range"        => $permission->range,
                     "range_parsed" => $permission->range_parsed,
                 ]);
             }
         });
         $this->camp_permissions = $parsed;
-        $this->camp_roles = $this->roles()->where('camp_id', $camp->id)->get();
+        $this->camp_roles = $rolesWithPermissions;
         return $parsed;
     }
 
@@ -190,6 +283,7 @@ class User extends Authenticatable
             return false;
         }
 
+        /*MCH: 好像沒用到
         $class = is_string($resource) ? $resource : get_class($resource);
         if ($resource instanceof \App\Models\Volunteer && $context == "vcampExport") {
             $class = "App\\Models\\Applicant";
@@ -209,6 +303,7 @@ class User extends Authenticatable
             $batch_id = $theApplicant?->batch_id;
             $region_id = $theApplicant?->region_id;
         }
+        */
 
         // $existingAccessResult = $this->canAccessResult()
         //     ->where('camp_id', $camp->id)
@@ -223,6 +318,7 @@ class User extends Authenticatable
         // } else {
         //     return $this->fillingAccessibleResult($resource, $action, $camp, $context, $target, $probing);
         // }
+
         return $this->getAccessibleResult($resource, $action, $camp, $context, $target, $probing);
     }
 
@@ -305,9 +401,13 @@ class User extends Authenticatable
 
     public function getAccessibleResult($resource, $action, $camp, $context = null, $target = null, $probing = null)
     {
-        if (!$this->camp_roles) {
-            $this->camp_roles = $this->permissionsRolesParser($camp);
+        // 👍 完美防禦：只要發現沒載入過，就直接呼叫 parser 
+        if (is_null($this->camp_roles) || $this->camp_roles->isEmpty()) {
+            //permissionRolesParser() will update 
+            //$this->camp_roles and $this->camp_permissions               
+            $this->permissionsRolesParser($camp);
         }
+
         if (!$resource) {
             return false;
         }

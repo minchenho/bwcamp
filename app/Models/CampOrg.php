@@ -218,4 +218,51 @@ class CampOrg extends LaratrustRole
 
         return $count;
     }
+
+    /**
+    * 🌲 向上追溯大組屬性：$campOrg->closest_section
+    * 自動沿著樹狀結構往上爬，抓出該職務隸屬的 depth = 1 (功能大組) 節點
+    */
+    protected function closestSection(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // 👉 情況 A：自己本來就是大組級職務，那大組就是自己
+                if ((int)$this->depth === 1) {
+                    return $this;
+                }
+
+                // 👉 情況 B：如果是 Root (depth = 0)，一般大組長都是 depth = 1。
+                // 萬一有更上層的 root，它自己不是大組，上層也沒大組，就回傳 null
+                if ((int)$this->depth === 0) {
+                    return null;
+                }
+
+                // 👉 情況 C：自己在更低層級 (depth > 1)，開始往上攀爬
+                $current = $this;
+                $safetyCounter = 0; // 髒資料死循環保險絲
+
+                while ($current && $safetyCounter < 10) {
+                    // 優先使用預載入的 ancestors，否則走 parent 關聯
+                    $parent = $current->relationLoaded('ancestors') && $current->ancestors 
+                        ? $current->ancestors 
+                        : $current->parent;
+
+                    if (!$parent) {
+                        break; // 斷鏈安全降落
+                    }
+
+                    // 🎯 找到了！這就是我們要的 depth = 1 節點
+                    if ((int)$parent->depth === 1) {
+                        return $parent;
+                    }
+
+                    $current = $parent;
+                    $safetyCounter++;
+                }
+
+                return null;
+            }
+        );
+    }
 }
