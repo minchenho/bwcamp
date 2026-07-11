@@ -83,7 +83,7 @@ $footer_path = $message->embed(public_path() . $str2);
                 </ul>
                 <br>
                 若有任何問題，歡迎與關懷員們聯絡。<br>
-                或來電本會&nbsp;(02)7751-6799&nbsp;分機&nbsp;611203&nbsp;企業營報名報到組。<br><br>
+                或來電本會&nbsp;(02)7751-6799&nbsp;分機&nbsp;611203&nbsp;企業營報名報到組。<br>
             @elseif(str_contains($applicant->batch->name, "南區"))
                 親愛的企業主管您好 : <br><br>
                 &emsp;&emsp;歡迎您參加「{{ $applicant->batch->camp->fullName }}」，我們誠摯期待您的到來，希望您能獲得豐盛的收穫。〈<u>請於報到時攜帶電子郵件中，附件內含之QR&nbsp;Code報到。</u>〉<br><br>
@@ -115,7 +115,7 @@ $footer_path = $message->embed(public_path() . $str2);
                     <li>如有發燒及呼吸道症狀(額溫>=37.5度C)，為維護個人及他人的健康安全，敬請勿參加本次活動，並通知關懷員。</li>
                     <li>若您目前正值懷孕期間，因本營隊每日課程長達十多個小時，整體節奏較為緊湊，且需配合團體住宿。提醍參加前務必再評估目前的身體狀況後參加。</li>
                     <li>因研習課程延伸至晚間，為建立完整的學習環境並達到最佳研習效果，主辦單位統一安排全程住宿，研習期間恕不開放學員私自外出及外宿。若有特殊緊急需求，請務必依規定向關懷員填寫假單申請。</li>
-                    <li>會場停車位有限，響應節能減碳，懇請多利用公共交通工具及本會提供的接駁服務。</li>
+                    <li>會場停車位有限，響應節能減碳，懇請多利用公共交通工具及本會提供的接駁車。</li>
                     <li>{{ $applicant->batch->batch_end->format('n/j') }}&nbsp;課程預定於&nbsp;17:00&nbsp;結束，如需訂購回程車票，請考慮&nbsp;18:10&nbsp;以後之班次。</li>
                 </ol><br>
                 若有任何問題，歡迎與關懷員聯絡，或來電本會企業課&nbsp;07-2819498&nbsp;企業營報名報到組。<br>
@@ -159,8 +159,8 @@ $footer_path = $message->embed(public_path() . $str2);
                 <br>
                 <br>
                 若有任何問題，歡迎與關懷員聯絡，或來電本會<b>04-3706-9300&nbsp;(分機621201)</b>企業營報名報到組。
-
             @endif
+            <br><br>
             <a class="right">主辦單位：財團法人福智文教基金會&emsp;敬啟</a><br>
             <a class="right">{{ $today->format('Y 年 n 月 j 日') }}</a>
         </td></tr>
