@@ -107,7 +107,7 @@ return [
     |
     */
     'tables' => [
-        'roles' => 'camp_org',
+        'roles' => 'camp_orgs',
 
         'permissions' => 'permissions',
 

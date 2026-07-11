@@ -71,7 +71,7 @@ class User extends Authenticatable
     
     // roles() 這裡沒有定義
     // 要看 use Laratrust\Traits\LaratrustUserTrait;
-    // 其實就是去抓出 camp_org
+    // 其實就是去抓出 camp_orgs
     
     public function legace_roles()
     {
