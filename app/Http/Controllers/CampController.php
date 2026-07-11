@@ -711,7 +711,7 @@ class CampController extends Controller
 
         $refundForm_url = $this->camp_info->dynamic_stats?->where('purpose', 'refundForm')?->first()?->google_sheet_url ?? "";
 
-        return \PDF::loadView('camps.' . $this->camp_able . '.paymentFormPDF', compact('applicant','camp_info', 'refundForm_url'))->setPaper('a3')->download('Payment_' . \Carbon\Carbon::now()->format('YmdHis') . $applicant->id . '.pdf');
+        return \PDF::loadView('camps.' . $this->camp_table . '.paymentFormPDF', compact('applicant','camp_info', 'refundForm_url'))->setPaper('a3')->download('Payment_' . \Carbon\Carbon::now()->format('YmdHis') . $applicant->id . '.pdf');
     }
 
     public function downloadCheckInNotification(Request $request)

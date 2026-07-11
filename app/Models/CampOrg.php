@@ -73,9 +73,10 @@ class CampOrg extends LaratrustRole
     }
 
     /* -------------------------------------------------------------------------- */
-    /* 樹狀結構與遞迴關聯                           */
+    /*                                樹狀結構與遞迴關聯                           */
     /* -------------------------------------------------------------------------- */
 
+    // 修正：絕不回傳 null，保持關聯完整性
     public function parent(): BelongsTo
     {
         return $this->belongsTo(CampOrg::class, 'prev_id', 'id');
@@ -99,13 +100,15 @@ class CampOrg extends LaratrustRole
     /* -------------------------------------------------------------------------- */
 
     /**
-     * 限制查詢範圍為根節點 (depth = 0 或 prev_id 為空)
+     * 限制查詢範圍為根節點 (深度安全防禦版)
      */
     public function scopeRoots(Builder $query): Builder
     {
-        return $query->where('depth', 0);
+        // ✨ 雙重防線：prev_id 必須是 0，且絕對不能是 null！
+        return $query->where('prev_id', 0)
+                     ->whereNotNull('prev_id');
     }
-
+  
     /**
      * 取代原先有 Bug 的 next() 關聯方法。
      * 用法：$nextOrg = $campOrg->nextInOrder()->first();
