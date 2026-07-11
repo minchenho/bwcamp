@@ -121,7 +121,7 @@ class CheckInController extends Controller {
             $applicants = Applicant::with(['batch',
                                            'batch.camp' => $constraint,
                                            'user.roles' => function ($query) use ($main_camp) {
-                                                return $query->where('camp_org.camp_id', $main_camp->id);
+                                                return $query->where('camp_orgs.camp_id', $main_camp->id);
                                             }])
                             ->whereHas('batch.camp', $constraint)
                             ->where('is_admitted', 1)

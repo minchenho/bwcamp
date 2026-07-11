@@ -16,7 +16,7 @@ class CampOrg extends LaratrustRole
 {
     use LaratrustRoleTrait;
 
-    protected $table = 'camp_org';
+    protected $table = 'camp_orgs';
 
     public $resourceNameInMandarin = '營隊組織 / 義工職務組別';
 

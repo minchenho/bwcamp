@@ -2040,7 +2040,7 @@ class BackendController extends Controller
                     $q->whereHas('application_log.user.roles', function ($query) use ($queryRoles) {
                         $query->where('camp_id', $this->camp_id);
                         if ($queryRoles && !$queryRoles->isEmpty()) {
-                            $query->whereIn('camp_org.id', $queryRoles->pluck('id'));
+                            $query->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                         }
                     });
                     if (!$queryRoles || $queryRoles->isEmpty()) {
@@ -2069,7 +2069,7 @@ class BackendController extends Controller
                             $query->when(!$queryRoles->isEmpty(), function ($query) use ($queryRoles) {
                                 $query->orWhereHas('application_log.user.roles', function ($query) use ($queryRoles) {
                                     $query->where('camp_id', $this->camp_id)
-                                        ->whereIn('camp_org.id', $queryRoles->pluck('id'));
+                                        ->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                                 });
                             })->when($queryStr != "(1 = 1)", function ($query) use ($queryRoles, $application_log_constraint, $queryStr) {
                                 $query->when($queryRoles->isEmpty(), function ($query) use ($application_log_constraint) {
@@ -2117,29 +2117,29 @@ class BackendController extends Controller
                 $join->on('users.id', '=', 'org_user.user_id')
                     ->where('org_user.user_type', 'AppModelsUser');
             })
-            ->leftJoin('camp_org', function ($join) {
-                $join->on('org_user.org_id', '=', 'camp_org.id')
-                    ->where('camp_org.camp_id', $this->camp_id);
+            ->leftJoin('camp_orgs', function ($join) {
+                $join->on('org_user.org_id', '=', 'camp_orgs.id')
+                    ->where('camp_orgs.camp_id', $this->camp_id);
             })
             ->whereIn('applicants.batch_id', $filtered_batches->pluck('id'))
             ->where(function ($query) use ($queryRoles) {
                 $query->whereExists(function ($subquery) use ($queryRoles) {
                     $subquery->select(\DB::raw(1))
-                        ->from('camp_org')
-                        ->join('org_user', 'camp_org.id', '=', 'org_user.org_id')
+                        ->from('camp_orgs')
+                        ->join('org_user', 'camp_orgs.id', '=', 'org_user.org_id')
                         ->whereColumn('org_user.user_id', 'users.id')
-                        ->where('camp_org.camp_id', $this->camp_id)
+                        ->where('camp_orgs.camp_id', $this->camp_id)
                         ->when($queryRoles && !$queryRoles->isEmpty(), function ($q) use ($queryRoles) {
-                            $q->whereIn('camp_org.id', $queryRoles->pluck('id'));
+                            $q->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                         });
                 })
                 ->when(!$queryRoles || $queryRoles->isEmpty(), function ($q) {
                     $q->orWhereNotExists(function ($subquery) {
                         $subquery->select(\DB::raw(1))
-                            ->from('camp_org')
-                            ->join('org_user', 'camp_org.id', '=', 'org_user.org_id')
+                            ->from('camp_orgs')
+                            ->join('org_user', 'camp_orgs.id', '=', 'org_user.org_id')
                             ->whereColumn('org_user.user_id', 'users.id')
-                            ->where('camp_org.camp_id', $this->camp_id);
+                            ->where('camp_orgs.camp_id', $this->camp_id);
                     });
                 });
             });
@@ -2160,7 +2160,7 @@ class BackendController extends Controller
                             $query->when(!$queryRoles->isEmpty(), function ($query) use ($queryRoles) {
                                 $query->orWhereHas('application_log.user.roles', function ($query) use ($queryRoles) {
                                     $query->where('camp_id', $this->camp_id)
-                                        ->whereIn('camp_org.id', $queryRoles->pluck('id'));
+                                        ->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                                 });
                             })->when($queryStr != "(1 = 1)", function ($query) use ($queryRoles, $application_log_constraint, $queryStr) {
                                 $query->when($queryRoles->isEmpty(), function ($query) use ($application_log_constraint) {
