@@ -112,15 +112,24 @@ class Camp extends Model
         return $this->hasManyThrough(ApplicantsGroup::class, Batch::class);
     }
 
+    /**
+     * 🔄 反向關聯：由義工營隊(Vcamp) 反查它的學員營隊(Camp)」
+     */
+    public function mainCamp() //學員營隊
+    {
+        return $this->hasOneThrough(
+            Camp::class, CampVcampXref::class, 
+            'vcamp_id', 'id', 'id', 'camp_id'              
+        )->withDefault();          
+    }
+    /**
+     * 🔄 正向關聯：由學員營隊(Camp)」查 義工營隊(Vcamp)
+     */
     public function vcamp()
     {
         return $this->hasOneThrough(
-            Camp::class, 
-            CampVcampXref::class, 
-            'camp_id',    
-            'id',         
-            'id',         
-            'vcamp_id'    
+            Camp::class, CampVcampXref::class, 
+            'camp_id', 'id', 'id', 'vcamp_id'    
         )->withDefault(); // ✨ 加上這行防禦大絕招！
     }
 
@@ -349,4 +358,41 @@ class Camp extends Model
     {
         return Attribute::make(get: fn () => $this->discount_last_day?->locale('zh_TW')->minDayName);
     }
+
+    /**
+     * 🧠 智慧自適應營隊屬性：$camp->resolved_camp
+     * * 如果自己本身是學員營隊（!isVcamp），回傳自己
+     */
+
+    protected function resolvedCamp(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->isVcamp) { 
+                    return $this->mainCamp;; 
+                }
+                return $this;
+            }
+        );
+    }
+
+    /**
+     * 🧠 智慧自適應營隊屬性：$camp->resolved_vcamp
+     * 如果自己本身就是虛擬營隊（isVcamp），回傳自己；
+     */
+    protected function resolvedVcamp(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // 🎯 1. 檢查自己是不是 vcamp
+                if ($this->isVcamp) { 
+                    return $this; // 😎 自己就是，直接把自己的 Model 完好無缺地吐回去！
+                }
+
+                // 🎯 2. 如果自己不是，才啟動 hasOneThrough 關聯去隔壁桌找
+                return $this->vcamp; 
+            }
+        );
+    }
+
 }
