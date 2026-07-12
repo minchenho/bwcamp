@@ -32,7 +32,10 @@ class CampOrg extends LaratrustRole
 
     // ✨ 核心大絕招：全域自動預載。未來全系統只要撈組織，自動把祖先鏈一網打盡！
     protected $with = ['ancestors'];
-
+    
+    protected $appends = [
+        'section', // ✨ 讓這個屬性在轉 JSON 或 toArray() 時會自動被包進去
+    ];
     /* -------------------------------------------------------------------------- */
     /* 標準關聯與核心多對多                        */
     /* -------------------------------------------------------------------------- */
@@ -198,6 +201,16 @@ class CampOrg extends LaratrustRole
             }
         }        
         return empty($path) ? 'root' : implode(' > ', array_reverse($path));
+    }
+    /**
+     * 🧠 現代化 Laravel Attribute：$org->section
+     * 當呼叫 $org->section 時，自動回傳樹狀組織路徑
+     */
+    protected function section(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->getPathString()
+        );
     }
 
     /**
