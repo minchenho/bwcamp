@@ -17,9 +17,6 @@ class Camp extends Model
     public $resourceNameInMandarin = '學員營隊資料';
     public $resourceDescriptionInMandarin = '每年學員營隊有關的資料，包括營隊名稱、簡稱、舉辦年、報名日期、錄取日期……等資料。';
 
-    /**
-     * 可批量賦值的欄位
-     */
     protected $fillable = [
         'fullName', 'test', 'abbreviation', 'site_url', 'icon', 'table', 'year', 'variant', 'mode',
         'registration_start', 'registration_end', 'admission_announcing_date', 'admission_confirming_end',
@@ -28,8 +25,6 @@ class Camp extends Model
         'discount_fee', 'discount_last_day', 'modifying_deadline', 'cancellation_deadline',
         'access_start', 'access_end'
     ];
-
-    protected $guarded = [];
 
     /**
      * 屬性類型轉換
@@ -78,9 +73,37 @@ class Camp extends Model
     /* 核心標準關聯                                 */
     /* -------------------------------------------------------------------------- */
 
+    /**
+     * 🔄 正向關聯：由學員營隊(Camp)」查 義工營隊(Vcamp)
+     */
+    public function vcamp()
+    {
+        return $this->hasOneThrough(
+            Camp::class, CampVcampXref::class, 
+            'camp_id', 'id', 'id', 'vcamp_id'    
+        )->withDefault(); // ✨ 加上這行防禦大絕招！
+    }
+	
+    /**
+     * 🔄 反向關聯：由義工營隊(Vcamp) 反查它的學員營隊(Camp)」
+     */
+    public function mainCamp() //學員營隊
+    {
+        return $this->hasOneThrough(
+            Camp::class, CampVcampXref::class, 
+            'vcamp_id', 'id', 'id', 'camp_id'
+        )->withDefault();          
+    }
+
     public function batches(): HasMany
     {
-        return $this->hasMany(Batch::class);
+        // 明確指定外鍵是 'camp_id'
+        return $this->hasMany(Batch::class, 'camp_id');
+    }
+
+    public function dynamic_stats(): MorphMany
+    {
+        return $this->morphMany(DynamicStat::class, 'urltable');
     }
 
     public function currencies(): BelongsToMany
@@ -112,31 +135,7 @@ class Camp extends Model
         return $this->hasManyThrough(ApplicantsGroup::class, Batch::class);
     }
 
-    /**
-     * 🔄 反向關聯：由義工營隊(Vcamp) 反查它的學員營隊(Camp)」
-     */
-    public function mainCamp() //學員營隊
-    {
-        return $this->hasOneThrough(
-            Camp::class, CampVcampXref::class, 
-            'vcamp_id', 'id', 'id', 'camp_id'              
-        )->withDefault();          
-    }
-    /**
-     * 🔄 正向關聯：由學員營隊(Camp)」查 義工營隊(Vcamp)
-     */
-    public function vcamp()
-    {
-        return $this->hasOneThrough(
-            Camp::class, CampVcampXref::class, 
-            'camp_id', 'id', 'id', 'vcamp_id'    
-        )->withDefault(); // ✨ 加上這行防禦大絕招！
-    }
 
-    public function dynamic_stats(): MorphMany
-    {
-        return $this->morphMany(DynamicStat::class, 'urltable');
-    }
 
     /* -------------------------------------------------------------------------- */
     /* 全新現代化：樹狀組織關係鏈                            */
@@ -222,6 +221,39 @@ class Camp extends Model
     /* -------------------------------------------------------------------------- */
     /* 現代化 Laravel Attribute 修改器                        */
     /* -------------------------------------------------------------------------- */
+
+    /**
+     * 🧠 智慧自適應營隊屬性：$camp->resolved_camp
+     * * 如果自己本身是學員營隊（!isVcamp），回傳自己
+     */
+
+    protected function resolvedCamp(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->isVcamp) { 
+                    return $this->mainCamp;
+                }
+                return $this;
+            }
+        );
+    }
+
+    /**
+     * 🧠 智慧自適應營隊屬性：$camp->resolved_vcamp
+     * 如果自己本身就是虛擬營隊（isVcamp），回傳自己；
+     */
+    protected function resolvedVcamp(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->isVcamp) { 
+                    return $this;
+                }
+                return $this->vcamp; 
+            }
+        );
+    }
 
     /**
      * 決定當下的費用（原價或早鳥價）
@@ -359,40 +391,5 @@ class Camp extends Model
         return Attribute::make(get: fn () => $this->discount_last_day?->locale('zh_TW')->minDayName);
     }
 
-    /**
-     * 🧠 智慧自適應營隊屬性：$camp->resolved_camp
-     * * 如果自己本身是學員營隊（!isVcamp），回傳自己
-     */
-
-    protected function resolvedCamp(): Attribute
-    {
-        return Attribute::make(
-            get: function () {
-                if ($this->isVcamp) { 
-                    return $this->mainCamp;; 
-                }
-                return $this;
-            }
-        );
-    }
-
-    /**
-     * 🧠 智慧自適應營隊屬性：$camp->resolved_vcamp
-     * 如果自己本身就是虛擬營隊（isVcamp），回傳自己；
-     */
-    protected function resolvedVcamp(): Attribute
-    {
-        return Attribute::make(
-            get: function () {
-                // 🎯 1. 檢查自己是不是 vcamp
-                if ($this->isVcamp) { 
-                    return $this; // 😎 自己就是，直接把自己的 Model 完好無缺地吐回去！
-                }
-
-                // 🎯 2. 如果自己不是，才啟動 hasOneThrough 關聯去隔壁桌找
-                return $this->vcamp; 
-            }
-        );
-    }
 
 }

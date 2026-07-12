@@ -20,13 +20,13 @@
 
     {{-- 1. 頂部標題優化 --}}
     @if ($org_parent->isRoot())
-        <h2>{{ $campFullData->abbreviation }} 組別名單</h2>
+        <h2>{{ $camp_info->abbreviation }} 組別名單</h2>
     @else
-        <h2>{{ $campFullData->abbreviation }} {{ $org_parent->getPathString() }} > {{$org_parent->position}} 組別名單</h2>
+        <h2>{{ $camp_info->abbreviation }} {{ $org_parent->getPathString() }} > {{$org_parent->position}} 組別名單</h2>
     @endif
 
     {{-- 2. 梯次循環渲染 --}}
-    @foreach ($campFullData->batches as $batch)
+    @foreach ($camp_info->batches as $batch)
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-dark text-white">
                 <h5 class="mb-0"><i class="fa fa-clock-o"></i> 梯次：{{ $batch->name }}</h5>
@@ -69,12 +69,12 @@
 
                                     {{-- 判斷是否還有子層，決定進入子列表還是直接看名單 --}}
                                     @if (!$org->isLeaf())
-                                        <a href="{{ route("showSectionList", [$campFullData->id, $org->id]) }}" class="card-link tree-node-active">
+                                        <a href="{{ route("showSectionList", [$camp_info->id, $org->id]) }}" class="card-link tree-node-active">
                                             <i class="fa fa-folder-open-o text-warning"></i> {{ $org->position }} 
                                             <small class="text-muted">(進入內部層級)</small>
                                         </a>
                                     @else
-                                        <a href="{{ route("showSection", [$campFullData->id, $org->id]) }}" class="card-link">
+                                        <a href="{{ route("showSection", [$camp_info->id, $org->id]) }}" class="card-link">
                                             <i class="fa fa-file-text-o text-info"></i> {{ $org->position }}
                                         </a>
                                     @endif
