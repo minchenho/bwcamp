@@ -2327,65 +2327,65 @@ private function getCarersData($user, Request $request): array
         if (!$new) {
             $registeredUsers = \App\Models\User::with([
                 'roles' => fn ($q) => $q->where('camp_id', $this->camp_id), // 給 IoiSearch 用的資料
-                'application_log.user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id),  // applicant-list 顯示用的資料
-                'application_log.user.roles.batch',
-                'application_log' => function ($query) use ($filtered_batches) {
+                'applicants.user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id),  // applicant-list 顯示用的資料
+                'applicants.user.roles.batch',
+                'applicants' => function ($query) use ($filtered_batches) {
                     $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                     $query->whereIn('batch_id', $filtered_batches->pluck('id'));
-                },  'application_log.groupRelation',
-                    'application_log.groupOrgRelation',
-                    'application_log.batch',
-                    'application_log.contactlog'
+                },  'applicants.groupRelation',
+                    'applicants.groupOrgRelation',
+                    'applicants.batch',
+                    'applicants.contactlog'
                 ])
                 ->where(function ($q) use ($queryRoles) {
-                    $q->whereHas('application_log.user.roles', function ($query) use ($queryRoles) {
+                    $q->whereHas('applicants.user.roles', function ($query) use ($queryRoles) {
                         $query->where('camp_id', $this->camp_id);
                         if ($queryRoles && !$queryRoles->isEmpty()) {
                             $query->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                         }
                     });
                     if (!$queryRoles || $queryRoles->isEmpty()) {
-                        $q->orWhereDoesntHave('application_log.user.roles', function ($query) {
+                        $q->orWhereDoesntHave('applicants.user.roles', function ($query) {
                             $query->where('camp_id', $this->camp_id);
                         });
                     }
                 })
-                ->whereHas('application_log', function ($query) use ($batches) {
+                ->whereHas('applicants', function ($query) use ($batches) {
                     $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                     $query->whereIn('batch_id', $batches->pluck('id'));
                 });
             if ($request->isMethod("post")) {
                 if ($showNoJob) {
                     if ($queryRoles->isEmpty() && $queryStr == "(1 = 1)") {
-                        $registeredUsers = $registeredUsers->whereDoesntHave('application_log.user.roles');
+                        $registeredUsers = $registeredUsers->whereDoesntHave('applicants.user.roles');
                     } else {
-                        $application_log_constraint = function ($query) use ($queryStr, $batches) {
+                        $applicants_constraint = function ($query) use ($queryStr, $batches) {
                             $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                             $query->whereIn('batch_id', $batches->pluck('id'))
                                 ->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
                                 });
                         };
-                        $registeredUsers = $registeredUsers->where(function ($query) use ($queryRoles, $queryStr, $application_log_constraint) {
+                        $registeredUsers = $registeredUsers->where(function ($query) use ($queryRoles, $queryStr, $applicants_constraint) {
                             $query->when(!$queryRoles->isEmpty(), function ($query) use ($queryRoles) {
-                                $query->orWhereHas('application_log.user.roles', function ($query) use ($queryRoles) {
+                                $query->orWhereHas('applicants.user.roles', function ($query) use ($queryRoles) {
                                     $query->where('camp_id', $this->camp_id)
                                         ->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                                 });
-                            })->when($queryStr != "(1 = 1)", function ($query) use ($queryRoles, $application_log_constraint, $queryStr) {
-                                $query->when($queryRoles->isEmpty(), function ($query) use ($application_log_constraint) {
-                                    $query->orWhereHas('application_log', $application_log_constraint);
-                                })->when(!$queryRoles->isEmpty(), function ($query) use ($application_log_constraint) {
-                                    $query->WhereHas('application_log', $application_log_constraint);
+                            })->when($queryStr != "(1 = 1)", function ($query) use ($queryRoles, $applicants_constraint, $queryStr) {
+                                $query->when($queryRoles->isEmpty(), function ($query) use ($applicants_constraint) {
+                                    $query->orWhereHas('applicants', $applicants_constraint);
+                                })->when(!$queryRoles->isEmpty(), function ($query) use ($applicants_constraint) {
+                                    $query->WhereHas('applicants', $applicants_constraint);
                                 })->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
                                 });
-                            })->orWhereDoesntHave('application_log.user.roles');
+                            })->orWhereDoesntHave('applicants.user.roles');
                         });
                     }
                 } else {
                     $registeredUsers = $registeredUsers->when($queryStr != "(1 = 1)", function ($query) use ($queryStr, $batches) {
-                        $query->whereHas('application_log', function ($query) use ($queryStr, $batches) {
+                        $query->whereHas('applicants', function ($query) use ($queryStr, $batches) {
                             $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id')
                                 ->whereIn('batch_id', $batches->pluck('id'))
                                 ->when($queryStr, function ($query) use ($queryStr) {
@@ -2399,17 +2399,17 @@ private function getCarersData($user, Request $request): array
         } else {
             $registeredUsers = \App\Models\User::with([
                 'roles' => fn ($q) => $q->where('camp_id', $this->camp_id), // 給 IoiSearch 用的資料
-                'application_log.user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id),  // applicant-list 顯示用的資料
-                'application_log.user.roles.batch',
-                'application_log' => function ($query) use ($filtered_batches,$vcamp) {
+                'applicants.user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id),  // applicant-list 顯示用的資料
+                'applicants.user.roles.batch',
+                'applicants' => function ($query) use ($filtered_batches,$vcamp) {
                     $query->join($vcamp->table, 'applicants.id', '=', $vcamp->table . '.applicant_id');
                     $query->whereIn('batch_id', $filtered_batches->pluck('id'));
                 },
-                'application_log.' . $vcamp->table,
-                'application_log.groupRelation',
-                'application_log.groupOrgRelation',
-                'application_log.batch',
-                'application_log.contactlog'
+                'applicants.' . $vcamp->table,
+                'applicants.groupRelation',
+                'applicants.groupOrgRelation',
+                'applicants.batch',
+                'applicants.contactlog'
             ])->select('users.*')
             ->join('user_applicant_xrefs', 'users.id', '=', 'user_applicant_xrefs.user_id')
             ->join('applicants', 'user_applicant_xrefs.applicant_id', '=', 'applicants.id')
@@ -2448,30 +2448,30 @@ private function getCarersData($user, Request $request): array
             if ($request->isMethod("post")) {
                 if ($showNoJob) {
                     if ($queryRoles->isEmpty() && $queryStr == "(1 = 1)") {
-                        $registeredUsers = $registeredUsers->whereDoesntHave('application_log.user.roles');
+                        $registeredUsers = $registeredUsers->whereDoesntHave('applicants.user.roles');
                     } else {
-                        $application_log_constraint = function ($query) use ($queryStr, $batches) {
+                        $applicants_constraint = function ($query) use ($queryStr, $batches) {
                             $query->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id');
                             $query->whereIn('batch_id', $batches->pluck('id'))
                                 ->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
                                 });
                         };
-                        $registeredUsers = $registeredUsers->where(function ($query) use ($queryRoles, $queryStr, $application_log_constraint) {
+                        $registeredUsers = $registeredUsers->where(function ($query) use ($queryRoles, $queryStr, $applicants_constraint) {
                             $query->when(!$queryRoles->isEmpty(), function ($query) use ($queryRoles) {
-                                $query->orWhereHas('application_log.user.roles', function ($query) use ($queryRoles) {
+                                $query->orWhereHas('applicants.user.roles', function ($query) use ($queryRoles) {
                                     $query->where('camp_id', $this->camp_id)
                                         ->whereIn('camp_orgs.id', $queryRoles->pluck('id'));
                                 });
-                            })->when($queryStr != "(1 = 1)", function ($query) use ($queryRoles, $application_log_constraint, $queryStr) {
-                                $query->when($queryRoles->isEmpty(), function ($query) use ($application_log_constraint) {
-                                    $query->orWhereHas('application_log', $application_log_constraint);
-                                })->when(!$queryRoles->isEmpty(), function ($query) use ($application_log_constraint) {
-                                    $query->WhereHas('application_log', $application_log_constraint);
+                            })->when($queryStr != "(1 = 1)", function ($query) use ($queryRoles, $applicants_constraint, $queryStr) {
+                                $query->when($queryRoles->isEmpty(), function ($query) use ($applicants_constraint) {
+                                    $query->orWhereHas('applicants', $applicants_constraint);
+                                })->when(!$queryRoles->isEmpty(), function ($query) use ($applicants_constraint) {
+                                    $query->WhereHas('applicants', $applicants_constraint);
                                 })->when($queryStr, function ($query) use ($queryStr) {
                                     $query->whereRaw($queryStr);
                                 });
-                            })->orWhereDoesntHave('application_log.user.roles');
+                            })->orWhereDoesntHave('applicants.user.roles');
                         });
                     }
                 } else {

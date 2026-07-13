@@ -189,6 +189,7 @@ class User extends Authenticatable
     public function campApplicants($camp)
     {
         //$camp 可以是 object 或 id
+        //campApplicants可能多數，因為可能每個batch有一筆
         $campId = $camp;
 
         if ($camp instanceof Vcamp) {
@@ -204,7 +205,7 @@ class User extends Authenticatable
                     ->get();
     }
 
-    public function batchApplicants($batch)
+    public function batchApplicant($batch)
     {
         //$batch 可以是 object 或 id
         $batchId = $batch;
@@ -220,7 +221,7 @@ class User extends Authenticatable
         // 直接延伸原本的多對多關聯，並串接資料庫條件
         return $this->applicants()
                     ->where('applicants.batch_id', $batchId)
-                    ->get();
+                    ->first();
     }
 
     public function canAccessResult()
@@ -330,7 +331,7 @@ class User extends Authenticatable
             if (!self::$batchesForPermissionInspection) {
                 self::$batchesForPermissionInspection = $theCamp->batches()->get();
             }
-            $theApplicant = $resource->application_log->whereIn('batch_id', self::$batchesForPermissionInspection->pluck('id'))->first();
+            $theApplicant = $resource->applicants->whereIn('batch_id', self::$batchesForPermissionInspection->pluck('id'))->first();
             $batch_id = $theApplicant?->batch_id;
             $region_id = $theApplicant?->region_id;
         }
@@ -413,7 +414,7 @@ class User extends Authenticatable
             $region_id = $resource->region_id;
         } elseif ($resource instanceof \App\Models\User) {
             $theCamp = $camp->vcamp;
-            $theApplicant = $resource->application_log->whereIn('batch_id', $theCamp->batches()->pluck('id'))->first();
+            $theApplicant = $resource->applicants->whereIn('batch_id', $theCamp->batches()->pluck('id'))->first();
             $batch_id = $theApplicant?->batch_id;
             $region_id = $theApplicant?->region_id;
         }
@@ -471,7 +472,7 @@ class User extends Authenticatable
                     }
                 } elseif ($resource instanceof \App\Models\User) {
                     $theCamp = $camp->vcamp;
-                    $theApplicant = $resource->application_log->whereIn('batch_id', $theCamp?->batches()->pluck('id'))->first();
+                    $theApplicant = $resource->applicants->whereIn('batch_id', $theCamp?->batches()->pluck('id'))->first();
                     if ($theApplicant) {
                         $query->where(function ($query) use ($theApplicant) {
                             $query->where(function ($query) {
@@ -495,7 +496,7 @@ class User extends Authenticatable
                     }
                 } elseif ($resource instanceof \App\Models\User) {
                     $theCamp = $camp->vcamp;
-                    $theApplicant = $resource->application_log->whereIn('batch_id', $theCamp?->batches()->pluck('id'))->first();
+                    $theApplicant = $resource->applicants->whereIn('batch_id', $theCamp?->batches()->pluck('id'))->first();
                     if ($theApplicant) {
                         $query->where(function ($query) use ($theApplicant) {
                             $query->where(function ($query) {
@@ -640,7 +641,7 @@ class User extends Authenticatable
             // })->firstWhere('all_group', 1));
         } elseif ($target && (str_contains($class, "User") && ($context == "vcamp" || $context == "vcampExport") && $action == "read")) {
             $roles = $this->roles()->where("camp_id", $camp->id)->get();
-            $theApplicant = $target->application_log->whereIn('batch_id', $camp->vcamp->batches()->pluck('id'))->first();
+            $theApplicant = $target->applicants->whereIn('batch_id', $camp->vcamp->batches()->pluck('id'))->first();
             $targetRoles = $target->roles()->where("camp_id", $camp->id)->get();
             if ($probing) {
                 dd("third if", $forInspect, $resource, $action, $camp, $context, $target, $permissions);

@@ -104,8 +104,8 @@ class CheckInController extends Controller {
             $group = $request->query_str;
         }
         $constraint = function($query){ $query->where('camps.id', $this->camp->id); };
-        if ($this->camp->is_vcamp()) {
-            $main_camp = Vcamp::find($this->camp->id)->mainCamp;
+        if ($this->camp->isVcamp) {
+            $main_camp = $this->camp->resolved_camp;
             if ($group) {
                 $groups = $this->camp->organizations()->where(function ($query) use ($group) {
                     return $query->where('section', 'like', '%' . $group . '%')->orWhere('position', 'like', '%' . $group . '%');
@@ -115,7 +115,7 @@ class CheckInController extends Controller {
                 })->get());
             }
             $ids = OrgUser::whereIn('org_id', $groups->pluck('id'))->get()->pluck('user_id')->toArray();
-            $users = User::with(['application_log' => function($query) {
+            $users = User::with(['applicants' => function($query) {
                                 return $query->whereIn('applicants.batch_id', $this->camp->batches->pluck('id')->toArray());
                             }])->whereIn('id', $ids)->get();
             $applicants = Applicant::with(['batch',
@@ -137,7 +137,7 @@ class CheckInController extends Controller {
                                 ->orWhere(\DB::raw("replace(mobile, ')', '')"), 'like', '%' . $request->query_str . '%')
                                 ->orWhere(\DB::raw("replace(mobile, '（', '')"), 'like', '%' . $request->query_str . '%')
                                 ->orWhere(\DB::raw("replace(mobile, '）', '')"), 'like', '%' . $request->query_str . '%')
-                                ->orwhereIn('applicants.id', $users->pluck('application_log')->flatten()->pluck('id'));
+                                ->orwhereIn('applicants.id', $users->pluck('applicants')->flatten()->pluck('id'));
                             })->get()->sortBy(['batch.camp.id', 'batch.id']);
         }
         else {
