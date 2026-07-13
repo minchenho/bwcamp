@@ -1991,7 +1991,7 @@ private function getCarersData($user, Request $request): array
         );
 
         // 重新拉出整個營隊所有的關懷小組組別 ID
-        $target_group_ids = $this->camp_info->orgs
+        $target_group_ids = $this->camp_info->orgs()
             ->where('camp_orgs.camp_id', $this->camp_id)
             ->where('camp_orgs.position', 'like', '%關懷小組第%')
             ->get()
