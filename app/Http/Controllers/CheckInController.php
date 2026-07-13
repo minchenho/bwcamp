@@ -82,7 +82,7 @@ class CheckInController extends Controller {
     public function query(Request $request) {
         $group = null;
         $number = null;
-        if (!$this->camp->is_vcamp()) {
+        if (!$this->camp->isVcamp) {
             if ((preg_match("/\p{Han}+/u", $request->query_str) && \Str::length($request->query_str) == 3) ||
                 (str_contains($request->query_str, '第') && str_contains($request->query_str, '組'))) {
                 $group = substr($request->query_str, 0, 9);
