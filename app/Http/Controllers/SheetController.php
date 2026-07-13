@@ -358,12 +358,7 @@ class SheetController extends Controller
      */
     private function getMainCampId(Camp $camp, int $campId): ?int
     {
-        if ($camp->is_vcamp()) {
-            $vcamp = Vcamp::find($campId);
-            return $vcamp->mainCamp->id;
-        } else {
-            return $campId;
-        }
+        return $camp->resolved_camp->id;
     }
 
     /**
