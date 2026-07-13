@@ -34,13 +34,14 @@
         </li>
         <li>
             {{ $applicant->groupRelation->alias }}關懷員 :
-            <ol>
-                @foreach(\App\Models\User::whereHas('roles', function($q) use ($applicant) {
-                    $q->where('group_id', $applicant->group_id);
-                })->get()->sortBy('roles.id') as $user)
-                    <li>{{ $user->application_log()->orderByDesc('id')->first()->name }} {{ $user->application_log()->orderByDesc('id')->first()->mobile }}</li>
+            @if($carers->isEmpty())
+                <p>目前此梯次該組別尚無任何工作人員的報名資料。</p>
+            @else
+            <ul>
+                @foreach($carers as $carer)
+                    <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                 @endforeach
-            </ol>
+            </ul>
         </li>
     </ol>
 @endif
@@ -63,10 +64,8 @@
         <li>
             {{ $applicant->groupRelation->alias }}關懷員 :
             <ol>
-                @foreach(\App\Models\User::whereHas('roles', function($q) use ($applicant) {
-                    $q->where('group_id', $applicant->group_id);
-                })->get()->sortBy('roles.id') as $user)
-                    <li>{{ $user->application_log()->orderByDesc('id')->first()->name }} {{ $user->application_log()->orderByDesc('id')->first()->mobile }}</li>
+                @foreach($carers as $carer)
+                    <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                 @endforeach
             </ol>
         </li>
@@ -87,10 +86,8 @@
             如有任何問題，也歡迎主動與關懷員聯絡，或來電本會（04）3706-9300 #62-1201企業營報名報到組。<br>
             {{ $applicant->groupRelation->alias }}關懷員 :
             <ol>
-                @foreach(\App\Models\User::whereHas('roles', function($q) use ($applicant) {
-                    $q->where('group_id', $applicant->group_id);
-                })->get()->sortBy('roles.id') as $user)
-                    <li>{{ $user->application_log()->orderByDesc('id')->first()->name }} {{ $user->application_log()->orderByDesc('id')->first()->mobile }}</li>
+                @foreach($carers as $carer)
+                    <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                 @endforeach
             </ol>
         </li>
@@ -174,10 +171,8 @@
         <li>
             {{ $applicant->groupRelation->alias }}關懷員 :
             <ol>
-                @foreach(\App\Models\User::whereHas('roles', function($q) use ($applicant) {
-                    $q->where('group_id', $applicant->group_id);
-                })->get()->sortBy('roles.id') as $user)
-                    <li>{{ \Str::of($user->roles->where('camp_id', $applicant->camp->id)->first()->position)->trim(7) }} {{ $user->application_log()->orderByDesc('id')->first()->name }} {{ $user->application_log()->orderByDesc('id')->first()->mobile }}</li>
+                @foreach($carers as $carer)
+                    <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                 @endforeach
             </ol>
         </li>
@@ -221,10 +216,8 @@
         <li>
             {{ $applicant->groupRelation->alias }}關懷員 :
             <ol>
-                @foreach(\App\Models\User::whereHas('roles', function($q) use ($applicant) {
-                    $q->where('group_id', $applicant->group_id);
-                })->get()->sortBy('roles.id') as $user)
-                    <li>{{ $user->application_log()->orderByDesc('id')->first()->name }} {{ $user->application_log()->orderByDesc('id')->first()->mobile }}</li>
+                @foreach($carers as $carer)
+                    <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                 @endforeach
             </ol>
         </li>
@@ -259,10 +252,8 @@
         <li>
             {{ $applicant->groupRelation->alias }}關懷員 :
             <ol>
-                @foreach(\App\Models\User::whereHas('roles', function($q) use ($applicant) {
-                    $q->where('group_id', $applicant->group_id);
-                })->get()->sortBy('roles.id') as $user)
-                    <li>{{ $user->application_log()->orderByDesc('id')->first()->name }} {{ $user->application_log()->orderByDesc('id')->first()->mobile }}</li>
+                @foreach($carers as $carer)
+                    <li>{{ $carer->name }} {{ $carer->mobile }}</li>
                 @endforeach
             </ol>
         </li>

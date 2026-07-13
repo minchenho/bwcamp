@@ -539,8 +539,8 @@ class BackendService
                     $queryRoles = $queryRoles->filter(fn($role) => $role->camp_id == $camp->id);
                     $targetVolunteers = OrgUser::whereIn('org_id', $value)->get()->pluck('user_id');
                     $targetVolunteers = \App\Models\User::whereIn('id', $targetVolunteers)->get();
-                    $targetVolunteers->load('application_log');
-                    $targetVolunteers = $targetVolunteers->filter(fn($volunteer) => $volunteer->application_log->filter(function ($log) use ($camp) {
+                    $targetVolunteers->load('applicants');
+                    $targetVolunteers = $targetVolunteers->filter(fn($volunteer) => $volunteer->applicants->filter(function ($log) use ($camp) {
                             return $log->camp->id == $camp->vcamp->id;
                         })->count() > 0)->pluck('id');
                 }
@@ -608,9 +608,9 @@ class BackendService
                     ->pluck('user_id');
 
                 $targetVolunteers = \App\Models\User::whereIn('id', $targetVolunteers)
-                    ->with('application_log')
+                    ->with('applicants')
                     ->get()
-                    ->filter(fn($volunteer) => $volunteer->application_log
+                    ->filter(fn($volunteer) => $volunteer->applicants
                         ->filter(fn($log) => $log->camp->id == $camp->vcamp->id)
                         ->isNotEmpty())
                     ->pluck('id');

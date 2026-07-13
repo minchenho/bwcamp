@@ -83,7 +83,7 @@
                     <tr class="table-active">
                         @if($camp->table != 'coupon')
                             <th></th>
-                            <th style="width: 20%"  onclick="sortTable(1, 'batch{{ $batch_key }}')">組別@if($camp->is_vcamp())職務 @endif</th>
+                            <th style="width: 20%"  onclick="sortTable(1, 'batch{{ $batch_key }}')">組別@if($camp->isVcamp)職務 @endif</th>
                             @if($camp->table != 'ceocamp' && $camp->table != 'ecamp')
                                 <th style="width: 20%"  onclick="sortTable(2, 'batch{{ $batch_key }}')">編號</th>
                                 <th style="width: 20%"  onclick="sortTable(3, 'batch{{ $batch_key }}')">姓名</th>
@@ -107,7 +107,7 @@
                             <tr id="{{ $applicant->id }}">
                                 <td class="align-middle center"><input type="checkbox" name="applicant_multi" id="" value="{{ $applicant->id }}" onchange="collectPeople(this.value, this.checked)"></td>
                                 @if($camp->table != 'coupon')
-                                    @if (!$camp->is_vcamp())
+                                    @if (!$camp->isVcamp)
                                         <td class="align-middle">{{ $applicant->group }}</td>
                                     @else
                                         <td class="align-middle">

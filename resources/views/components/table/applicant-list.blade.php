@@ -2,8 +2,7 @@
     @if ($queryStr ?? false) 查詢條件：{{ $queryStr }} @endif
     <!-- Nothing worth having comes easy. - Theodore Roosevelt -->
     <div class="wrapper1">
-        <div class="div1">
-        </div>
+        <div class="div1"></div>
     </div>
     <div class="text-danger mt-3">
         已取消報名： {{ $applicants->whereNotNull("deleted_at")->count() }} 人
@@ -43,7 +42,7 @@
                     @elseif($key == "carer" && $isSettingCarer)
                         @continue
                     @elseif(!$isShowVolunteers && !$isShowLearners && $key == "contactlog")
-                    @elseif($key == "contactLog" && $currentUser->canAccessResource(new App\Models\ContactLog(), 'read', $campFullData))
+                    @elseif($key == "contactLog" && $currentUser->canAccessResource(new App\Models\ContactLog(), 'read', $camp_info))
                         <th class="text-center" data-field="contactLog" data-sortable="0">關懷記錄</th>
                     @elseif($key == "gender")
                         <th class="text-center" data-field="gender_chn" data-sortable="{{ $item['sort'] }}">{{ $item['name'] }}</th>
@@ -60,140 +59,56 @@
 </div>
 
 <script>
+    // 1. 全域環境變數設定
     window.applicant_ids = [];
     window.csrf_token = "{{ csrf_token() }}";
-    window.columns = @json($columns);
-    @php
-        $camp = $campFullData;
-        $applicants = $applicants->load('carers');
-        $applicants = $applicants->load('contactlog');
-        $applicants = $applicants->each(function ($applicant) use ($camp) {
-            //$applicant->number = $applicant->number;
-            $applicant->gender = $applicant->gender_chn;
-            $applicant->is_attend = $applicant->is_attend_chn;
-            //$applicant->age = $applicant->age;
-            /*match ($applicant->is_attend) {
-                0 => $applicant->is_attend = "不參加",
-                1 => $applicant->is_attend = "參加",
-                2 => $applicant->is_attend = "尚未決定",
-                3 => $applicant->is_attend = "聯絡不上",
-                4 => $applicant->is_attend = "無法全程",
-                default => $applicant->is_attend = "尚未聯絡"
-            };*/
-            $applicant->contactlogHTML = $applicant->contactlogHTML($isShowVolunteers ?? false, $applicant, $camp);
-            $applicant->carer = count($applicant->carers) ? $applicant->carers->map(function($item) {
-                return $item->name;
-            })->join('<br>') : null;
-        });
-    @endphp
-    let only_applicants = @json($applicants);
-    @if($registeredVolunteers ?? false)
-        @php
-            $theVcampTable = str_contains($camp->table, 'vcamp') ? $camp->table : $camp->vcamp?->table;
-        @endphp
-        window.theVolunteersData = @json($registeredVolunteers);
-        @php
-            $users_applicants = [];
-            foreach ($registeredVolunteers as &$v) {
-                if ($v->application_log) {
-                    foreach ($v->application_log as $k => &$a) {
-                        $a->gender = $a->gender_chn;
-                        $a->is_attend = $a->is_attend_chn;
-                        //$a->age = $a->age;
-                        /*match ($a->is_attend) {
-                            0 => $a->is_attend = "不參加",
-                            1 => $a->is_attend = "參加",
-                            2 => $a->is_attend = "尚未決定",
-                            3 => $a->is_attend = "聯絡不上",
-                            4 => $a->is_attend = "無法全程",
-                            default => $a->is_attend = "尚未聯絡"
-                        };*/
-                        $a->contactlogHTML = $a->contactlogHTMLoptimized($isShowVolunteers ?? false, $camp);
-                        foreach ($columns ?? [] as $key => $item) {
-                            if ($key != "batch") {
-                                if ($a && !$a->$key && $a->$theVcampTable?->$key) {
-                                    $a->$key = $a->$theVcampTable->$key;
-                                }
-                                if ($key == "roles") {
-                                    $a->roles = $a->user?->roles?->map(function ($item) {
-                                        return $item->section;
-                                    })->implode('<br>');
-                                }
-                                if ($key == "position") {
-                                    $a->position = $a->user?->roles?->map(function ($item) {
-                                        return $item->position;
-                                    })->implode('<br>');
-                                }
-                                if ($key == "group_priority") {
-                                    $priorities = collect([$a->$theVcampTable->group_priority1, $a->$theVcampTable->group_priority2, $a->$theVcampTable->group_priority3])
-                                        ->filter()
-                                        ->join('<br>');
-
-                                    $a->group_priority = $priorities ?: null;
-                                }
-                            }
-                        }
-                        $users_applicants[] = $a;
-                    }
-                }
-            }
-            $applicants = collect($users_applicants)->merge($applicants);
-            // 雖然這裡和 Blade 裡的 applicants 用了一樣的變數名，但這裡的 applicants 在 Blade 執行完畢後才會被設定
-        @endphp
-    @endif
-    window.theData = @json($applicants);
+    window.columns = @json($columns); // 💡 修正：改成對應後端傳入的 $columns_zhtw
     window.isShowLearners = {{ $isShowLearners ? 1 : 0 }};
     window.isShowVolunteers = {{ $isShowVolunteers ? 1 : 0 }};
-    let user_application_logs = @json($users_applicants);
-    (function() {
-        $(".wrapper1").scroll(function(){
-            $(".fixed-table-body").scrollLeft($(".wrapper1").scrollLeft());
-        });
-        $(".fixed-table-body").scroll(function(){
-            $(".wrapper1")
-                .scrollLeft($(".fixed-table-body").scrollLeft());
-        });
-        $('#applicantTable').on('page-change.bs.table', function (number, size) {
-            sleep(50).then(() => {
-                $('.applicants_selector').each(function () {
-                    $.inArray('A' + this.value, window.applicant_ids) === -1 ? $(this).prop('checked', false) : $(this).prop('checked', true);
-                });
-            });
-        })
-    })();
+    
+    // 2. 原始資料注入
+    let only_applicants = @json($applicants);     
+    let user_application_logs = @json($users_applicants ?? []);
 
+    // 3. 初始化表格
     $(function() {
+        // 先填充資料並初始化表格
         fillTheList();
+
+        // 💡 修正：等表格動態渲染完，才能抓到 .fixed-table-body，此時再同步雙滾動軸與寬度
+        setTimeout(function() {
+            let tableBody = $(".fixed-table-body");
+            if (tableBody.length) {
+                // 讓上面的 wrapper1 內部寬度，等於表格實際被撐開的寬度
+                $(".div1").width(tableBody[0].scrollWidth);
+                $(".wrapper1").width(tableBody.width());
+
+                // 雙向同步滾動
+                $(".wrapper1").on('scroll', function(){
+                    tableBody.scrollLeft($(this).scrollLeft());
+                });
+                tableBody.on('scroll', function(){
+                    $(".wrapper1").scrollLeft($(this).scrollLeft());
+                });
+            }
+        }, 300); // 延時 300ms 確保 Bootstrap Table 已經生成 DOM
+
+        // 修正換頁勾選記憶
         $('#applicantTable').on('page-change.bs.table', function (number, size) {
             sleep(50).then(() => {
                 $('.applicants_selector').each(function () {
                     $.inArray('A' + this.value, window.applicant_ids) === -1 ? $(this).prop('checked', false) : $(this).prop('checked', true);
                 });
             });
-        })
+        });
     });
 
+    // 4. 行內樣式判斷
     window.rowStyle = (row, index) => {
-        const classes = [
-            'bg-blue',
-            'bg-green',
-            'bg-orange',
-            'bg-yellow',
-            'bg-red'
-        ]
-
         if (row.deleted_at) {
-            return {
-                css: {
-                    'color': 'rgba(120, 120, 120, 0.4)'
-                }
-            }
+            return { css: { 'color': 'rgba(120, 120, 120, 0.4)' } };
         }
-        return {
-            css: {
-                color: ''
-            }
-        }
+        return { css: { color: '' } };
     }
 
     function sleep (time) {
@@ -204,58 +119,39 @@
         if ($("#" + id).is(":checked")) {
             window.applicant_ids.push(id);
         } else {
-            window.applicant_ids = window.applicant_ids.filter(function(value, index, arr){
-                return value != id;
-            });
+            window.applicant_ids = window.applicant_ids.filter(val => val != id);
         }
     }
 
+    // 5. 資料加工與渲染
     function fillTheList() {
         let table = $('#applicantTable');
         let data = null;
         let applicants_array = null;
-        // merge user_application_logs and only_applicants
+        
         if (user_application_logs.length > 0) {
-            if(only_applicants.length == 1) {
-                if(typeof only_applicants.length == "undefined") {
-                    applicants_array = Object.values([only_applicants]);
-                }
-                else {
-                    applicants_array = Object.values(only_applicants);
-                }
-            }
-            else {
-                applicants_array = Object.values(only_applicants);
-            }
+            applicants_array = Object.values(only_applicants);
             data = user_application_logs.concat(applicants_array);
+        } else {
+            data = typeof only_applicants.length == "undefined" ? [only_applicants] : only_applicants;
         }
-        else {
-            if(typeof only_applicants.length == "undefined") {
-                data = [only_applicants];
-            }
-            else {
-                data = only_applicants;
-            }
-        }
-        var result = Object.values(data);
-        // remove null item
-        result = result.filter(function(item) { return item != null && item != 0; });
-        let count = 0;
-        if (result.length == 1) {
+        
+        var result = Object.values(data).filter(item => item != null && item != 0);
+        if (result.length == 1 && !result[0].id) {
             result = Object.values(result[0]);
         }
+
         result.forEach(function(item) {
-            item.gender = item.gender_chn;
-            item.is_attend = item.is_attend_chn;
-            if (!item || !item.id) {
-                console.log(item, count);
-                return;
-            }
-            count++;
-            item.batch = !item.batch ? "沒有梯次資料" : item.batch.name;
+            // 💡 修正：如果沒有 _chn 屬性，則保留原值，避免 JS 報錯崩潰
+            item.gender = item.gender_chn || item.gender;
+            item.is_attend = item.is_attend_chn || item.is_attend;
+            item.batch = !item.batch ? "沒有梯次資料" : (item.batch.name || item.batch);
+            
             if (item.group_relation) {
                 item.group = item.group_relation.alias;
             }
+            
+            // 處理生日
             if (item.birthday || item.birthmonth || item.birthyear) {
                 const formatBirthdate = (year, month, day) => {
                     const parts = [];
@@ -266,31 +162,72 @@
                 };
                 item.birthdate = formatBirthdate(item.birthyear, item.birthmonth, item.birthday);
             }
+
+            // 報名時間格式化
+            if (item.created_at) {
+                let dateObj = new Date(item.created_at);
+                if (!isNaN(dateObj.getTime())) {
+                    let yyyy = dateObj.getFullYear();
+                    let mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    let dd = String(dateObj.getDate()).padStart(2, '0');
+                    let hh = String(dateObj.getHours()).padStart(2, '0');
+                    let min = String(dateObj.getMinutes()).padStart(2, '0');
+                    item.created_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                }
+            }
+            if (item.admitted_at) {
+                let dateObj = new Date(item.admitted_at);
+                if (!isNaN(dateObj.getTime())) {
+                    let yyyy = dateObj.getFullYear();
+                    let mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    let dd = String(dateObj.getDate()).padStart(2, '0');
+                    let hh = String(dateObj.getHours()).padStart(2, '0');
+                    let min = String(dateObj.getMinutes()).padStart(2, '0');
+                    item.admitted_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                }
+            }
+
             item.name_original = item.name;
+            let targetCampId = window.isShowVolunteers ? "{{ $camp_info->vcamp?->id }}" : "{{ $camp_info->id }}";
+            let baseRoute = "{{ route('showAttendeeInfoGET', ['camp_id' => '__CAMP_ID__']) }}";
+            let finalUrl = baseRoute.replace('__CAMP_ID__', targetCampId);
+
             if (item.user) {
-                item.name = '<a href="{{ route('showAttendeeInfoGET', ($isShowVolunteers ?? false) ? $campFullData->vcamp->id : $campFullData->id) }}?snORadmittedSN=' + item.id + '&openExternalBrowser=1" target="_blank" class="text-primary">' + item.name + '</a>&nbsp;(報名序號：' + item.id + ')<div class="text-success">連結之帳號：' + item.user.name + '(' + item.user.email + ')</div>';
+                item.name = `<a href="${finalUrl}?snORadmittedSN=${item.id}&openExternalBrowser=1" target="_blank" class="text-primary">${item.name}</a>&nbsp;(報名序號：${item.id})<div class="text-success">連結之帳號：${item.user.name}(${item.user.email})</div>`;
+            } else {
+                item.name = `<a href="${finalUrl}?snORadmittedSN=${item.id}&openExternalBrowser=1" target="_blank" class="text-primary">${item.name}</a>&nbsp;(報名序號：${item.id})`;
             }
-            else {
-                item.name = '<a href="{{ route('showAttendeeInfoGET', ($isShowVolunteers ?? false) ? $campFullData->vcamp->id : $campFullData->id) }}?snORadmittedSN=' + item.id + '&openExternalBrowser=1" target="_blank" class="text-primary">' + item.name + '</a>&nbsp;(報名序號：' + item.id + ')';
-            }
-            item.contactlog = item.contactlogHTML;
-            item.avatar = '<img src="{{ url("/backend/" . $campFullData->id . "/avatar/") }}/' + item.id + '" width=80 alt="' + item.name_original + '">';
+            
+            item.contactlog = item.contactlogHTML || '';
+            item.avatar = '<img src="{{ url("/backend/") }}/' + "{{ $camp_info->id }}" + '/avatar/' + item.id + '" width=80 alt="' + item.name_original + '">';
+            item.carer = item.carers?.length ? item.carers.map(c => c.name).join('<br>') : null;
+
             @if(($isSetting ?? false) || ($isSettingCarer ?? false))
-                item.checkfield = '<input type="checkbox" name="applicants[]" class="applicants_selector" value="' + item.id + '"  id="A' + item.id + '" onclick="applicant_triggered(this.id)">';
+                item.checkfield = '<input type="checkbox" name="applicants[]" class="applicants_selector" value="' + item.id + '" id="A' + item.id + '" onclick="applicant_triggered(this.id)">';
             @endif
         });
-        // try cacth
+
         try {
-            table.bootstrapTable({data: result})
+            table.bootstrapTable({data: result});
         } catch (e) {
-            console.log(e);
+            console.error("Bootstrap Table 初始化失敗:", e);
         }
     }
 </script>
+
 <style>
-    .wrapper1{width: 400px; border: none 0px RED;
-        overflow-x: scroll; overflow-y:hidden;}
-    .wrapper1{height: 20px; }
-    .div1 {width:600px; height: 20px; }
-    .fixed-table-body { height: auto !important; }
+    /* 💡 改善頂部雙滾動軸的基礎容器外觀，確保它能與表格同步撐開 */
+    .wrapper1 {
+        width: 100%; 
+        border: none 0px red;
+        overflow-x: auto; 
+        overflow-y: hidden;
+        height: 20px; 
+    }
+    .div1 {
+        height: 20px; 
+    }
+    .fixed-table-body { 
+        height: auto !important; 
+    }
 </style>
