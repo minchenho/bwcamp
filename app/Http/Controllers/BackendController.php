@@ -2222,11 +2222,11 @@ private function getCarersData($user, Request $request): array
 
         // 使用 paginate(100) 取代 get()
         //$applicants = $query->paginate(100);
-        $applicants = $query->paginate(100)->appends($request->query());
+        $applicants = $query->get();
         //dd($applicants);
         
         // 修正主鍵對應
-        $applicants->getCollection()->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
+        // $applicants->getCollection()->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
 
         // ❌ 5. 權限過濾 (原來的第 5 步直接整塊刪除、丟進垃圾桶！)
         // -----------------------------------------------------------------

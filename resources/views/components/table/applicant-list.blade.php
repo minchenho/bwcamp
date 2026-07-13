@@ -67,7 +67,7 @@
     window.isShowVolunteers = {{ $isShowVolunteers ? 1 : 0 }};
     
     // 2. 原始資料注入
-    let only_applicants = @json($applicants->items());     
+    let only_applicants = @json($applicants);     
     let user_application_logs = @json($users_applicants ?? []);
 
     // 3. 初始化表格
