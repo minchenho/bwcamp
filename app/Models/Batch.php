@@ -39,9 +39,9 @@ class Batch extends Model
         'batch_end_weekday_eng',    //english
         'batch_end_weekday_short',  //english short
         
-        // ✨ 新增智慧型虛擬屬性至 JSON 序列化清單
-        'resolved_batch',
-        'resolved_vbatch',
+        // 這兩行不要！
+        //'resolved_batch',
+        //'resolved_vbatch',
     ];
 
     /* -------------------------------------------------------------------------- */

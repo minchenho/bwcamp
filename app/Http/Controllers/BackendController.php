@@ -2211,16 +2211,19 @@ private function getCarersData($user, Request $request): array
 
         //scope 沒有處理 batch_id
         if ($request->batch_id) {
-            $query->where('batches.id', $request->batch_id);
+            $query->where('applicants.batch_id', $request->batch_id);
         }
 
         if ($request->isMethod("post") && !empty($queryStr)) {
-            $query->whereRaw(\DB::raw($queryStr));
+            //$query->whereRaw(\DB::raw($queryStr));
+            $query->whereRaw($queryStr);
             $request->flash();
         }
 
         // 使用 paginate(100) 取代 get()
-        $applicants = $query->paginate(100);
+        //$applicants = $query->paginate(100);
+        $applicants = $query->paginate(100)->appends($request->query());
+        //dd($applicants);
         
         // 修正主鍵對應
         $applicants->getCollection()->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);

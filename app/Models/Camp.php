@@ -68,9 +68,9 @@ class Camp extends Model
         'batch_start_earliest',
         'batch_end_latest',
         
-        // ✨ 補上這兩個現代化 Attribute 的智慧自適應虛擬欄位！
-        'resolved_camp',
-        'resolved_vcamp',
+        // 這兩行不要！！
+        //'resolved_camp',
+        //'resolved_vcamp',
         
         // 💡 如果你希望舊版相容的舊拼法也能在 JSON 裡自動噴出來，也可以順便補上：
         // 'is_vcamp',
