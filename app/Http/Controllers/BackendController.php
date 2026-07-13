@@ -1354,15 +1354,13 @@ class BackendController extends Controller
         $batch_id = $batches->first()->id;
         $org = CampOrg::find($org_id);
         $users = $org->users;
-        $applicants = array();
-        foreach ($users as $user) {
-            $aps = $user->application_log;
-            foreach ($aps as $ap) {
-                if ($ap->batch_id == $batch_id) {
-                    array_push($applicants, $ap);
-                }
-            }
-        }
+        // 1. 利用預載入，一槍對資料庫查出這群人中「屬於該梯次 ID」的 applicants
+        $users->load(['applicants' => function ($query) use ($batch_id) {
+            $query->where('applicants.batch_id', $batch_id);
+        }]);
+
+        // 2. 核心大招：把所有人的 applicants 集合抽出來、壓平、轉成傳統陣列
+        $applicants = $users->pluck('applicants')->flatten()->all();
         return view('backend.registration.section', compact('applicants', 'batch', 'org'));
     }
 
@@ -1924,7 +1922,7 @@ class BackendController extends Controller
         $user->roles()->detach($request->role_id);
         $camp = Vcamp::find($request->camp_id)->mainCamp;
         if ($user->roles()->where('camp_id', $camp->id)->count() == 0) {
-            $user->application_log()->detach($request->applicant_id);
+            $user->applicants()->detach($request->applicant_id);
             $user->canAccessResult()->delete();
         }
         $request->session()->flash('message', '已刪除該義工職務');

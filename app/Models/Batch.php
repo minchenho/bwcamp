@@ -38,7 +38,15 @@ class Batch extends Model
         'batch_end_weekday',    //default chinese
         'batch_end_weekday_eng',    //english
         'batch_end_weekday_short',  //english short
+        
+        // ✨ 新增智慧型虛擬屬性至 JSON 序列化清單
+        'resolved_batch',
+        'resolved_vbatch',
     ];
+
+    /* -------------------------------------------------------------------------- */
+    /* 核心標準關聯                                                               */
+    /* -------------------------------------------------------------------------- */
 
     public function camp(): BelongsTo
     {
@@ -75,22 +83,70 @@ class Batch extends Model
         return $this->morphMany(DynamicStat::class, 'urltable');
     }
 
+    /**
+     * 🔄 正向關聯：由學員梯次(Batch)」查 義工梯次(Vbatch)
+     */
     public function vbatch(): HasOneThrough
     {
-        //foreign key of BatchVbatchXref (batch_id)
-        //foreign key of Vbatch (id)
-        //local key of Batch (id)
-        //local key of BatchVbatchXref (vbatch_id)
-
-        //batch's vbatch
+        // batch's vbatch
         return $this->hasOneThrough(Vbatch::class, BatchVbatchXref::class, 'batch_id', 'id', 'id', 'vbatch_id');
     }
 
+    /**
+     * 🔄 反向關聯：由義工梯次(Vbatch) 反查它的學員梯次(Batch)
+     */
+    public function mainBatch(): HasOneThrough
+    {
+        // vbatch's main batch (學員梯次)
+        // 基於單一表繼承(STI)，Vbatch 本質也是 Batch 表，故這裡指向 Batch::class 最安全穩固
+        return $this->hasOneThrough(Batch::class, BatchVbatchXref::class, 'vbatch_id', 'id', 'id', 'batch_id');
+    }
+    
     // 使用 $batch->isVbatch 或 $batch->is_vbatch 都可以
     public function getIsVbatchAttribute(): bool
     {
         return (bool) ($this->camp?->isVcamp ?? false);
     }
+
+    /* -------------------------------------------------------------------------- */
+    /* 智慧自適應修改器 (Modern Laravel Attribute)                              */
+    /* -------------------------------------------------------------------------- */
+
+    /**
+     * 🧠 智慧自適應梯次屬性：$batch->resolved_batch
+     * 如果自己本身是學員梯次（!isVbatch），回傳自己；如果自己是義工梯次，回傳對應的學員主梯次。
+     */
+    protected function resolvedBatch(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->isVbatch) { 
+                    return $this->mainBatch;
+                }
+                return $this;
+            }
+        );
+    }
+
+    /**
+     * 🧠 智慧自適應梯次屬性：$batch->resolved_vbatch
+     * 如果自己本身就是義工梯次（isVbatch），回傳自己；如果是學員梯次，去查關聯的義工梯次。
+     */
+    protected function resolvedVbatch(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->isVbatch) { 
+                    return $this;
+                }
+                return $this->vbatch; 
+            }
+        );
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /* 星期幾時間運算轉換區                                                       */
+    /* -------------------------------------------------------------------------- */
 
     /*
      * 取得 batch_start 日期的星期幾
