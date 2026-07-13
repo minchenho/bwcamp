@@ -239,6 +239,8 @@ class User extends Authenticatable
         ];
 
         $permissions->each(function ($permission) use (&$parsed, $trueWeights) {
+            // 在迴圈剛開始時，先定義出目前這筆權限的權重！
+            $currentWeight = $trueWeights[$permission->range] ?? 0;
             // 1. 改成用 search 找出這筆舊權限在 $parsed 籃子裡的「陣列索引 (0, 1, 2...)」
             $existingIndex = $parsed->search(function ($item) use ($permission) {
                 return $item['resource'] === $permission->resource && $item['action'] === $permission->action;
