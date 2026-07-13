@@ -175,16 +175,57 @@ class User extends Authenticatable
 
     public function caresLearners()
     {
-        return $this->belongsToMany(Applicant::class, CarerApplicantXref::class, 'user_id', 'applicant_id', 'id', 'id');
+        return $this->belongsToMany(
+            Applicant::class, 'carer_applicant_xrefs', 'user_id', 'applicant_id');
     }
 
-    public function application_log()
+    public function applicants()
     {
-        return $this->belongsToMany(Applicant::class, UserApplicantXref::class, 'user_id', 'applicant_id', 'id', 'id');
+        return $this->belongsToMany(
+            Applicant::class, 'user_applicant_xrefs', 'user_id', 'applicant_id');
+    }
+
+    // 2. 營隊篩選函數
+    public function campApplicants($camp)
+    {
+        //$camp 可以是 object 或 id
+        $campId = $camp;
+
+        if ($camp instanceof Vcamp) {
+            // 如果本身就是 Vcamp，絕對不可能為 null，100% 安全直接拿 id
+            $campId = $camp->id;
+        } elseif ($camp instanceof Camp) {
+            // 如果是一般 Camp，才去適應找 vcamp，並加上 null 防禦
+            $campId = $camp->resolved_vcamp?->id ?? 0;
+        }
+
+        return $this->applicants()
+                    ->where('applicants.camp_id', $campId)
+                    ->get();
+    }
+
+    public function batchApplicants($batch)
+    {
+        //$batch 可以是 object 或 id
+        $batchId = $batch;
+        
+        if ($batch instanceof Vbatch) {
+            // 如果本身就是 Vbatch，絕對不可能為 null，100% 安全直接拿 id
+            $batchId = $batch->id;
+        } elseif ($batch instanceof Batch) {
+            // ✨ 修正變數：這裡要叫 $batchId 並且戳 $batch 物件才對！
+            $batchId = $batch->resolved_vbatch?->id ?? 0;
+        }
+
+        // 直接延伸原本的多對多關聯，並串接資料庫條件
+        return $this->applicants()
+                    ->where('applicants.batch_id', $batchId)
+                    ->get();
     }
 
     public function canAccessResult()
     {
+        //沒在用？
         return $this->hasMany(Ucaronr::class);
     }
 
@@ -195,18 +236,6 @@ class User extends Authenticatable
     //     );
     // }
 
-    public function applicants($camp)
-    {
-        //找到相關的
-        if ($camp->isVamp) {
-            $vbatch_id = $camp->batches->pluck('id');
-        } else {
-            $vbatch_id = $camp->vcamp->batches->pluck('id');
-        }
-        $applicants_all = $this->application_log;
-        $applicants_filtered = $applicants_all->whereIn('batch_id', $vbatch_id);
-        return $applicants_filtered;
-    }
     public function permissionsRolesParser($camp)
     {
         /**
