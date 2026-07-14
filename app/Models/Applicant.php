@@ -687,7 +687,7 @@ class Applicant extends Model
                     // 📄 case 3: 個人 (person) -> 只能看自己負責直接關懷的學員
                     case 3:
                         // 假設你的 User 關聯 caresLearners 撈出來的是學員的 ID 清單
-                        $myCaredLearnerIds = $user->caresLearners()->pluck('id');
+                        $myCaredLearnerIds = $user->caresLearners()->pluck('applicants.id');
                         return $subQuery->whereIn('id', $myCaredLearnerIds);
 
                     // 🛑 安全降落：不認得的範圍就什麼都不給看
