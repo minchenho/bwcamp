@@ -649,8 +649,8 @@ class BackendController extends Controller
 
         if (isset($request->region)) {
             // 利用 camp_id 直球篩選，將多重 JOIN 縮減、大副解放資料庫壓力
-            $query = Applicant::select("
-                applicants.*", 
+            $query = Applicant::select(
+                "applicants.*", 
                 $this->camp_table . ".*", 
                 "batches.name as bName", 
                 "applicants.id as sn", 
