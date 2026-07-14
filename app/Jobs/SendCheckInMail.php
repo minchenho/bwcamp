@@ -75,10 +75,22 @@ class SendCheckInMail implements ShouldQueue
                 $pdf->loadHTML($camp->fullName . ' QR code 報到單<br>梯次：' . $this->applicant->batch->name . '<br>組別：' . $this->applicant->group . '<br>姓名：' . $this->applicant->name . '<br><img src="data:image/png;base64,' . $qr_code . '" alt="barcode" height="200px"/>')->setPaper('a6');
             }
         }
+        
         $attachment = isset($pdf) ? $pdf->output() : null;
         // 動態載入電子郵件設定
         $this->setEmail($campTable, $camp->variant);
-        \Mail::to($this->applicant->email)->send(new \App\Mail\CheckInMail($this->applicant, $this->org, $attachment));
+
+        //check email format
+        $email = trim($this->applicant->email);
+
+        // 防呆：如果 email 為空，或者不是合法的電子郵件格式，就跳過不寄送
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            // 可以選擇寫個 log 紀錄，方便追蹤哪些學員沒寄成功
+            \Log::warning("學員 ID {$this->applicant->id} 的 Email 格式不合法（值為: '{$email}'），已跳過寄送。");
+            return; 
+        }
+
+        \Mail::to($email)->send(new \App\Mail\CheckInMail($this->applicant, $this->org, $attachment));
         \logger('SendCheckInMail ' . $this->applicantId . ' success');
     }
 
