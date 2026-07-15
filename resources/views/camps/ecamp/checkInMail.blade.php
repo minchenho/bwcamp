@@ -7,8 +7,10 @@
 $today = \Carbon\Carbon::now();
 $str1 = '/img/'. $today->year . $applicant->batch->camp->table . 'MailHeader.png';
 $str2 = '/img/'. $today->year . $applicant->batch->camp->table . 'MailFooter.png';
+$str3 = '/img/'. $today->year . $applicant->batch->camp->table . 'Map.png';
 $header_path = $message->embed(public_path() . $str1);
 $footer_path = $message->embed(public_path() . $str2);
+$map_path = $message->embed(public_path() . $str3);
 @endphp
 <body style="font-size:16px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%">
@@ -127,10 +129,11 @@ $footer_path = $message->embed(public_path() . $str2);
                 營隊期間：{{ $applicant->batch->batch_start }}&nbsp;({{ $applicant->batch->batch_start_weekday }})&nbsp;至&nbsp;{{ $applicant->batch->batch_end }}&nbsp;({{ $applicant->batch->batch_end_weekday }})<br>
                 報到時間：{{ $applicant->batch->batch_start }}&nbsp;({{ $applicant->batch->batch_start_weekday }})&nbsp;<a style="color: red;">上午09:30~10:30</a><br>
                 報到地點：{{ $applicant->batch->locationName }}&nbsp;國秀樓1F&nbsp;({{ $applicant->batch->location }})<br>
-                四、交通：<br>
+                交通：<br>
                 1. {{ $applicant->batch->batch_start->format('n/j') }}&nbsp;報到當天，現場將有穿著黃色背心的義工協助引導。
                 2. 自行前往者請導航：&nbsp;{{ $applicant->batch->locationName }}&nbsp;({{ $applicant->batch->location }})<br>
-                https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8<br>
+                <a href="https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8" target="_blank">https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8</a><br>
+                <img width="100%" src="{{ $map_path }}" /><br>
                 <br>
                 建議攜帶物品：（謹列出參加活動所需攜帶物品，方便您準備。）<br>
                 <ol>
@@ -149,7 +152,8 @@ $footer_path = $message->embed(public_path() . $str2);
                 </ol>
                 <br>
                 <br>
-                若有任何問題，歡迎與關懷員聯絡，或來電本會<b>04-3706-9300&nbsp;(分機621201)</b>企業營報名報到組。
+                若有任何問題，歡迎與關懷員們聯絡。<br>
+                或來電本會<b>(04)3706-9300&nbsp;#621201</b>企業營報名報到。
             @endif
             <br><br>
             <a class="right">主辦單位：財團法人福智文教基金會&emsp;敬啟</a><br>
