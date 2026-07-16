@@ -130,8 +130,9 @@ $map_path = $message->embed(public_path() . $str3);
                 報到時間：{{ $applicant->batch->batch_start }}&nbsp;({{ $applicant->batch->batch_start_weekday }})&nbsp;<a style="color: red;">上午09:30~10:30</a><br>
                 報到地點：{{ $applicant->batch->locationName }}&nbsp;國秀樓1F&nbsp;({{ $applicant->batch->location }})<br>
                 交通：<br>
-                1. {{ $applicant->batch->batch_start->format('n/j') }}&nbsp;報到當天，現場將有穿著黃色背心的義工協助引導。
-                2. 自行前往者請導航：&nbsp;{{ $applicant->batch->locationName }}&nbsp;({{ $applicant->batch->location }})<br>
+                1. {{ $applicant->batch->batch_start->format('n/j') }}&nbsp;報到當天，現場將有穿著黃色背心的義工協助引導。<br>
+                2. 自行前往：<br>
+                請導航：「{{ $applicant->batch->locationName }}」({{ $applicant->batch->location }})<br>
                 <a href="https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8" target="_blank">https://maps.app.goo.gl/mnyMPKmkZoUS4JBS8</a><br>
                 <img width="100%" src="{{ $map_path }}" /><br>
                 <br>
@@ -140,20 +141,20 @@ $map_path = $message->embed(public_path() . $str3);
                     <li>個人常用藥物</li>
                     <li>輕薄外套(防上課地點冷氣過冷)</li>
                     <li>隨身背包(教材約A4大小)、文具用品、摺疊傘、遮陽帽</li>
-                    <li>環保水杯（壺）、餐具</li>
+                    <li>環保水杯(壺)、餐具</li>
                     <li>身份證、健保卡(就醫時需要) </li>
                     <li>因為校區廣，請盡量穿著舒適好走的鞋子，方便移動</li>
                 </ol>
                 注意事項： <br>
                 <ol>
                     <li>本次營隊報名踴躍，因場地空間有限，若您無法全程參加，請告知關懷員，非常感恩您！</li>
-                    <li>營隊期間，亦安排晚間學習課程，為達到研習效果，請勿外出</li>
-                    <li>{{ $applicant->batch->batch_end }}&nbsp;課程預定於&nbsp;16:50&nbsp;結束，如需訂購回程車票，請考慮&nbsp;18:30&nbsp;以後之班次。</li>
+                    <li>營隊期間，亦安排晚間學習課程，為達到研習效果，請勿外出。</li>
+                    <li>{{ $applicant->batch->batch_end->format('n/j') }}&nbsp;課程預定於&nbsp;16:50&nbsp;結束，如需訂購回程車票，請考慮&nbsp;18:30&nbsp;以後之班次。</li>
                 </ol>
                 <br>
                 <br>
                 若有任何問題，歡迎與關懷員們聯絡。<br>
-                或來電本會<b>(04)3706-9300&nbsp;#621201</b>企業營報名報到。
+                或來電本會<b>(04)3706-9300&nbsp;#621201</b>企業營報名報到
             @endif
             <br><br>
             <a class="right">主辦單位：財團法人福智文教基金會&emsp;敬啟</a><br>
