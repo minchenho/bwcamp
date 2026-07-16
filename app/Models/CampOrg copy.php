@@ -32,7 +32,10 @@ class CampOrg extends LaratrustRole
         'prev_id', 'order', 'display_name', 'description', 'name'
     ];
 
-    // 調整全域預載，避免日常一般查詢效能隱憂（若評估後仍想保留則維持原樣）
+    // ✨ 核心大絕招：全域自動預載。未來全系統只要撈組織，自動把祖先鏈一網打盡！
+    // ⚠️ 注意：若你使用下方的 loadWholeTree() 一次撈回整棵樹，
+    //         記得在查詢時加上 ->without('ancestors')，避免這裡的全域預載
+    //         又額外觸發一次遞迴 SQL，導致做了兩次工。
     //protected $with = ['ancestors'];
     
     protected $appends = [
@@ -126,21 +129,111 @@ class CampOrg extends LaratrustRole
     }
 
     /* -------------------------------------------------------------------------- */
+    /* 一次撈回整個營隊組織（記憶體建樹，適用於單一營隊資料量不大，例如 < 100 筆）      */
+    /* -------------------------------------------------------------------------- */
+
+    /**
+     * 一次撈回整個營隊的組織資料，並在記憶體中完成：
+     * 1. 樹狀關聯建立（parent / children / ancestors）
+     * 2. 各節點的直屬人數統計（users_count）
+     * 3. 各節點的累積人數統計（含所有子孫，total_users_count_cached）
+     *
+     * 全程只下 2 次 SQL（組織本身 1 次 + 人數統計 1 次），
+     * 之後所有樹狀操作、路徑組合、人數查詢都在記憶體完成，不再觸發任何額外查詢。
+     *
+     * 適用情境：單一營隊組織筆數不大（例如 < 100 筆），一次全撈完全負擔得起。
+     * 若營隊組織筆數可能很大，不建議使用此方法（記憶體與遞迴成本會提高）。
+     *
+     * @param int $campId
+     * @return Collection  以 id 為 key 的組織集合，每筆都已掛好 parent/children/ancestors 關聯
+     */
+    public static function loadWholeTree(int $campId): Collection
+    {
+        // 1️⃣ 撈組織本身，取消全域 $with 的遞迴 ancestors 預載，避免多下一次遞迴 SQL
+        $all = static::query()
+            ->without('ancestors')
+            ->where('camp_id', $campId)
+            ->orderBy('order')
+            ->get();
+
+        if ($all->isEmpty()) {
+            return $all;
+        }
+
+        // 2️⃣ 一次撈出所有組織的直屬人數（一次 SQL，取代逐筆 users()->count()）
+        $userCounts = DB::table('org_user')
+            ->select('org_id', DB::raw('COUNT(*) as cnt'))
+            ->whereIn('org_id', $all->pluck('id'))
+            ->groupBy('org_id')
+            ->pluck('cnt', 'org_id');
+
+        $byId = $all->keyBy('id');
+
+        // 3️⃣ 記憶體建樹：掛上 parent / children / ancestors 關聯，並塞入直屬人數快取
+        foreach ($all as $org) {
+            $parent = $org->prev_id ? $byId->get($org->prev_id) : null;
+
+            $org->setRelation('parent', $parent);
+            $org->setRelation('ancestors', $parent); // ancestors() 定義上等同 parent 鏈的第一環
+
+            $children = $all->where('prev_id', $org->id)->values();
+            $org->setRelation('children', $children);
+
+            $org->setAttribute('users_count', (int) ($userCounts[$org->id] ?? 0));
+        }
+
+        // 4️⃣ 純記憶體遞迴：由每個節點自己往下走 children 關聯加總，
+        //    不依賴 depth 欄位排序（避免歷史髒資料的 depth 不準確造成誤差），
+        //    只依賴 children 關聯是否正確建立。用 $memo 避免重複計算同一節點。
+        $memo = [];
+        $computeTotal = function (CampOrg $org) use (&$computeTotal, &$memo): int {
+            if (isset($memo[$org->id])) {
+                return $memo[$org->id];
+            }
+
+            $total = (int) $org->users_count;
+
+            foreach ($org->children as $child) {
+                $total += $computeTotal($child);
+            }
+
+            return $memo[$org->id] = $total;
+        };
+
+        foreach ($all as $org) {
+            $org->setAttribute('total_users_count_cached', $computeTotal($org));
+        }
+
+        return $byId;
+    }
+
+    /* -------------------------------------------------------------------------- */
     /* 商業邏輯與屬性改寫                           */
     /* -------------------------------------------------------------------------- */
 
+    /**
+     * ✨ 優先讀取 loadWholeTree() 算好的記憶體快取值（users_count），
+     *    沒有快取時才 fallback 查詢資料庫（適合單筆查詢情境，會有一次 SQL）。
+     */
     protected function usersCount(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->users()->count() 
-            // 提示：Controller 使用 CampOrg::withCount('users')->get(); 效能最完美
+            get: fn () => isset($this->attributes['users_count'])
+                ? (int) $this->attributes['users_count']
+                : $this->users()->count()
+            // 提示：Controller 使用 CampOrg::withCount('users')->get()
+            // 或直接使用 CampOrg::loadWholeTree($campId) 效能最完美
         );
     }
 
+    /**
+     * ✨ 判準與 scopeRoots() 完全統一：root 的唯一定義是 prev_id 為整數 0（且非 null）。
+     * depth === 0 僅作為輔助健檢用途，不再單獨作為判斷 root 的依據，
+     * 避免 isRoot() 與 scopeRoots() 對同一筆資料的認定不一致。
+     */
     public function isRoot(): bool
     {
-        // ✨ 嚴格判定：prev_id 必須是整數 0（或字串 '0'），null 會被排除！
-        return $this->depth === 0 || ($this->prev_id !== null && (int)$this->prev_id === 0);
+        return $this->prev_id !== null && (int) $this->prev_id === 0;
     }
 
     /**
@@ -173,6 +266,7 @@ class CampOrg extends LaratrustRole
     /**
      * 獲取層級路徑字串
      * 搭配 $campOrg->load('parent.ancestors') 或 $campOrg->load('ancestors') 做到 0 次額外 SQL
+     * 或直接透過 loadWholeTree() 一次撈回，parent/ancestors 皆已在記憶體中掛好。
      */
     public function getPathString(): string
     {
@@ -185,7 +279,7 @@ class CampOrg extends LaratrustRole
         $current = $this;
         
         // 導入 depth 當作安全計數計防線，100% 避免因歷史髒資料造成的死循環
-        $maxLoops = $this->depth?? 10; // 防禦防火牆
+        $maxLoops = $this->depth ?? 10; // 防禦防火牆
         $loopCount = 0;
 
         while ($current && !$current->isRoot() && $loopCount <= $maxLoops) {
@@ -217,17 +311,22 @@ class CampOrg extends LaratrustRole
 
     /**
      * 🧠 遞迴獲取目前組織 + 所有子孫組織的用戶總數
+     * ✨ 優先讀取 loadWholeTree() 算好的記憶體快取值（total_users_count_cached），
+     *    完全不觸發任何資料庫查詢。
+     *    沒有快取時才 fallback 走原本的遞迴查詢邏輯（適合單筆查詢情境）。
      */
     public function getTotalUsersCountAttribute(): int
     {
-        // 1. 先拿自己這層的人數（優先用 counters 快取，沒載入就用 count()）
+        if (isset($this->attributes['total_users_count_cached'])) {
+            return (int) $this->attributes['total_users_count_cached'];
+        }
+
+        // 保底邏輯（未透過 loadWholeTree() 載入時使用，會有 N+1 風險，僅適合單筆查詢情境）
         $count = $this->users_count ?? $this->users()->count();
 
-        // 2. 如果有預載 children，直接用 children 跑迴圈；否則去資料庫撈直屬下線
         $children = $this->relationLoaded('children') ? $this->children : $this->children()->get();
 
         foreach ($children as $child) {
-            // 遞迴呼叫子節點的 total_users_count，一路往下加總
             $count += $child->total_users_count;
         }
 
