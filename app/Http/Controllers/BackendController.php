@@ -2298,7 +2298,7 @@ private function getCarersData($user, Request $request): array
         $query = Applicant::with('groupRelation', 'groupOrgRelation', 'batch', 'contactlog', 'user')
             ->select("applicants.*", 
                 $vcamp->table . ".*", 
-                "batches.name as   bName", 
+                "batches.name as bName", 
                 "applicants.id as sn", 
                 "applicants.created_at as applied_at"
             )

@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Cache; // 確保有引入 Cache
 use App\Models\Camp;
 use App\Models\Batch;
 use Carbon\Carbon;
@@ -33,7 +34,7 @@ class Kernel extends ConsoleKernel
         $this->scheduleCampExports($schedule);
 
         // 動態報到匯出排程
-        //$this->scheduleCheckInExports($schedule);
+        $this->scheduleCheckInExports($schedule);
     }
 
     /**
@@ -96,61 +97,93 @@ class Kernel extends ConsoleKernel
      * 排程報到資料匯出任務
      * 規則：08:00-09:00 每分鐘執行; 09:00-12:00 每十分鐘執行
      */
+    /*
     private function scheduleCheckInExports(Schedule $schedule)
     {
         //to do: create an interface for user instead of hard-code
-        //tcamp
-        $camp_id1 = 108;
-        $batch_id1 = 217;
+        $batch_ids = [240, 250, 251, 242, 247, 253];
+        $batches = Batch::with('camp')->whereIn('id', $batch_ids)->get();
 
-        $timeRanges1 = $this->getCheckInTimeRanges($batch_id1);
+        foreach ($batches as $batch) {
+            $str_day1 = $batch->batch_start->format('Y-m-d');
+            $timeRanges = $this->getCheckInTimeRanges($str_day1);
+            $camp_id = $batch->camp->id;
 
-        $this->scheduleCheckInForCamp($schedule, $camp_id1, [
-            'everyMinute' => [
-                $timeRanges1['test1'],
-                $timeRanges1['day1']['peak'],
-                $timeRanges1['day2']['peak'],
-            ],
-            'everyTenMinutes' => [
-                $timeRanges1['day1']['normal'],
-                $timeRanges1['day2']['normal'],
-            ]
-        ]);
+            $this->scheduleCheckInForCamp($schedule, $camp_id, [
+                'everyMinute' => [
+                    $timeRanges['test1']['peak'],
+                    $timeRanges['day1']['peak'],
+                    $timeRanges['day2']['peak'],
+                ],
+                'everyTenMinutes' => [
+                    $timeRanges['day1']['normal'],
+                    $timeRanges['day2']['normal'],
+                ]
+            ]);
+        }
+    }*/
 
-        //utcamp
-        $camp_id2 = 112;
-        $batch_id2 = 221;
 
-        $timeRanges2 = $this->getCheckInTimeRanges($batch_id2);
+    /**
+     * 排程報到資料匯出任務
+     * 終極優化版：把所有需要計算的排程參數（包含時間時段）通通打包存入快取
+     */
+    private function scheduleCheckInExports(Schedule $schedule)
+    {
+        $batch_ids = [240, 250, 251, 242, 247, 253];
 
-        $this->scheduleCheckInForCamp($schedule, $camp_id2, [
-            'everyMinute' => [
-                $timeRanges2['test1'],
-                $timeRanges2['day1']['peak'],
-                $timeRanges2['day2']['peak'],
-            ],
-            'everyTenMinutes' => [
-                $timeRanges2['day1']['normal'],
-                $timeRanges2['day2']['normal'],
-            ]
-        ]);
+        // 快取 key 叫 checkin_schedule_configs，保存 24 小時
+        $scheduleConfigs = Cache::remember('checkin_schedule_configs', 86400, function () use ($batch_ids) {
+            $batches = Batch::with('camp')->whereIn('id', $batch_ids)->get();
+            $configs = [];
 
+            foreach ($batches as $batch) {
+                $str_day1 = $batch->batch_start->format('Y-m-d');
+                
+                // 在這裡直接呼叫你原本寫好的時間計算 Method
+                $timeRanges = $this->getCheckInTimeRanges($str_day1);
+
+                // 把這筆梯次要用的參數全部整理成一個純陣列
+                $configs[] = [
+                    'camp_id' => $batch->camp->id,
+                    'time_config' => [
+                        'everyMinute' => [
+                            $timeRanges['test1']['peak'],
+                            $timeRanges['day1']['peak'],
+                            $timeRanges['day2']['peak'],
+                        ],
+                        'everyTenMinutes' => [
+                            $timeRanges['test1']['normal'],
+                            $timeRanges['day1']['normal'],
+                            $timeRanges['day2']['normal'],
+                        ]
+                    ]
+                ];
+            }
+
+            return $configs; // 這個乾淨的結構會被寫入快取
+        });
+
+        // 每分鐘執行排程時，只會跑這個輕量的迴圈，直接讀取算好的參數
+        foreach ($scheduleConfigs as $config) {
+            $this->scheduleCheckInForCamp($schedule, $config['camp_id'], $config['time_config']);
+        }
     }
 
     /**
      * 取得報到時間範圍設定
      */
-    private function getCheckInTimeRanges($batch_id): array
+    private function getCheckInTimeRanges($str_day1): array
     {
-        $batch = Batch::find($batch_id);
-        $str_day1 = $batch->batch_start->format('Y-m-d');
+        //$batch = Batch::find($batch_id);
+        //$str_day1 = $batch->batch_start->format('Y-m-d');
         $str_prevDay = Carbon::parse($str_day1)->subDay()->format('Y-m-d');
         $str_nextDay = Carbon::parse($str_day1)->addDay()->format('Y-m-d');
 
-        $peak_start = ' 07:00:00';
+        $peak_start = ' 07:00:01';
         $peak_end = ' 15:00:00';
         $normal_start = ' 15:00:01';
-        $normal_end = ' 20:59:59';
+        $normal_end = ' 21:00:00';
 
         return [
             // 測試時段
@@ -187,7 +220,8 @@ class Kernel extends ConsoleKernel
                 ->everyMinute()
                 ->when(function () use ($timeConfig) {
                     return $this->isInTimeRanges($timeConfig['everyMinute']);
-                });
+                })
+                ->name("checkin-export-min-camp-{$campId}"); // 👈 加上唯一名稱識別
         }
 
         // 設定每十分鐘執行的時段
@@ -196,7 +230,8 @@ class Kernel extends ConsoleKernel
                 ->everyTenMinutes()
                 ->when(function () use ($timeConfig) {
                     return $this->isInTimeRanges($timeConfig['everyTenMinutes']);
-                });
+                })
+                ->name("checkin-export-10min-camp-{$campId}"); // 👈 加上唯一名稱識別
         }
     }
 
