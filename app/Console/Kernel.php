@@ -112,7 +112,7 @@ class Kernel extends ConsoleKernel
                 
                 // 在這裡直接呼叫你原本寫好的時間計算 Method
                 //$timeRanges = $this->getCheckInTimeRanges($str_day1);
-                $timeRanges = $this->getCheckInTimeRanges($today->format('Y-m-d'));
+                $timeRanges = $this->getCheckInTimeRanges(Carbon::$today()->format('Y-m-d'));
 
                 // 把這筆梯次要用的參數全部整理成一個純陣列
                 $configs[] = [
