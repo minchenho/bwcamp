@@ -96,36 +96,6 @@ class Kernel extends ConsoleKernel
     /**
      * 排程報到資料匯出任務
      * 規則：08:00-09:00 每分鐘執行; 09:00-12:00 每十分鐘執行
-     */
-    /*
-    private function scheduleCheckInExports(Schedule $schedule)
-    {
-        //to do: create an interface for user instead of hard-code
-        $batch_ids = [240, 250, 251, 242, 247, 253];
-        $batches = Batch::with('camp')->whereIn('id', $batch_ids)->get();
-
-        foreach ($batches as $batch) {
-            $str_day1 = $batch->batch_start->format('Y-m-d');
-            $timeRanges = $this->getCheckInTimeRanges($str_day1);
-            $camp_id = $batch->camp->id;
-
-            $this->scheduleCheckInForCamp($schedule, $camp_id, [
-                'everyMinute' => [
-                    $timeRanges['test1']['peak'],
-                    $timeRanges['day1']['peak'],
-                    $timeRanges['day2']['peak'],
-                ],
-                'everyTenMinutes' => [
-                    $timeRanges['day1']['normal'],
-                    $timeRanges['day2']['normal'],
-                ]
-            ]);
-        }
-    }*/
-
-
-    /**
-     * 排程報到資料匯出任務
      * 終極優化版：把所有需要計算的排程參數（包含時間時段）通通打包存入快取
      */
     private function scheduleCheckInExports(Schedule $schedule)
@@ -141,7 +111,8 @@ class Kernel extends ConsoleKernel
                 $str_day1 = $batch->batch_start->format('Y-m-d');
                 
                 // 在這裡直接呼叫你原本寫好的時間計算 Method
-                $timeRanges = $this->getCheckInTimeRanges($str_day1);
+                //$timeRanges = $this->getCheckInTimeRanges($str_day1);
+                $timeRanges = $this->getCheckInTimeRanges($today->format('Y-m-d'));
 
                 // 把這筆梯次要用的參數全部整理成一個純陣列
                 $configs[] = [
@@ -211,8 +182,8 @@ class Kernel extends ConsoleKernel
      */
     private function scheduleCheckInForCamp(Schedule $schedule, int $campId, array $timeConfig)
     {
-        //$command = "export:CheckIn checkIn {$campId} --renew=1";
-        $command = "export:CheckIn signIn {$campId} --renew=1";
+        $command = "export:CheckIn checkIn {$campId} --renew=1";
+        //$command = "export:CheckIn signIn {$campId} --renew=1";
 
         // 設定每分鐘執行的時段
         if (isset($timeConfig['everyMinute'])) {
