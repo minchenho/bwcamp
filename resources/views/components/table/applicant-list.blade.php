@@ -62,7 +62,7 @@
     // 1. 全域環境變數設定
     window.applicant_ids = [];
     window.csrf_token = "{{ csrf_token() }}";
-    window.columns = @json($columns); // 💡 修正：改成對應後端傳入的 $columns_zhtw
+    window.columns = @json($columns);
     window.isShowLearners = {{ $isShowLearners ? 1 : 0 }};
     window.isShowVolunteers = {{ $isShowVolunteers ? 1 : 0 }};
     
@@ -172,7 +172,7 @@
                     let dd = String(dateObj.getDate()).padStart(2, '0');
                     let hh = String(dateObj.getHours()).padStart(2, '0');
                     let min = String(dateObj.getMinutes()).padStart(2, '0');
-                    item.created_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                    item.created_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`; // 格式：2026-07-09 15:30
                 }
             }
             if (item.admitted_at) {
@@ -183,7 +183,7 @@
                     let dd = String(dateObj.getDate()).padStart(2, '0');
                     let hh = String(dateObj.getHours()).padStart(2, '0');
                     let min = String(dateObj.getMinutes()).padStart(2, '0');
-                    item.admitted_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                    item.admitted_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`; // 格式：2026-07-09 15:30
                 }
             }
 
