@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Cache; // 確保有引入 Cache
 use App\Models\Camp;
 use App\Models\Batch;
 use Carbon\Carbon;
@@ -33,7 +34,7 @@ class Kernel extends ConsoleKernel
         $this->scheduleCampExports($schedule);
 
         // 動態報到匯出排程
-        //$this->scheduleCheckInExports($schedule);
+        $this->scheduleCheckInExports($schedule);
     }
 
     /**
@@ -92,131 +93,80 @@ class Kernel extends ConsoleKernel
         //$schedule->command('export:Applicant 118')->dailyAt("00:50");  // utcamp
     }
 
-    /**
+/**
      * 排程報到資料匯出任務
-     * 規則：08:00-09:00 每分鐘執行; 09:00-12:00 每十分鐘執行
+     * 規則：07:00-15:00 每分鐘執行; 15:00-21:00 每十分鐘執行 (涵蓋前一天、第一天、第二天)
      */
     private function scheduleCheckInExports(Schedule $schedule)
     {
-        //to do: create an interface for user instead of hard-code
-        //tcamp
-        $camp_id1 = 108;
-        $batch_id1 = 217;
+        $batch_ids = [240, 250, 251, 242, 247, 253];
 
-        $timeRanges1 = $this->getCheckInTimeRanges($batch_id1);
+        // 1. 只快取 DB 查詢結果（極輕量，快取 24 小時）
+        $batchConfigs = Cache::remember('checkin_batch_configs', 86400, function () use ($batch_ids) {
+            return Batch::with('camp:id')
+                ->whereIn('id', $batch_ids)
+                ->get()
+                ->map(function ($batch) {
+                    return [
+                        'camp_id' => $batch->camp->id,
+                        'day1_date' => $batch->batch_start->format('Y-m-d'), // 動態取出實際開營日期
+                    ];
+                })
+                ->toArray();
+        });
 
-        $this->scheduleCheckInForCamp($schedule, $camp_id1, [
-            'everyMinute' => [
-                $timeRanges1['test1'],
-                $timeRanges1['day1']['peak'],
-                $timeRanges1['day2']['peak'],
-            ],
-            'everyTenMinutes' => [
-                $timeRanges1['day1']['normal'],
-                $timeRanges1['day2']['normal'],
-            ]
-        ]);
+        // 2. 註冊排程（每次 schedule:run 執行此迴圈都不會查 DB）
+        foreach ($batchConfigs as $config) {
+            $campId = $config['camp_id'];
+            $day1Date = $config['day1_date'];
+            $command = "export:CheckIn checkIn {$campId} --renew=1";
 
-        //utcamp
-        $camp_id2 = 112;
-        $batch_id2 = 221;
-
-        $timeRanges2 = $this->getCheckInTimeRanges($batch_id2);
-
-        $this->scheduleCheckInForCamp($schedule, $camp_id2, [
-            'everyMinute' => [
-                $timeRanges2['test1'],
-                $timeRanges2['day1']['peak'],
-                $timeRanges2['day2']['peak'],
-            ],
-            'everyTenMinutes' => [
-                $timeRanges2['day1']['normal'],
-                $timeRanges2['day2']['normal'],
-            ]
-        ]);
-
-    }
-
-    /**
-     * 取得報到時間範圍設定
-     */
-    private function getCheckInTimeRanges($batch_id): array
-    {
-        $batch = Batch::find($batch_id);
-        $str_day1 = $batch->batch_start->format('Y-m-d');
-        $str_prevDay = Carbon::parse($str_day1)->subDay()->format('Y-m-d');
-        $str_nextDay = Carbon::parse($str_day1)->addDay()->format('Y-m-d');
-
-        $peak_start = ' 07:00:00';
-        $peak_end = ' 15:00:00';
-        $normal_start = ' 15:00:01';
-        $normal_end = ' 20:59:59';
-
-        return [
-            // 測試時段
-            'test1' => [
-                'peak'   => ['start' => $str_prevDay.$peak_start,   'end' => $str_prevDay.$peak_end],
-                'normal' => ['start' => $str_prevDay.$normal_start, 'end' => $str_prevDay.$normal_end],
-            ],
-
-            // 第一天
-            'day1' => [
-                'peak'   => ['start' => $str_day1.$peak_start,   'end' => $str_day1.$peak_end],
-                'normal' => ['start' => $str_day1.$normal_start, 'end' => $str_day1.$normal_end],
-            ],
-
-            // 第二天
-            'day2' => [
-                'peak'   => ['start' => $str_nextDay.$peak_start,   'end' => $str_nextDay.$peak_end],
-                'normal' => ['start' => $str_nextDay.$normal_start, 'end' => $str_nextDay.$normal_end],
-            ],
-        ];
-    }
-
-    /**
-     * 為特定營隊設定報到匯出排程
-     */
-    private function scheduleCheckInForCamp(Schedule $schedule, int $campId, array $timeConfig)
-    {
-        //$command = "export:CheckIn checkIn {$campId} --renew=1";
-        $command = "export:CheckIn signIn {$campId} --renew=1";
-
-        // 設定每分鐘執行的時段
-        if (isset($timeConfig['everyMinute'])) {
+            // 高峰時段：每分鐘執行 (07:00:01 ~ 15:00:00)
             $schedule->command($command)
                 ->everyMinute()
-                ->when(function () use ($timeConfig) {
-                    return $this->isInTimeRanges($timeConfig['everyMinute']);
-                });
-        }
+                ->when(function () use ($day1Date) {
+                    return $this->isNowInCheckInWindow($day1Date, '07:00:01', '15:00:00');
+                })
+                ->name("checkin-export-min-camp-{$campId}")
+                ->withoutOverlapping(); // 建議加上防重覆執行
 
-        // 設定每十分鐘執行的時段
-        if (isset($timeConfig['everyTenMinutes'])) {
+            // 一般時段：每 10 分鐘執行 (15:00:01 ~ 21:00:00)
             $schedule->command($command)
                 ->everyTenMinutes()
-                ->when(function () use ($timeConfig) {
-                    return $this->isInTimeRanges($timeConfig['everyTenMinutes']);
-                });
+                ->when(function () use ($day1Date) {
+                    return $this->isNowInCheckInWindow($day1Date, '15:00:01', '21:00:00');
+                })
+                ->name("checkin-export-10min-camp-{$campId}")
+                ->withoutOverlapping();
         }
     }
 
     /**
-     * 檢查當前時間是否在指定的時間範圍內
+     * 動態檢查「當前時間」是否落在指定開營日（前一天、第一天、第二天）的特定時間區間內
      */
-    private function isInTimeRanges(array $ranges): bool
+    private function isNowInCheckInWindow(string $day1Date, string $startTime, string $endTime): bool
     {
         $now = Carbon::now();
+        $todayStr = $now->format('Y-m-d');
 
-        foreach ($ranges as $range) {
-            $start = Carbon::parse($range['start']);
-            $end = Carbon::parse($range['end']);
+        // 算出該梯次允許的三個日期 (前一天, 第一天, 第二天)
+        $day1 = Carbon::parse($day1Date);
+        $validDates = [
+            $day1->copy()->subDay()->format('Y-m-d'),
+            $day1->format('Y-m-d'),
+            $day1->copy()->addDay()->format('Y-m-d'),
+        ];
 
-            if ($now->between($start, $end)) {
-                return true;
-            }
+        // 1. 如果「今天」不在這 3 天內，直接判定不執行，極速返回
+        if (!in_array($todayStr, $validDates, true)) {
+            return false;
         }
 
-        return false;
+        // 2. 如果今天符合，比對當前時間是否在指定區間內
+        $start = Carbon::parse("{$todayStr} {$startTime}");
+        $end   = Carbon::parse("{$todayStr} {$endTime}");
+
+        return $now->between($start, $end);
     }
 
     /**
