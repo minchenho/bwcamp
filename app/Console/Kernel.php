@@ -118,8 +118,7 @@ class Kernel extends ConsoleKernel
         // 2. 註冊排程（每次 schedule:run 執行此迴圈都不會查 DB）
         foreach ($batchConfigs as $config) {
             $campId = $config['camp_id'];
-            //$day1Date = $config['day1_date'];
-            $day1Date = '2026-07-22';
+            $day1Date = $config['day1_date'];
             $command = "export:CheckIn checkIn {$campId} --renew=1";
 
             // 高峰時段：每分鐘執行 (07:00:01 ~ 15:00:00)
