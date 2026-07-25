@@ -2295,17 +2295,16 @@ private function getCarersData($user, Request $request): array
             $showNoJob = null;
         }
         $batches = Batch::where("camp_id", $vcamp->id)->get();
-        $query = Applicant::with('groupRelation', 'groupOrgRelation', 'batch', 'contactlog', 'user')
+	// 全部義工
+        $query = Applicant::with(['groupRelation', 'groupOrgRelation', 'contactlog', 'user'])
             ->select("applicants.*", 
                 $vcamp->table . ".*", 
                 "batches.name as bName", 
                 "applicants.id as sn", 
                 "applicants.created_at as applied_at"
             )
-            ->join('batches', 'batches.id', '=', 'applicants.batch_id')
             ->join($vcamp->table, 'applicants.id', '=', $vcamp->table . '.applicant_id')
             ->where('applicants.camp_id', $vcamp->id)
-            //->whereDoesntHave('user')
             ->withTrashed()->orderBy('deleted_at', 'asc');
 
         if ($request->batch_id) {
@@ -2419,7 +2418,7 @@ private function getCarersData($user, Request $request): array
             ->join($vcamp->table . ' as evcamp', 'applicants.id', '=', 'evcamp.applicant_id')
             ->leftJoin('org_user', function ($join) {
                 $join->on('users.id', '=', 'org_user.user_id')
-                    ->where('org_user.user_type', 'AppModelsUser');
+                    ->where('org_user.user_type', 'App\\Models\\User');
             })
             ->leftJoin('camp_orgs', function ($join) {
                 $join->on('org_user.org_id', '=', 'camp_orgs.id')

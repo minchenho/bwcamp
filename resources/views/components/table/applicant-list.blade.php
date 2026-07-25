@@ -62,7 +62,7 @@
     // 1. 全域環境變數設定
     window.applicant_ids = [];
     window.csrf_token = "{{ csrf_token() }}";
-    window.columns = @json($columns); // 💡 修正：改成對應後端傳入的 $columns_zhtw
+    window.columns = @json($columns);
     window.isShowLearners = {{ $isShowLearners ? 1 : 0 }};
     window.isShowVolunteers = {{ $isShowVolunteers ? 1 : 0 }};
     
@@ -124,6 +124,7 @@
     }
 
     // 5. 資料加工與渲染
+// 5. 資料加工與渲染
     function fillTheList() {
         let table = $('#applicantTable');
         let data = null;
@@ -150,6 +151,36 @@
             if (item.group_relation) {
                 item.group = item.group_relation.alias;
             }
+
+            // 💡 關鍵補回：從 user 關聯中解出 section (組別/志工角色) 與 position (職稱)
+            // 由於第一個檔案後端沒有先轉成字串，我們直接在前端 JS 處理
+            if (item.user && item.user.roles) {
+                // 轉化 roles 為 section 換行字串
+                item.roles = item.user.roles.map(function(role) {
+                    return role.section;
+                }).filter(Boolean).join('<br>');
+
+                // 轉化 position 為職稱換行字串
+                item.position = item.user.roles.map(function(role) {
+                    return role.position;
+                }).filter(Boolean).join('<br>');
+            } else {
+                // 如果是學員或沒有權限資料，則給予預設空值避免畫面上出現 undefined
+                item.roles = item.roles || '';
+                item.position = item.position || '';
+            }
+
+            // 💡 關鍵補回：處理義工志願序 (group_priority)
+            // 根據後端關聯，志工動態表欄位會 merge 到 item 本身
+            if (item.group_priority1 || item.group_priority2 || item.group_priority3) {
+                let priorities = [];
+                if (item.group_priority1) priorities.push(item.group_priority1);
+                if (item.group_priority2) priorities.push(item.group_priority2);
+                if (item.group_priority3) priorities.push(item.group_priority3);
+                item.group_priority = priorities.join('<br>');
+            } else {
+                item.group_priority = item.group_priority || '';
+            }
             
             // 處理生日
             if (item.birthday || item.birthmonth || item.birthyear) {
@@ -172,7 +203,7 @@
                     let dd = String(dateObj.getDate()).padStart(2, '0');
                     let hh = String(dateObj.getHours()).padStart(2, '0');
                     let min = String(dateObj.getMinutes()).padStart(2, '0');
-                    item.created_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                    item.created_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`; // 格式：2026-07-09 15:30
                 }
             }
             if (item.admitted_at) {
@@ -183,7 +214,7 @@
                     let dd = String(dateObj.getDate()).padStart(2, '0');
                     let hh = String(dateObj.getHours()).padStart(2, '0');
                     let min = String(dateObj.getMinutes()).padStart(2, '0');
-                    item.admitted_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                    item.admitted_at = `${yyyy}-${mm}-${dd} ${hh}:${min}`; // 格式：2026-07-09 15:30
                 }
             }
 

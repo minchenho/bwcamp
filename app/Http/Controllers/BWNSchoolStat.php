@@ -26,7 +26,7 @@ class BWNSchoolStat extends BackendController{
         "明志科技大學",
         "宏國德霖科技大學",
         "長庚大學",
-        "長庚科技大學",
+        "長庚科技大學林口校區",
         "國立體育大學",
         "跨區越南生"
     );
