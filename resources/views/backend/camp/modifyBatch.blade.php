@@ -130,7 +130,7 @@
             <div class='col-md-6'>
             ------------------------------
             <br>
-            {!! nl2br(e(str_replace('\n', "\n", $batch->contact_card ?? []))) !!}
+            {!! nl2br(e(str_replace('\n', "\n", $batch->contact_card ?? ""))) !!}
             <br>            
             ------------------------------
             </div>
