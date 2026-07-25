@@ -267,7 +267,7 @@ class AdminController extends BackendController {
         $camp = Camp::find($camp_id);
         $batch = Batch::find($batch_id);
         $vbatches = null;
-        if (!$batch->is_vbatch()) {
+        if (!$batch->isVbatch) {
             $vbatches = $camp->vcamp?->batches ?? null;
         }
         return view('backend.camp.modifyBatch', compact("camp", "batch", "vbatches"));
