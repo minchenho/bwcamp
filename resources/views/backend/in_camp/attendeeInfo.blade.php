@@ -112,7 +112,19 @@
     @endif
 
     @if($layout['sec_attend']['is_shown'])
-    <div class="container alert alert-warning">
+    <div class="container alert alert-info">
+        <div class="row d-flex">
+            <div class="ml-2 mb-2 font-weight-bold">報名/錄取狀態</div>：
+            @if($applicant->is_admitted && !($applicant->deleted_at))
+            <div class="mr-4 mb-2">
+                已報名/已錄取，錄取編號{{ $applicant->group }}{{ $applicant->number }}
+            </div>
+            @elseif(!$applicant->is_admitted && !($applicant->deleted_at))
+            <div class="mr-4 mb-2 text-primary">已報名/未錄取。</div>
+            @else($applicant->deleted_at)
+            <div class="mr-4 mb-2 text-primary">已取消/---。</div>
+            @endif
+        </div>
         <div class="row d-flex">
             <div class="ml-2 mb-2 font-weight-bold">參加意願</div>：
             @if($applicant->is_attend)
