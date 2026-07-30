@@ -99,7 +99,7 @@ class Kernel extends ConsoleKernel
      */
     private function scheduleCheckInExports(Schedule $schedule)
     {
-        $batch_ids = [240, 250, 251, 242, 247, 253];
+        $batch_ids = [250, 247];
 
         // 1. 只快取 DB 查詢結果（極輕量，快取 24 小時）
         $batchConfigs = Cache::remember('checkin_batch_configs', 86400, function () use ($batch_ids) {
