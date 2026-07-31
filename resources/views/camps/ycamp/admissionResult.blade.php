@@ -12,6 +12,7 @@
         $today = \Carbon\Carbon::now()->midDay();
         $days = $applicant->batch->batch_start->diffInDays($applicant->batch->batch_end) + 1;
         $traffic_confirming_date = $camp_info->admission_confirming_end->addDays(14)->midDay();
+        $modifying_deadline = $camp_info->modifying_deadline->endOfDay();
         $applicant->id = $applicant->id ?? $applicant->applicant_id;
     @endphp
     @if(Session::has('error'))
@@ -85,6 +86,7 @@
                 </form><br>
 
                 @if(!isset($applicant->is_attend) || $applicant->is_attend)
+                @if($today->lte($modifying_deadline))
                     <h5>選擇交通方式</h5>
                     <!--
                     ***** 準備中 ***** <br>
@@ -136,6 +138,9 @@
                             <div><input type="submit" class="btn btn-primary" value="下載繳費單"></div>
                         </form>
                     @endif
+                @else
+                <h5>交通修改時間已過，有問題請聯繫您的帶組老師，謝謝！</h5>
+                @endif
                 @endif
 
             @elseif($today->lt($camp_info->rejection_showing_date->startOfDay()))
