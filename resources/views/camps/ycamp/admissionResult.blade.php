@@ -86,8 +86,8 @@
                 </form><br>
 
                 @if(!isset($applicant->is_attend) || $applicant->is_attend)
-                @if($today->lte($modifying_deadline))
                     <h5>選擇交通方式</h5>
+                @if($today->lte($modifying_deadline))
                     <form class="ml-2 mb-2" action="{{ route('modifyTraffic', $batch_id) }}" method="POST" id="selecttraffic">
                         @csrf
                         <div class="ml-0 mb-2">交通方式預設為自往及自回</div>
@@ -124,6 +124,13 @@
                         </div>
                         <input class="btn btn-success" type="submit" value="確認修改" id="confirmtraffic" name="confirmtraffic">
                     </form><br>
+                @else
+                    <div class="ml-0 mb-2">
+                        ＊修改交通選項已截止，若有問題，請聯絡各組帶組老師。<br>
+                        您的去程交通選項：{{ $applicant->traffic?->depart_from ?? 未選擇 }}<br>
+                        您的回程交通選項：{{ $applicant->traffic?->back_to ?? 未選擇 }}
+                    </div>
+                @endif
                     @if(isset($applicant->traffic) && $applicant->traffic->fare > 0)
                         <form class="ml-2 mb-2" action="{{ route('downloadPaymentForm', $batch_id) }}" method="POST">
                             @csrf
@@ -132,9 +139,6 @@
                             <div><input type="submit" class="btn btn-primary" value="下載繳費單"></div>
                         </form>
                     @endif
-                @else
-                <h5>交通修改時間已過，有問題請聯繫您的帶組老師，謝謝！</h5>
-                @endif
                 @endif
 
             @elseif($today->lt($camp_info->rejection_showing_date->startOfDay()))
