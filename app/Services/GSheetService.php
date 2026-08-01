@@ -67,10 +67,9 @@ class GSheetService
     {
         //ds_id = 385/386 (男/女)
         $ds = DynamicStat::select('dynamic_stats.*')
-            ->where('urltable_id', $camp_id)
-            ->where('urltable_type', 'App\Models\Camp')
+            ->whereMorphedTo('urltable', 'App\Models\Camp', $camp_id)
             ->where('purpose', 'Accomodation')
-            ->where('sheet_name', $sheet_name)
+            ->where('sheet_name', 'LIKE', '%' . $sheet_name . '%') // 改為包含 $sheet_name
             ->first();
 
         if ($ds == null) {

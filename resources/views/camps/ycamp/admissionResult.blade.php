@@ -12,6 +12,7 @@
         $today = \Carbon\Carbon::now()->midDay();
         $days = $applicant->batch->batch_start->diffInDays($applicant->batch->batch_end) + 1;
         $traffic_confirming_date = $camp_info->admission_confirming_end->addDays(14)->midDay();
+        $modifying_deadline = $camp_info->modifying_deadline->endOfDay();
         $applicant->id = $applicant->id ?? $applicant->applicant_id;
     @endphp
     @if(Session::has('error'))
@@ -86,12 +87,7 @@
 
                 @if(!isset($applicant->is_attend) || $applicant->is_attend)
                     <h5>選擇交通方式</h5>
-                    <!--
-                    ***** 準備中 ***** <br>
-                    預計6/27(二)後開放登記。登記截止時間順延至7/5(三)
-                    <br>
-                    <br>
-                    -->
+                @if($today->lte($modifying_deadline))
                     <form class="ml-2 mb-2" action="{{ route('modifyTraffic', $batch_id) }}" method="POST" id="selecttraffic">
                         @csrf
                         <div class="ml-0 mb-2">交通方式預設為自往及自回</div>
@@ -128,6 +124,13 @@
                         </div>
                         <input class="btn btn-success" type="submit" value="確認修改" id="confirmtraffic" name="confirmtraffic">
                     </form><br>
+                @else
+                    <div class="ml-0 mb-2">
+                        ＊修改交通選項已截止，若有問題，請聯絡各組帶組老師。<br>
+                        您的去程交通選項：{{ $applicant->traffic?->depart_from ?? 未選擇 }}<br>
+                        您的回程交通選項：{{ $applicant->traffic?->back_to ?? 未選擇 }}
+                    </div>
+                @endif
                     @if(isset($applicant->traffic) && $applicant->traffic->fare > 0)
                         <form class="ml-2 mb-2" action="{{ route('downloadPaymentForm', $batch_id) }}" method="POST">
                             @csrf
