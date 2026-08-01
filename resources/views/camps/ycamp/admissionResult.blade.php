@@ -88,12 +88,6 @@
                 @if(!isset($applicant->is_attend) || $applicant->is_attend)
                 @if($today->lte($modifying_deadline))
                     <h5>選擇交通方式</h5>
-                    <!--
-                    ***** 準備中 ***** <br>
-                    預計6/27(二)後開放登記。登記截止時間順延至7/5(三)
-                    <br>
-                    <br>
-                    -->
                     <form class="ml-2 mb-2" action="{{ route('modifyTraffic', $batch_id) }}" method="POST" id="selecttraffic">
                         @csrf
                         <div class="ml-0 mb-2">交通方式預設為自往及自回</div>
