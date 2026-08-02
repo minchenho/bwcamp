@@ -70,7 +70,7 @@ class GSheetService
             ->where('urltable_id', $camp_id)
             ->where('urltable_type', 'App\Models\Camp')
             ->where('purpose', 'Accomodation')
-            ->where('sheet_name', $sheet_name)
+            ->where('sheet_name', 'LIKE', '%' . $sheet_name . '%')
             ->first();
 
         if ($ds == null) {
