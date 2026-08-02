@@ -65,11 +65,11 @@ class GSheetService
 
     public function importAccomodation($camp_id, $sheet_name, $group_name)
     {
-        //ds_id = 385/386 (男/女)
         $ds = DynamicStat::select('dynamic_stats.*')
-            ->whereMorphedTo('urltable', 'App\Models\Camp', $camp_id)
+            ->where('urltable_id', $camp_id)
+            ->where('urltable_type', 'App\Models\Camp')
             ->where('purpose', 'Accomodation')
-            ->where('sheet_name', 'LIKE', '%' . $sheet_name . '%') // 改為包含 $sheet_name
+            ->where('sheet_name', 'LIKE', '%' . $sheet_name . '%')
             ->first();
 
         if ($ds == null) {
