@@ -65,7 +65,6 @@ class GSheetService
 
     public function importAccomodation($camp_id, $sheet_name, $group_name)
     {
-        //ds_id = 385/386 (男/女)
         $ds = DynamicStat::select('dynamic_stats.*')
             ->where('urltable_id', $camp_id)
             ->where('urltable_type', 'App\Models\Camp')
