@@ -765,24 +765,26 @@ return [
         'utcamp' => ['台北','桃園','新竹','台中','雲嘉','台南','高雄','海外'],
     ],
 
-    'form_accomodation' => [
+'form_accomodation' => [
         "general" => [
+            "no" => "序號",
             "admitted_no" => "錄取編號",
             "name" => "姓名",
             "gender_chn" => "性別",
             "mobile" => "手機號碼",
-            //底下為空格欄位
+            // 底下為空格欄位
             "empty1" => "報到",
             "empty2" => "床位",
             "empty3" => "預排",
             "empty4" => "備註(遲到)",
         ],
         "ycamp" => [
+            "no" => "序號",
             "admitted_no" => "錄取編號",
             "name" => "姓名",
             "gender_chn" => "性別",
             "mobile" => "手機號碼",
-            //底下為空格欄位
+            // 底下為空格欄位
             "empty1" => "報到",
             "empty2" => "床位",
             "empty3" => "預排",
