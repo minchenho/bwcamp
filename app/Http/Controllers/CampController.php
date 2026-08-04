@@ -455,43 +455,46 @@ class CampController extends Controller
     public function campQueryRegistrationDataPage(Request $request)
     {
         //$request->batch_id_from can be null
-        $batch_id_from = $request->batch_id_from;
         $this_year = Carbon::now()->year;
-        $year_max = $this_year - 16;
-        $year_min = $this_year - 80;
-        $use_mobile = false;
-        $use_eng = false;
+
+        $batch_id_from = $request->batch_id_from;
         $birthday_use_day = true;
         $birthday_use_month = true;
         $name_chn = '姓名';
+        $use_mobile = true;
+        $use_eng = false;
+        $year_max = $this_year - 16;
+        $year_min = $this_year - 80;
 
         switch ($this->camp_info->table) {
             case 'ceocamp':
                 $birthday_use_day = false;
                 $name_chn = '被推薦人姓名';
+                $use_mobile = false;
                 break;
-            case 'evcamp':
-                $use_mobile = true;
+            case 'ecamp':
+                $use_mobile = false;
                 break;
             case 'nycamp':
                 $year_min = $this_year - 36;
                 $use_eng = true;
-                break;
-            case 'tcamp':
-                $use_mobile = true;
-                break;
-            case 'utcamp':
-                $use_mobile = true;
+                $use_mobile = false;
+                $birthday_use_day = false;
+                $birthday_use_month = false;
                 break;
             case 'ycamp':
                 $year_min = $this_year - 36;
+                $use_mobile = false;
                 break;
             default:
                 break;
         }
-        if ($this->camp_table == 'ceocamp' || $this->camp_table == 'evcamp'
-            || $this->camp_table == 'nycamp' || $this->camp_table == 'tcamp'
-            || $this->camp_table == 'utcamp' || $this->camp_table == 'ycamp') {
+        if ($this->camp_table == 'ceocamp' || $this->camp_table == 'ceovcamp'
+            || $this->camp_table == 'ecamp' || $this->camp_table == 'evcamp'
+            || $this->camp_table == 'nycamp' || $this->camp_table == 'nyvcamp'
+            || $this->camp_table == 'tcamp' || $this->camp_table == 'tvcamp'
+            || $this->camp_table == 'utcamp' || $this->camp_table == 'utvcamp'
+            || $this->camp_table == 'ycamp' || $this->camp_table == 'yvcamp') {
             return view('components.general.query', compact(
                 'batch_id_from', 'name_chn', 
                 'use_eng', 'use_mobile', 
