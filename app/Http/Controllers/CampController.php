@@ -455,8 +455,57 @@ class CampController extends Controller
     public function campQueryRegistrationDataPage(Request $request)
     {
         //$request->batch_id_from can be null
-        return view('camps.' . $this->camp_table . '.query')
-            ->with('batch_id_from', $request->batch_id_from);
+        $batch_id_from = $request->batch_id_from;
+        $this_year = Carbon::now()->year;
+        $year_max = $this_year - 16;
+        $year_min = $this_year - 80;
+        $use_mobile = false;
+        $use_eng = false;
+        $birthday_use_day = true;
+        $birthday_use_month = true;
+        $name_chn = '姓名';
+
+        switch ($this->camp_info->table) {
+            case 'ceocamp':
+                $birthday_use_day = false;
+                $name_chn = '被推薦人姓名';
+                break;
+            case 'evcamp':
+                $use_mobile = true;
+                break;
+            case 'nycamp':
+                $year_min = $this_year - 36;
+                $use_eng = true;
+                break;
+            case 'tcamp':
+                $use_mobile = true;
+                break;
+            case 'utcamp':
+                $use_mobile = true;
+                break;
+            case 'ycamp':
+                $year_min = $this_year - 36;
+                break;
+            default:
+                break;
+        }
+        if ($this->camp_table == 'ceocamp' || $this->camp_table == 'evcamp'
+            || $this->camp_table == 'nycamp' || $this->camp_table == 'tcamp'
+            || $this->camp_table == 'utcamp' || $this->camp_table == 'ycamp') {
+            return view('components.general.query', compact(
+                'batch_id_from', 'name_chn', 
+                'use_eng', 'use_mobile', 
+                'birthday_use_month', 'birthday_use_day',
+                'year_max', 'year_min'
+            ));
+        } else {
+            return view('camps.' . $this->camp_table . '.query', compact(
+                'batch_id_from', 'name_chn', 
+                'use_eng', 'use_mobile', 
+                'birthday_use_month', 'birthday_use_day',
+                'year_max', 'year_min'
+            ));
+        }
     }
 
     /**

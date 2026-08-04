@@ -90,7 +90,7 @@
 </form>
 @endif
 
-<form method="post" name="QuerySN" action="{{ route("querysn", $batch_id) }}" class="form-horizontal">
+<form method="post" name="QuerySN" action="{{ route('querysn', $batch_id) }}" class="form-horizontal">
     @csrf
     <div class="page-header form-group">
         <h4>報名序號查詢</h4>
