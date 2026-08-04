@@ -22,12 +22,14 @@
             <input type='text' name='name' class='form-control' id='inputName' placeholder='' value="{{ old('name') }}" required>
         </div>
     </div>
+
     <div class="row form-group">
         <label for='inputSN' class='col-md-2'>報名序號</label>
         <div class='col-md-10'>
             <input type='text' name='sn' class='form-control' id='inputSN' maxlength=5 placeholder='' value="{{ old('sn') }}" required>
         </div>
     </div>
+
     {{-- <div class="row form-group">
         <label for='inputRecap' class='col-md-2 control-label'></label>
         <div class='col-md-8'>
@@ -36,6 +38,7 @@
         </script>
         </div>
     </div> --}}
+
     <!--- 確認送出 -->
     <div class=row>
         <div class='col-md-4'></div>
@@ -87,7 +90,7 @@
 </form>
 @endif
 
-<form method="post" name="QuerySN" action="{{ route("querysn", $batch_id) }}" class="form-horizontal">
+<form method="post" name="QuerySN" action="{{ route('querysn', $batch_id) }}" class="form-horizontal">
     @csrf
     <div class="page-header form-group">
         <h4>報名序號查詢</h4>
@@ -99,15 +102,15 @@
         <input type='text' name="name" class='form-control' id='inputName2' placeholder=''>
         </div>
     </div>
-
+@if($use_mobile)
     <div class="row form-group">
-        <label for='inputName2' class='col-md-2'>手機</label>
+        <label for='inputMobile' class='col-md-2'>手機</label>
         <div class='col-md-10'>
-        <input type='tel' name="mobile" class='form-control' id='inputName2' placeholder='格式：0912345678' required>
+        <input type='tel' required name="mobile" class='form-control' id='inputMobile' placeholder='格式：0912345678'>
         </div>
     </div>
-
-    {{-- <div class='row form-group'>
+@else
+    <div class='row form-group'>
         <label for='inputBirth' class='col-md-1'>生日</label>
         <div class='date col-md-11' id='inputBirth'>
             <div class='row form-group required'>
@@ -115,7 +118,7 @@
                     西元
                 </div>
                 <div class="col-md-3">
-                    <input type='number' required class='form-control' name='birthyear' min=1930 max='{{ \Carbon\Carbon::now()->subYears(16)->year }}' value='' placeholder=''>
+                    <input type='number' required class='form-control' name='birthyear' min={{ $year_min }} max={{ $year_max }} value='' placeholder=''>
                 </div>
                 <div class="col-md-1">
                     年
@@ -135,8 +138,8 @@
             </div>
             <div class='help-block with-errors'></div>
         </div>
-    </div> --}}
-
+    </div>
+@endif
     <!--- 確認送出 -->
     <div class=row>
         <div class='col-md-4'></div>

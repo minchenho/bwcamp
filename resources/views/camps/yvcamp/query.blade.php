@@ -1,4 +1,8 @@
-@extends('camps.yvcamp.layout')
+@php
+	$today = \Carbon\Carbon::now();
+	$this_year = $today->year;
+@endphp
+@extends('camps.' . $camp_info->table . '.layout')
 @section('content')
 @if($errors->any())
     @foreach ($errors->all() as $message)
@@ -105,7 +109,7 @@
                     西元
                 </div>
                 <div class="col-md-3">
-                    <input type='number' required class='form-control' name='birthyear' min=1985 max='{{ \Carbon\Carbon::now()->subYears(16)->year }}' value='' placeholder=''>
+                    <input type='number' required class='form-control' name='birthyear' min='{{ $this_year-36 }}' max='{{ $this_year-16 }}' value='' placeholder=''>
                 </div>
                 <div class="col-md-1">
                     年

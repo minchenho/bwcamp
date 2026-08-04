@@ -144,7 +144,14 @@
         <input type='text' name="name" class='form-control' id='inputName2' placeholder=''>
         </div>
     </div>
-
+@if($use_mobile)
+    <div class="row form-group">
+        <label for='inputMobile' class='col-md-2'>手機</label>
+        <div class='col-md-10'>
+        <input type='tel' required name="mobile" class='form-control' id='inputMobile' placeholder='格式：0912345678'>
+        </div>
+    </div>
+@else
     <div class='row form-group'>
         <label for='inputBirth' class='col-md-2'>
 		@if($use_eng) Birth year<br> @endif
@@ -181,7 +188,7 @@
             <div class='help-block with-errors'></div>
         </div>
     </div>
-
+@endif
     <!--- 確認送出 -->
     <div class=row>
         <div class='col-md-4'></div>
