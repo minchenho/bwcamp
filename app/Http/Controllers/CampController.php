@@ -461,30 +461,32 @@ class CampController extends Controller
         $birthday_use_day = true;
         $birthday_use_month = true;
         $name_chn = '姓名';
-        $use_mobile = true;
         $use_eng = false;
         $year_max = $this_year - 16;
         $year_min = $this_year - 80;
+        if ($this->camp_info->isVcamp) {
+            $use_mobile = true;     //voluteer use mobile to query
+        } else {
+            $use_mobile = false;
+        }
 
         switch ($this->camp_info->table) {
             case 'ceocamp':
                 $birthday_use_day = false;
                 $name_chn = '被推薦人姓名';
-                $use_mobile = false;
-                break;
-            case 'ecamp':
-                $use_mobile = false;
                 break;
             case 'nycamp':
                 $year_min = $this_year - 36;
                 $use_eng = true;
-                $use_mobile = false;
                 $birthday_use_day = false;
                 $birthday_use_month = false;
                 break;
             case 'ycamp':
                 $year_min = $this_year - 36;
-                $use_mobile = false;
+                break;
+            case 'tcamp':
+            case 'utcamp':
+                $use_mobile = true;
                 break;
             default:
                 break;
