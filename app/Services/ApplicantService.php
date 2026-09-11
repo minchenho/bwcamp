@@ -175,7 +175,10 @@ class ApplicantService
                 // 如果傳進來的是 ID，才去查資料庫
                 $query = Applicant::with([$campTable, 'batch', 'lodging', 'traffic'])->withTrashed();
                 if ($name) {
-                    $query->where('name', $name);
+                    $query->where(function ($q) use ($name) {
+                        $q->where('name', $name)
+                        ->orWhere('english_name', $name);
+                    });
                 }
                 $applicant = $query->findOrFail($applicantOrId);
             }

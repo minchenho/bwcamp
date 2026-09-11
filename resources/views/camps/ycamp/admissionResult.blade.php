@@ -37,16 +37,13 @@
                 $pdfPath = "downloads/{$camp_info->table}{$camp_info->year}/{$applicant->group}{$applicant->number}{$applicant->id}.pdf";
             @endphp
             <p>
-            <a href="{{ Storage::disk('s3')->url($pdfPath) }}" target="_blank" rel="noopener noreferrer" class="btn btn-light">下載福智文教基金會研習數位證明書</a>
+            <a href="{{ Storage::disk('s3')->temporaryUrl($pdfPath, now()->addMinutes(30)) }}" target="_blank" rel="noopener noreferrer" class="btn btn-light">下載福智文教基金會研習數位證明書</a>
             </p>       
             <p>如下載顯示錯誤，請聯絡您的帶組老師，謝謝！</p>
         @else
             <p>您沒有研習證明可供下載（可能是未登記或未參加完全程）</p>
             <p>如有疑問，請聯絡您的帶組老師，謝謝！</p>
         @endif
-
-        <div class="card-header">
-    </div>
 @else
         <div class="card-header">
             <h5>錄取查詢</h5>

@@ -10,7 +10,11 @@
 <form method="post" action="{{ route("queryadmit", $batch_id) }}" name="QueryRegis" class="form-horizontal">
     @csrf
     <div class="page-header form-group">
+        @if($today->gte($camp_info->certificate_available_date))
+        <h4>下載研習證明</h4>
+        @else
         <h4>錄取查詢</h4>
+        @endif
     </div>
     <div class='row form-group'>
         <label for='inputName' class='col-md-2'>姓名</label>

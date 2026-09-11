@@ -90,12 +90,13 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('query', $batch_id) }}">報名查詢/修改</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('queryadmitGET', $batch_id) }}">錄取查詢</a>
-                    </li>
                     @if($today->gte($camp_info->certificate_available_date))
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('queryadmitGET', $batch_id) }}">下載研習證明</a>
+                        </li>
+                    @else
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('queryadmitGET', $batch_id) }}">錄取查詢</a>
                         </li>
                     @endif
 
