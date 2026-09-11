@@ -7,6 +7,10 @@
         </div>
     @endforeach
 @endif
+@php
+	$today = \Carbon\Carbon::now();
+	$this_year = $today->year;
+@endphp
 <form method="post" action="{{ route("queryadmit", $batch_id) }}" name="QueryRegis" class="form-horizontal">
     @csrf
     <div class="page-header form-group">
@@ -43,7 +47,11 @@
     <div class=row>
         <div class='col-md-4'></div>
         <div class='col-md-8'>
+        @if($today->gte($camp_info->certificate_available_date))
+            <INPUT type=submit name=sub class='btn btn-success' value='送出查詢'>
+        @else
             <INPUT type=submit name=sub class='btn btn-success' value='錄取查詢'>
+        @endif
             <INPUT type=reset  class='btn btn-danger' value='清除重來'>
         </div>
     </div>
