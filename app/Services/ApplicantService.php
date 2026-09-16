@@ -176,8 +176,8 @@ class ApplicantService
                 $query = Applicant::with([$campTable, 'batch', 'lodging', 'traffic'])->withTrashed();
                 if ($name) {
                     $query->where(function ($q) use ($name) {
-                        $q->where('name', $name)
-                        ->orWhere('english_name', $name);
+                        $q->where('name', $name);
+                        //->orWhere('english_name', $name);
                     });
                 }
                 $applicant = $query->findOrFail($applicantOrId);
@@ -208,7 +208,7 @@ class ApplicantService
 
         } catch (ModelNotFoundException $e) {
             // 狀況 A：找不到該申請人資料
-            Log::warning("找不到報名者. ID: {$applicantId}, Name: {$name}");         
+            Log::warning("找不到報名者. ID: {$applicantOrId}, Name: {$name}");         
             throw $e; 
         } catch (\Throwable $e) {
             // 狀況 B：其他任何非預期的系統錯誤（如語法錯誤、資料庫斷線等）
