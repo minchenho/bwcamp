@@ -167,12 +167,20 @@ class CampController extends Controller
     {
         try {
             $request->validate([
+                // name：有填或沒填 english_name 都可以，但只要沒填 english_name，name 就必須填
+                // 若使用者同時填了兩者，name 依然會進行必填與格式驗證
                 'name' => [
-                    'required',
+                    'required_without:english_name',
                     'string',
-                    'max:27', // 限制長度，SQL 注入代碼通常很長
-                    // 加上了 \- 來代表連字號
-                    'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u' 
+                    'max:27',
+                    'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u'
+                ],
+                // english_name：完全扮演備用角色，只有在完全沒有填寫 name 時才強制必填
+                'english_name' => [
+                    'required_without:name',
+                    'string',
+                    'max:50',
+                    'regex:/^[a-zA-Z\s\-]+$/'
                 ],
                 'email' => 'required|email',
                 'experience' => 'nullable|string|max:500',
@@ -189,13 +197,13 @@ class CampController extends Controller
                     'Input' => $request->all(),
                     'User-Agent' => $request->userAgent()
                 ]);
+                return redirect()->back()->withInput()->withErrors($e->errors());
             } else {
                 // 正常的驗證錯誤，直接回傳給使用者
                 return redirect()->back()->withInput()->withErrors($e->errors());
             }
             //throw $e; // 繼續執行原本的錯誤處理（跳轉回原頁面）
         }
-
 
         // 檢查電子郵件是否一致
         if (isset($request->emailConfirm) && ($request->email != $request->emailConfirm)) {
@@ -699,17 +707,33 @@ class CampController extends Controller
     public function campQueryAdmission(Request $request)
     {
         $campTable = $this->camp_table;
-
-        $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:27', // 限制長度，SQL 注入代碼通常很長
-                // 加上了 \- 來代表連字號
-                'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u' 
-            ],
-            'sn' => 'required|integer',
-        ]);
+        try {
+            $request->validate([
+                'name' => [
+                    'required',
+                    'string',
+                    'max:27', // 限制長度，SQL 注入代碼通常很長
+                    // 加上了 \- 來代表連字號
+                    'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u' 
+                ],
+                'sn' => 'required|integer',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // 如果驗證失敗，且內容看起來很可疑，就把它記下來
+            $allInput = json_encode($request->all(), JSON_UNESCAPED_UNICODE);
+            if (preg_match('/(SLEEP|SELECT|--)/i', $allInput)) {
+                \Log::warning("偵測到疑似 SQL 注入攻擊！", [
+                    'IP' => $request->ip(),
+                    'Input' => $request->all(),
+                    'User-Agent' => $request->userAgent()
+                ]);
+                return redirect()->back()->withInput()->withErrors($e->errors());
+            } else {
+                // 正常的驗證錯誤，直接回傳給使用者
+                return redirect()->back()->withInput()->withErrors($e->errors());
+            }
+            //throw $e; // 繼續執行原本的錯誤處理（跳轉回原頁面）
+        }
 
         if ($request->name != null && $request->sn != null) {
             try {
@@ -719,7 +743,6 @@ class CampController extends Controller
                 // 表單錯誤
                 return back()->withInput()->withErrors(['找不到報名資料，請確認查詢欄位是否填寫正確，或者是否已成功報名。']);
             } catch (\Exception $e) {
-                // 系統錯誤
                 return back()->withInput()->with('error', $e->getMessage());
             }
         }
