@@ -55,16 +55,6 @@ return [
             'visibility' => 'public',
         ],
 
-        'media' => [
-            'driver' => 'local',
-            'root'   => storage_path('media'),
-        ],
-
-        'avatars' => [
-            'driver' => 'local',
-            'root'   => storage_path('avatars'),
-        ],
-
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -74,6 +64,29 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
         ],
+
+        /*
+        'media' => [
+            'driver' => 'local',
+            'root'   => storage_path('media'),
+        ],
+
+        'avatars' => [
+            'driver' => 'local',
+            'root'   => storage_path('avatars'),
+        ],*/
+
+
+        // 繼承基礎 S3 設定，僅覆蓋 root 路徑
+        'media' => array_merge(
+            config('filesystems.disks.s3', []), 
+            ['root' => 'media']
+        ),
+
+        'avatars' => array_merge(
+            config('filesystems.disks.s3', []), 
+            ['root' => 'avatars']
+        ),
 
     ],
 

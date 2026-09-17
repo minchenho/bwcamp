@@ -1702,33 +1702,48 @@ class BackendController extends Controller
         );
         if ($request->isMethod("POST")) {
             try {
-                $disk = \Storage::disk('local');
-                $path = 'media/';
                 if ($request->hasFile('file1')) {
                     $file1 = $request->file('file1');
-                    $name1 = $file1->hashName();
                 }
                 if ($request->hasFile('file2')) {
                     $file2 = $request->file('file2');
-                    $name2 = $file2->hashName();
                 }
                 $files = [];
                 if ($file1 ?? false) {
-                    if ($this->camp_table == 'utcamp') { $path = 'avatars/'; }
-                    $disk->put($path, $file1);
-                    $image = Image::make(storage_path($path . $name1))->resize(800, null, function ($constraint) {
+                    // 判斷使用哪一個 disk 與對應資料夾
+                    $diskName = ($this->camp_table == 'utcamp') ? 'avatars' : 'media';
+                    $pathName = ($this->camp_table == 'utcamp') ? 'avatars/' : 'media/';
+                    $filename = $file1->hashName();
+
+                    // 1. 使用 Intervention Image 讀取上傳檔案並調整尺寸
+                    $image = Image::make($file1)->resize(800, null, function ($constraint) {
                         $constraint->aspectRatio();
                     });
-                    $image->save(storage_path($path . $name1));
-                    $files[] = $path . $name1;
+
+                    // 2. 將圖片編碼為字串/流（依原始格式或預設 jpg/png）
+                    $imageStream = $image->stream();
+
+                    // 3. 上傳至指定 Disk (若為 avatars 則會自動上傳到 S3)
+                    // 注意：若 config 中的 disk 已經有設定 root，直接傳 $filename 即可；若無，傳 $pathName . $filename
+                    \Storage::disk($diskName)->put($filename, $imageStream->__toString());
+
+                    $files[] = $pathName . $filename;
                 }
                 if ($file2 ?? false) {
-                    $disk->put($path, $file2);
-                    $image = Image::make(storage_path($path . $name2))->resize(800, null, function ($constraint) {
+
+                    $diskName = 'media';
+                    $pathName = 'media/';
+                    $filename = $file2->hashName();
+
+                    $image = Image::make($file2)->resize(800, null, function ($constraint) {
                         $constraint->aspectRatio();
                     });
-                    $image->save(storage_path($path . $name2));
-                    $files[] = $path . $name2;
+
+                    $imageStream = $image->stream();
+
+                    \Storage::disk($diskName)->put($filename, $imageStream->__toString(), 'public');
+
+                    $files[] = $pathName . $filename;
                 }
                 if ($applicant && $files) {
                     $a = Applicant::find($applicant->applicant_id);
@@ -2657,25 +2672,44 @@ private function getCarersData($user, Request $request): array
     public function getAvatar($camp_id, $id)
     {
         $applicant = Applicant::find($id);
-        if ($applicant && $applicant->avatar && file_exists(base_path(\Storage::disk('local')->url($applicant->avatar)))) {
-            return response()->file(base_path(\Storage::disk('local')->url($applicant->avatar)));
+
+        if ($applicant && $applicant->avatar && \Storage::disk('s3')->exists($applicant->avatar)) {
+
+        // 建議設定：1 小時 (60 分鐘)
+            $url = \Storage::disk('s3')->temporaryUrl($applicant->avatar, now()->addHour());
+            return redirect()->away($url);
         }
+
         return response('無', 404);
     }
 
     public function getFile($camp_id, $file)
     {
-        if ($file && file_exists(base_path(\Storage::disk('local')->url('media/' . $file)))) {
-            return response()->file(base_path(\Storage::disk('local')->url('media/' . $file)));
+        // 組合 S3 的相對路徑
+        $path = 'media/' . $file;
+
+        // 檢查檔案是否存在於 S3 上
+        if ($file && \Storage::disk('s3')->exists($path)) {
+            // 產生 1 小時有效的預簽名網址並重導向
+            $url = \Storage::disk('s3')->temporaryUrl($path, now()->addHour());
+            return redirect()->away($url);
         }
+
         return response('無', 404);
     }
 
     public function getMediaImage($camp_id, $path)
     {
-        if (file_exists(base_path(\Storage::disk('local')->url("media/" . $path)))) {
-            return response()->file(base_path(\Storage::disk('local')->url("media/" . $path)));
+        // 組合 S3 的相對路徑
+        $s3Path = 'media/' . $path;
+
+        // 檢查檔案是否存在於 S3 上
+        if ($path && \Storage::disk('s3')->exists($s3Path)) {
+            // 產生 1 小時有效的預簽名網址並重導向
+            $url = \Storage::disk('s3')->temporaryUrl($s3Path, now()->addHour());
+            return redirect()->away($url);
         }
+
         return '無';
     }
 

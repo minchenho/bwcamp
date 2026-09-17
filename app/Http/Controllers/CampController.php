@@ -210,9 +210,10 @@ class CampController extends Controller
             return view("errorPage")->with('error', '電子郵件不一致，請檢查是否輸入錯誤。');
         }
 
-        if (!file_exists(storage_path("avatars"))) {
+        // s3 不需要建立folder
+        /*if (!file_exists(storage_path("avatars"))) {
             mkdir(storage_path("avatars"), 777, true);
-        }
+        }*/
 
         if ($request->birthdate != "") {
             // $request->birthdate: YYYY-MM-DD
@@ -238,24 +239,31 @@ class CampController extends Controller
             $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
 
             try {
-                $disk = \Storage::disk('local');
-                $path = 'avatars/';
+                $disk = \Storage::disk('s3');
+                $file = null;
                 if (request()->hasFile('avatar')) {
                     $file = request()->file('avatar');
-                    $name = $file->hashName();
                 }
                 if (request()->hasFile('avatar_re')) {
                     $file = request()->file('avatar_re');
-                    $name = $file->hashName();
                 }
 
-                if ($file ?? false) {
-                    $disk->put($path, $file);
-                    $image = Image::make(storage_path($path . $name))->resize(800, null, function ($constraint) {
+                if ($file) {
+                    $name = $file->hashName();
+                    $path = 'avatars/' . $name;
+
+                    // 2. 直接讀取上傳檔案並在記憶體中調整尺寸
+                    $image = Image::make($file)->resize(800, null, function ($constraint) {
                         $constraint->aspectRatio();
                     });
-                    $image->save(storage_path($path . $name));
-                    $formData['avatar'] = $path . $name;
+
+
+                    // 3. 將圖片轉換為字串流，並直接上傳到 S3
+                    // 由於 avatars disk 的 root 已經設定為 'avatars'，第一個參數直接傳 $name 即可
+                    $disk->put($path, $image->stream()->__toString());
+
+                    // 4. 記錄寫入資料庫的路徑（加上資料夾前綴）
+                    $formData['avatar'] = $path;
                 }
             } catch (\Throwable $e) {
                 logger($e);
@@ -320,18 +328,18 @@ class CampController extends Controller
                     $applicant->restore();
                 }
 
-            // 3. 丟進先前重構好的資料打平方法（完全不會重複查詢資料庫）
-            [$applicant, $applicantData] = $this->applicantService->getApplicantData(
-                $applicant, 
-                $this->camp_table
-            );
+                // 3. 丟進先前重構好的資料打平方法（完全不會重複查詢資料庫）
+                [$applicant, $applicantData] = $this->applicantService->getApplicantData(
+                    $applicant, 
+                    $this->camp_table
+                );
 
-    return view('camps.' . $this->camp_table . '.success', [
-        'isRepeat' => "您已報名過，請勿重複報名。底下顯示為您之前的報名序號。",
-        'applicant' => $applicant,
-        'applicantData' => $applicantData
-    ]);
-}
+                return view('camps.' . $this->camp_table . '.success', [
+                    'isRepeat' => "您已報名過，請勿重複報名。底下顯示為您之前的報名序號。",
+                    'applicant' => $applicant,
+                    'applicantData' => $applicantData
+                ]);
+            }
 
 
             // 【修改處 1】優化防重複報名檢查：直接利用新增的 camp_id 欄位過濾，不再需要 JOIN batches 表
@@ -366,17 +374,21 @@ class CampController extends Controller
                 $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
 
                 try {
-                    $disk = \Storage::disk('local');
-                    $path = 'avatars/';
                     if (request()->hasFile('avatar')) {
                         $file = request()->file('avatar');
                         $name = $file->hashName();
-                        $result = $disk->put($path, $file);
-                        $image = Image::make(storage_path($path . $name))->resize(800, null, function ($constraint) {
+                        $path = 'avatars/' . $name;
+
+                        // 1. 在記憶體中將圖片調整尺寸
+                        $image = Image::make($file)->resize(800, null, function ($constraint) {
                             $constraint->aspectRatio();
                         });
-                        $image->save(storage_path($path . $name));
-                        $formData['avatar'] = $path . $name;
+
+                        // 2. 將縮圖後的資料流直接上傳至 S3（一次到位）
+                        \Storage::disk('s3')->put($path, $image->stream()->__toString());
+
+                        // 3. 資料庫寫入包含前綴的相對路徑
+                        $formData['avatar'] = $path;
                     }
                 } catch (\Throwable $e) {
                     logger($e);
