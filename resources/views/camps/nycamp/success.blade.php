@@ -23,7 +23,7 @@
             </p>
             <br>
             <p class="card-text">
-                感謝您報名{{ $camp_data->fullName }}。您所填寫的個人資料，僅用於此次大專營的報名及活動聯絡之用。The Oneness Truth Foundation將依個人資料保護法及相關法令之規定善盡保密責任。<br>
+                感謝您報名{{ $camp_data->fullName }}。您所填寫的個人資料，僅用於此次營隊的報名及活動聯絡之用。The Oneness Truth Foundation將依個人資料保護法及相關法令之規定善盡保密責任。<br>
                 請記下您的<span class="text-danger font-weight-bold">《 報名序號：{{ $applicant->id }} 》</span>作為日後查詢使用。<br>
                 經審核報名資格後，將於七日內email您錄取通知，含營隊注意事項及繳費資訊。收到您的繳費後才算正式報名完成！<br>
                 <br>
