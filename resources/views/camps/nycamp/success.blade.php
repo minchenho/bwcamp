@@ -28,9 +28,7 @@
                 經審核報名資格後，將於七日內email您錄取通知，含營隊注意事項及繳費資訊。收到您的繳費後才算正式報名完成！<br>
                 <br>
                 如果您有任何問題，請聯絡<br>
-                胡純<br>
-                Email: chunhu@blisswisdom.org<br>
-                洽詢電話(北美地區)：(902)808-0069<br>
+                Email: youth@blisswisdom.org<br>
                 線上客服：https://lin.ee/8iOmovI<br>
             </p>
             <br>
