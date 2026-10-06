@@ -9,8 +9,8 @@
 <p class="card-text text-indent">
 Your Registration Number: {{ $applicant->id }}<br>
 Your Group: <span style="color: red;">{{ $applicant->group }}</span><br>
-Your Admission Number: {{ $applicant->group }}{{ $applicant->number }}<br></span>
-Camp Dates: {{ $applicant->batch->batch_start->format('Y-m-d') }} ({{ $applicant->batch->batch_start_weekday_short }}) ~ {{ $applicant->batch->batch_end->format('Y-m-d') }} ({{ $applicant->batch->batch_end_weekday_short }}) (4 days, 3 nights)<br>
+Your Admission Number: {{ $applicant->group }}{{ $applicant->number }}<br>
+Camp Dates: {{ $applicant->batch->batch_start }} ({{ $applicant->batch->batch_start_weekday_short }}) ~ {{ $applicant->batch->batch_end}} ({{ $applicant->batch->batch_end_weekday_short }}) (4 days, 3 nights)<br>
 Camp Location: {{ $applicant->batch->locationName }} ({{ $applicant->batch->location }})<br>
 </p>
 <ul>
@@ -37,7 +37,7 @@ Camp Location: {{ $applicant->batch->locationName }} ({{ $applicant->batch->loca
 您的報名序號：{{ $applicant->id }}<br>
 您的組別：<span style="color: red;">{{ $applicant->group }}</span><br>
 您的錄取編號：{{ $applicant->group }}{{ $applicant->number }}<br>
-營隊日期：{{ $applicant->batch->batch_start->format('Y-m-d') }} ({{ $applicant->batch->batch_start_weekday }}) ~ {{ $applicant->batch->batch_end->format('Y-m-d') }} ({{ $applicant->batch->batch_end_weekday }})，共4天<br>
+營隊日期：{{ $applicant->batch->batch_start }} ({{ $applicant->batch->batch_start_weekday }}) ~ {{ $applicant->batch->batch_end}} ({{ $applicant->batch->batch_end_weekday }})，共4天<br>
 營隊地點：{{ $applicant->batch->locationName }} ({{ $applicant->batch->location }})<br>
 </p>
 <ul>
