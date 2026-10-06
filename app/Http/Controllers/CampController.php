@@ -303,7 +303,8 @@ class CampController extends Controller
             return view('camps.' . $this->camp_table . '.success', compact('applicant', 'isModify'));
         }
         // 營隊報名
-        else {
+        else 
+        {
 
             // 1. 定義你要查找的條件
             $criteria = [
@@ -320,18 +321,18 @@ class CampController extends Controller
                     $applicant->restore();
                 }
 
-            // 3. 丟進先前重構好的資料打平方法（完全不會重複查詢資料庫）
-            [$applicant, $applicantData] = $this->applicantService->getApplicantData(
-                $applicant, 
-                $this->camp_table
-            );
+                // 3. 丟進先前重構好的資料打平方法（完全不會重複查詢資料庫）
+                [$applicant, $applicantData] = $this->applicantService->getApplicantData(
+                    $applicant, 
+                    $this->camp_table
+                );
 
-    return view('camps.' . $this->camp_table . '.success', [
-        'isRepeat' => "您已報名過，請勿重複報名。底下顯示為您之前的報名序號。",
-        'applicant' => $applicant,
-        'applicantData' => $applicantData
-    ]);
-}
+                return view('camps.' . $this->camp_table . '.success', [
+                    'isRepeat' => "您已報名過，請勿重複報名。底下顯示為您之前的報名序號。",
+                    'applicant' => $applicant,
+                    'applicantData' => $applicantData
+                ]);
+            }
 
 
             // 【修改處 1】優化防重複報名檢查：直接利用新增的 camp_id 欄位過濾，不再需要 JOIN batches 表
@@ -417,7 +418,6 @@ class CampController extends Controller
                 }
             }
         }
-
         return view('camps.' . $this->camp_table . '.success')->with('applicant', $applicant);
     }
 
@@ -759,10 +759,13 @@ class CampController extends Controller
             //checkPaymentStatus will return null if $applicant->deleted_at
             $applicant = $this->applicantService->checkPaymentStatus($applicant);
             $this->camp_info->content_link_chn = $this->camp_info->dynamic_stats?->where('purpose', 'admittedMail_chn')?->first()?->google_sheet_url ?? [];
+            $this->camp_info->content_link_eng = $this->camp_info->dynamic_stats?->where('purpose', 'admittedMail_eng')?->first()?->google_sheet_url ?? [];
+            $currency_sel_id = $applicant->currency_sel_id;
+            $currency_sel = $this->camp_info->currencies->firstWhere('id', $currency_sel_id)?? $camp_info->currency_std;
 
             return view(
                 'camps.' . $campTable . ".admissionResult",
-                compact('applicant', 'applicant_data', 'fare_room', 'fare_depart_from', 'fare_back_to')
+                compact('applicant', 'applicant_data', 'currency_sel', 'fare_room', 'fare_depart_from', 'fare_back_to')
             );
         } else {
             if ($applicant && $applicant->deleted_at) {
@@ -856,7 +859,8 @@ class CampController extends Controller
             $applicant,
             $this->camp_info,
             $request->depart_from,
-            $request->back_to
+            $request->back_to,
+            $request->currency_code
         );
         // 這裡處理 Controller 該做的「跳轉」責任
         return redirect(route('showadmit', [
@@ -868,7 +872,8 @@ class CampController extends Controller
 
     public function modifyLodging(Request $request)
     {
-        $applicant = Applicant::findOrFail($request->applicant_id);
+        $applicant_id = $request->applicant_id ?? $request->id;
+        $applicant = Applicant::findOrFail($applicant_id);
         $camp_table = $this->camp_table;
 
         // 呼叫 Service
@@ -876,7 +881,8 @@ class CampController extends Controller
             $applicant,
             $this->camp_info,
             $request->room_type,
-            $request->nights
+            $request->nights,
+            $request->currency_code
         );
 
         // 這裡處理 Controller 該做的「跳轉」責任

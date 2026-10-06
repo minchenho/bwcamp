@@ -21,9 +21,11 @@ Camp Location: {{ $applicant->batch->locationName }} ({{ $applicant->batch->loca
     </li>
 </ul>
 <br>
+<p class="card-text text-right">If you have any question, feel free to contact</p>
+{!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
 <p class="card-text text-right">Warm regards, </p>
-<p class="card-text text-right">The Oneness Truth Foundation</p>
-<p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y-m-d') }}</p>
+<p class="card-text text-right">The 2027 Life Camp Organizing Team</p>
+<p class="card-text text-right">{{ \Carbon\Carbon::now()->format('n/j/Y') }}</p>
 <br>
 <br>
 <br>
@@ -46,5 +48,7 @@ Camp Location: {{ $applicant->batch->locationName }} ({{ $applicant->batch->loca
     </li>
 </ul>
 <br>
-<p class="card-text text-right">The Oneness Truth Foundation 敬啟</p>
+<p class="card-text text-right">如果您有任何問題，請聯絡</p>
+{!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+<p class="card-text text-right">The 2027 Life Camp Organizing Team 敬啟</p>
 <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>

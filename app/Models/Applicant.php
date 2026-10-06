@@ -697,4 +697,20 @@ class Applicant extends Model
             });
     }
 
+    protected function currencySelId(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => ($this->lodging?->fare_currency_id ?: null)
+                ?? ($this->traffic?->fare_currency_id ?: null),
+        )->shouldCache();
+    }
+
+    protected function currencySel(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->currency_sel_id
+                ? Currency::find($this->currency_sel_id)
+                : null,
+        )->shouldCache();
+    }
 }

@@ -33,8 +33,6 @@ class CheckInMail extends Mailable
         $this->org = $org;
         $this->attachment = $attachment;
         $this->etc = $this->applicant->user?->roles?->where("camp_id", \App\Models\Vcamp::find($this->applicant->camp->id)->mainCamp->id)->first()?->section;
-        $this->content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'checkInMail_chn')?->first()?->google_sheet_url ?? [];
-        $this->content_link_eng = $this->applicant->camp->dynamic_stats?->where('purpose', 'checkInMail_eng')?->first()?->google_sheet_url ?? [];
     }
 
     /**
@@ -44,6 +42,9 @@ class CheckInMail extends Mailable
      */
     public function build()
     {
+        $this->content_link_chn = $this->applicant->camp->dynamic_stats?->where('purpose', 'checkInMail_chn')?->first()?->google_sheet_url ?? [];
+        $this->content_link_eng = $this->applicant->camp->dynamic_stats?->where('purpose', 'checkInMail_eng')?->first()?->google_sheet_url ?? [];
+
         $this->withSwiftMessage(function ($message) {
             $headers = $message->getHeaders();
             $headers->addTextHeader('time', time());

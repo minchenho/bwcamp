@@ -117,8 +117,19 @@ class Camp extends Model
 
     public function currencies(): BelongsToMany
     {
-        return $this->belongsToMany(Currency::class, 'currency_camp_xref', 'camp_id', 'currency_id')
+        return $this->belongsToMany(Currency::class, 'currency_camp_xrefs', 'camp_id', 'currency_id')
                     ->withPivot('is_std', 'is_fix_xrate', 'xrate_to_std');
+    }
+    /**
+     * 取得此營隊的基準幣別 (is_std = 1)。
+     * 找不到時退回第一個幣別，都沒有就回傳 null。
+     */
+    protected function currencyStd(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->currencies->firstWhere('pivot.is_std', 1)
+                ?? $this->currencies->first(),
+        )->shouldCache();
     }
 
     public function regions(): BelongsToMany

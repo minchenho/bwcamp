@@ -13,15 +13,17 @@ Camp Dates: {{ $applicant->batch->batch_start }}({{ $applicant->batch->batch_sta
 Camp Location: {{ $applicant->batch->locationName }}({{ $applicant->batch->location }})<br>
 </p>
 <ul>
-    <li><p class="card-text indent">For more detailed information, please read <a href="https://docs.google.com/document/d/1DK2mQK6beqShyK82Jigyt1z7PJv_MwWa2yEadLCrsR8/edit?tab=t.0#heading=h.ba2ohoogolxy">Acceptance Letter</a></p></li>
+    <li><p class="card-text indent">For more detailed information, please read <a href="{{ $content_link_eng }}">Acceptance Letter</a></p></li>
     <li><p class="card-text indent"><a href="{{ route('showadmit', ['batch_id' => $applicant->batch->id, 'sn' => $applicant->id, 'name' => $applicant->name]) }}">Click this link to make your lodging and transportation options</a> and pay to complete the registration process.</p>
     <p>If you have problem with the above link, you may copy the following url and paste to the your browser to enter the page.</p>
     <p>{{ route('queryadmitGET', ['batch_id' => $applicant->batch->id]) }}</p>
     </li>
 </ul>
 <br>
+<p class="card-text text-right">If you have any question, feel free to contact</p>
+{!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
 <p class="card-text text-right">Warm regards, </p>
-<p class="card-text text-right">The Oneness Truth Foundation</p>
+<p class="card-text text-right">The 2027 Life Camp Organizing Team</p>
 <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('n/j/Y') }}</p>
 <br>
 <br>
@@ -36,12 +38,14 @@ Camp Location: {{ $applicant->batch->locationName }}({{ $applicant->batch->locat
 營隊地點：{{ $applicant->batch->locationName }}({{ $applicant->batch->location }})<br>
 </p>
 <ul>
-    <li><p class="card-text indent"><a href="https://docs.google.com/document/d/1t56h4BsWBqC_r38rtGekn24GQDW8_2oA/edit">錄取/報到通知連結</a></p></li>
+    <li><p class="card-text indent"><a href="{{ $content_link_chn }}">錄取/報到通知連結</a></p></li>
     <li><p class="card-text indent"><a href="{{ route('showadmit', ['batch_id' => $applicant->batch->id, 'sn' => $applicant->id, 'name' => $applicant->name]) }}">按此回覆住宿及交通服務選項</a>及繳交費用。</p>
     <p>若以上連結無法點選，請複製下方文字後，再由瀏覽器進入頁面做回覆：</p>
     <p>{{ route('queryadmitGET', ['batch_id' => $applicant->batch->id]) }}</p>
     </li>
 </ul>
 <br>
-<p class="card-text text-right">The Oneness Truth Foundation 敬啟</p>
+<p class="card-text text-right">如果您有任何問題，請聯絡</p>
+{!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+<p class="card-text text-right">The 2027 Life Camp Organizing Team 敬啟</p>
 <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
