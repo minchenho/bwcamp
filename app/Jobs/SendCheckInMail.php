@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Applicant;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,7 +32,10 @@ class SendCheckInMail implements ShouldQueue
     public function __construct($applicantId, $orgId = null)
     {
         $this->applicantId = $applicantId;
-        $this->applicant = \App\Models\Applicant::with('batch.camp')->find($applicantId);
+        //eager load lodging and traffic, which might be needed in the email view
+        $relations = ['batch', 'batch.camp'];
+        $this->applicant = Applicant::with($relations)->find($applicantId);
+
         if ($orgId) {
             $this->org = \App\Models\CampOrg::find($orgId); //for vcamp
         }
@@ -52,6 +56,7 @@ class SendCheckInMail implements ShouldQueue
             \Log::error("SendCheckInMail, applicant {$this->applicantId} not found.");
             return;
         }
+
         $applicant = $this->applicant;
         $camp = $this->applicant->batch->camp;
         $campTable = $this->applicant->batch->camp->table;

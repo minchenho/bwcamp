@@ -3,13 +3,17 @@
         color: red;
     }
 </style>
+@php
+$content_link_chn = "https://docs.google.com/document/d/1tmhPlzFo-qrWphjFBMPK2_13fOw4TV_NSxXZ4i6d5SY/";
+$content_link_eng = "https://docs.google.com/document/d/1tmhPlzFo-qrWphjFBMPK2_13fOw4TV_NSxXZ4i6d5SY/";
+@endphp
 <h2 class="center">{{ $applicant->batch->camp->fullName }}<br>Acceptance Letter</h2>
 <p class="card-text">Dear {{ $applicant->name }},</p>
 <p class="card-text text-indent">Congratulations on your acceptance to the {{ $applicant->batch->camp->fullName }}! We're excited to have you join us on this meaningful journey. Please review the important information below carefully.</p>
 <p class="card-text text-indent">
 Your Registration Number: {{ $applicant->id }}<br>
 Your Admission Number: {{ $applicant->group }}{{ $applicant->number }}<br>
-Camp Dates: {{ $applicant->batch->batch_start }}({{ $applicant->batch->batch_start_weekday }}) ~ {{ $applicant->batch->batch_end }}({{ $applicant->batch->batch_end_weekday }}) (4 days, 3 nights)<br>
+Camp Dates: {{ $applicant->batch->batch_start }} ({{ $applicant->batch->batch_start_weekday_short }}) ~ {{ $applicant->batch->batch_end }} ({{ $applicant->batch->batch_end_weekday_short }}) (4 days, 3 nights)<br>
 Camp Location: {{ $applicant->batch->locationName }}({{ $applicant->batch->location }})<br>
 </p>
 <ul>

@@ -23,8 +23,8 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
     use SerializesModels;
     use EmailConfiguration;
 
-    protected $applicantId;
     protected $applicant;
+    protected $applicantId;
     protected $camp_info;
     protected $tries = 400;
 
@@ -41,12 +41,6 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
         $relations = ['batch', $this->camp_info->table, 'lodging', 'traffic'];
         $this->applicant = Applicant::with($relations)->find($applicantId);
 
-        if (!$this->applicant) {
-            \Log::error("SendAdmittedMail: applicant {$this->applicantId} not found.");
-            return;
-        }
-
-        return;
     }
 
     /**
@@ -59,8 +53,14 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
         //
         sleep(3);
         ini_set('memory_limit', -1);
-        $camp_info = $this->camp_info;
+
+        if (!$this->applicant) {
+            \Log::error("SendAdmittedMail: applicant {$this->applicantId} not found.");
+            return;
+        }
+
         $applicant = $this->applicant;
+        $camp_info = $this->camp_info;
 
         $applicant = $applicantService->checkIfPaidEarlyBird($applicant);
         // MCH: 錄取通知信寄出時更新admitted_at，避免重複寄送錄取通知信
