@@ -707,6 +707,8 @@ class CampController extends Controller
     public function campQueryAdmission(Request $request)
     {
         $campTable = $this->camp_table;
+        $camp_info = $this->camp_info;
+
         try {
             $request->validate([
                 'name' => [
@@ -765,7 +767,7 @@ class CampController extends Controller
 
             return view(
                 'camps.' . $campTable . ".admissionResult",
-                compact('applicant', 'applicant_data', 'currency_sel', 'fare_room', 'fare_depart_from', 'fare_back_to')
+                compact('applicant', 'applicant_data', 'camp_info', 'currency_sel', 'fare_room', 'fare_depart_from', 'fare_back_to')
             );
         } else {
             if ($applicant && $applicant->deleted_at) {
