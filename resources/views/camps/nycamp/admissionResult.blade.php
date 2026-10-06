@@ -1,10 +1,19 @@
 <style>
-    u{
-        color: red;
-    }
+    u { color: red; }
 </style>
 @extends('camps.nycamp.layout')
 @section('content')
+    @php
+        $today = \Carbon\Carbon::now()->midDay();
+        $applicant->id = $applicant->id ?? $applicant->applicant_id;
+        
+        // 預設找到基準幣別 (is_std = 1)，若無則取第一個幣別，再沒有就預設 NTD
+        $defaultCurrency = $camp_info->currencies->firstWhere('pivot.is_std', 1) ?? $camp_info->currencies->first();
+        $defaultCode = $defaultCurrency->code ?? 'NTD';
+        $defaultSymbol = $defaultCurrency->symbol ?? '$';
+        $shuttleBaseFare = collect($fare_depart_from)->first() ?? 0;
+    @endphp
+
     @if(Session::has('error'))
         <div class="alert alert-danger" role="alert">
             {{ Session::get("error") }}
@@ -12,7 +21,7 @@
     @endif
     <br>
     <div class='page-header form-group'>
-        <h4>{{ $camp_data->fullName }}</h4>
+        <h4>{{ $camp_info->fullName }}</h4>
     </div>
 {{--
     @if($applicant->is_admitted)
@@ -21,7 +30,7 @@
                 <h2>研習證明下載</h2>
             </div>
             <div class="card-body">
-                <a href="https://bwcamp.bwfoce.org/downloads/{{ $camp_data->table }}{{ $camp_data->year }}/{{ $applicant->group }}{{ $applicant->number }}{{ $applicant->applicant_id }}.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-success">下載</a>
+                <a href="https://bwcamp.bwfoce.org/downloads/{{ $camp_info->table }}{{ $camp_info->year }}/{{ $applicant->group }}{{ $applicant->number }}{{ $applicant->applicant_id }}.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-success">下載</a>
             </div>
             <div class="card-body">
                 如下載顯示錯誤，請聯絡您的帶組老師，謝謝！
@@ -31,17 +40,41 @@
     @endif
 --}}
     <div class="card">
-        <div class="card-header">
-            Admission 錄取查詢
+        <!-- 💡 動態標題列： Radio Button 切換幣別 -->
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Admission 錄取查詢</span>
+            @if(isset($camp_info->currencies) && $camp_info->currencies->isNotEmpty())
+                <div class="d-flex align-items-center">
+                    <span class="mr-2 font-weight-bold">幣別 Currency：</span>
+                    @foreach($camp_info->currencies as $currency)
+                        <div class="custom-control custom-radio custom-control-inline mr-2">
+                            <input type="radio" 
+                                   id="currency_{{ $currency->code }}" 
+                                   name="currency_option" 
+                                   class="custom-control-input" 
+                                   value="{{ $currency->code }}"
+                                   data-id="{{ $currency->id }}"
+                                   data-symbol="{{ $currency->symbol }}"
+                                   data-xrate="{{ $currency->pivot->xrate_to_std ?? 1 }}"
+                                   {{ $currency->code === $defaultCode ? 'checked' : '' }}
+                                   onclick="changeCurrency(this.value)">
+                            <label class="custom-control-label" for="currency_{{ $currency->code }}">
+                                {{ $currency->code }}
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
+
         <div class="card-body">
             @if($applicant->is_admitted && !$applicant->deleted_at)
                 <p class="card-text">Dear {{ $applicant->name }} </p>
-                <p class="card-text text-indent">It is our honor to welcome you to 「{{ $camp_data->fullName }}」！We hope you will have a great time in the camp.
+                <p class="card-text text-indent">It is our honor to welcome you to 「{{ $camp_info->fullName }}」！We hope you will have a great time in the camp.
                     The following are information you need to know before you come. Please read carefully.
                 </p>
                 <p class="card-text text-indent">
-                Your Application Number 您的報名序號：{{ $applicant->applicant_id }}<br>
+                Your Application Number 您的報名序號：{{ $applicant->id }}<br>
                 Your Admission Number 您的錄取編號：{{ $applicant->group }}{{ $applicant->number }}<br>
                 Datas 營隊期間：{{ $applicant->batch->batch_start }} ({{ $applicant->batch->batch_start_weekday }}) ~ {{ $applicant->batch->batch_end }} ({{ $applicant->batch->batch_end_weekday }})，共4天<br>
                 Location 營隊地點：{{ $applicant->batch->locationName }} ({{ $applicant->batch->location }})<br>
@@ -49,10 +82,10 @@
 
                 <h4>Before you come 錄取/報到通知</h4>
                 <div class="ml-0 mb-2">
-                Please read carefully the <a href="https://docs.google.com/document/d/1DK2mQK6beqShyK82Jigyt1z7PJv_MwWa2yEadLCrsR8/edit?tab=t.0" target="_blank">Acceptance Letter</a>. 
+                Please read carefully the <a href="{{ $camp_info->content_link_eng }}" target="_blank">Acceptance Letter</a>. 
                 You will find important camp details and payment instructions in the document.
                 <br>
-                請詳閱 <a href="https://docs.google.com/document/d/1t56h4BsWBqC_r38rtGekn24GQDW8_2oA/edit" target="_blank">錄取通知</a>，內含報到資訊、必帶物品，及交通資訊等等。<br>
+                請詳閱 <a href="{{ $camp_info->content_link_chn }}" target="_blank">錄取通知</a>，內含報到資訊、必帶物品，及交通資訊等等。<br>
                 </div>
                 <br>
                 @if(!isset($applicant->is_attend) || $applicant->is_attend)
@@ -60,30 +93,33 @@
                     <form class="ml-2 mb-2" action="{{ route('modifyLodging', $batch_id) }}" method="POST" id="selectLodging">
                         @csrf
                         <div class="ml-0 mb-2">
-                            Refer to your <a href="https://docs.google.com/document/d/1DK2mQK6beqShyK82Jigyt1z7PJv_MwWa2yEadLCrsR8/edit?tab=t.0" target="_blank">Acceptance Letter</a>
+                            Refer to your <a href="{{ $camp_info->content_link_eng }}" target="_blank">Acceptance Letter</a>
                             for the registration fee options.
-                        <br>
-                            請參閱您的 <a href="https://docs.google.com/document/d/1t56h4BsWBqC_r38rtGekn24GQDW8_2oA/edit" target="_blank">錄取通知</a>。其中有關於活動費用的詳細說明。
+                            <br>
+                            請參閱您的 <a href="{{ $camp_info->content_link_chn }}" target="_blank">錄取通知</a>。其中有關於活動費用的詳細說明。
                         </div>
                         <br>
                         <input type="hidden" name="id" value="{{ $applicant->applicant_id ?? $applicant->id }}">
                         <input type="hidden" name="camp" value="nycamp">
-                        <input type="hidden" name="nights" value="{{ $applicant->lodging?->nights ?? 0}}">
+                        <input type="hidden" name="nights" value="{{ $applicant->lodging?->nights ?? 1}}">
+                        <input type="hidden" name="currency_code" class="curr-input" value="{{ $defaultCode }}">
                         <div class='row form-group required'>
                             <label for='inputRoomType' class='col-md-2 control-label text-md-right'>活動費用</label>
                             <div class="col-md-4">
                                 <select required class='form-control' name='room_type' id='inputRoomType' onchange='changeRoom(this)'>
                                     <option value='' selected>- 請選擇 -</option>
                                     @foreach($fare_room as $key => $value)
-                                    <option value='{{ $key }}' >{{ $key }}(USD{{ $value }})</option>
-                                    @endforeach
+                                    <option value="{{ $key }}" data-label="{{ $key }}" data-base="{{ $value }}">
+                                        {{ $key }}({{ $defaultCode }}{{ $defaultSymbol }}{{ $value }})
+                                    </option>
+                                    @endforeach                                
                                 </select>
                                 <div class="invalid-feedback">
                                     請選擇活動費用
                                 </div>
                             </div>
                         </div>
-                        <div class='row form-group companion-sec required' style='display:none'>
+                        {{-- <div class='row form-group companion-sec required' style='display:none'>
                             <label for='inputCompanion' class='col-md-2 control-label text-md-right'>Friend's name 同行者姓名</label>
                             <div class="col-md-4">
                                 @if(isset($applicant->companion_name))
@@ -96,35 +132,34 @@
                                 </div>
                             </div>
                         </div>
+                        --}}
                         <input class="btn btn-success" type="submit" value="apply change 確認修改活動費用" id="confirmlodging" name="confirmlodging">
                     </form><br>
+
                     <h4>Shuttle Bus Service 接駁服務</h4>
                     <form class="ml-2 mb-2" action="{{ route('modifyTraffic', $batch_id) }}" method="POST" id="selecttraffic">
                         @csrf
-                        <div class="ml-0 mb-2">
-                        Shuttle bus service is available for $35 one way per person between Bliss and Wisdom New York Center and Honor's Haven.  Please make payment in advance with your registration fee.<br>
-                        1/1 (Thu) @2:00pm Departs BW NY Center to Honor's Haven<br>
-                        1/4 (Sun) @3:20PM Departs Honor's Haven to BW NY Center<br>
-                        Bliss and Wisdom New York Center（25-10 Ulmer Street, Flushing, NY 11354）<br>
-                        Honor's Haven Retreat & Conference（1195 Arrowhead Rd, Ellenville, NY 12428 USA）<br>
-                        <br>
-                        若需要搭乘紐約市區接駁至禪修莊園的遊覽車，費用每趟USD$35/人。<br>
-                        1/1 (四) @2:00PM 巴士：紐約中心 → 禪修莊園<br>
-                        1/4 (日) @3:20PM 巴士：禪修莊園 → 紐約中心<br>
-                        紐約中心（25-10 Ulmer Street, Flushing, NY 11354）<br>
-                        紐約禪修莊園 （1195 Arrowhead Rd, Ellenville, NY 12428 USA）<br>
-                        </div>
+                            <div class="ml-0 mb-2">
+
+                                Refer to your <a href="{{ $camp_info->content_link_eng }}" target="_blank">Acceptance Letter</a>
+                                for the shuttle bus services.
+                                <br>
+                                請參閱您的 <a href="{{ $camp_info->content_link_chn }}" target="_blank">錄取通知</a>。其中有關於接駁服務的詳細說明。
+                            </div>
                         <br>
                         <input type="hidden" name="id" value="{{ $applicant->applicant_id ?? $applicant->id }}">
                         <input type="hidden" name="camp" value="nycamp">
+                        <input type="hidden" name="currency_code" class="curr-input" value="{{ $defaultCode }}">
                         <div class='row form-group required'>
                             <label for='inputDepartFrom' class='col-md-2 control-label text-md-right'>去程交通</label>
                             <div class="col-md-4">
                                 <select required class='form-control' name='depart_from' id='inputDepartFrom'>
                                     <option value='' selected>- 請選擇 -</option>
                                     @foreach($fare_depart_from as $key => $value)
-                                    <option value='{{ $key }}' >{{ $key }}(USD{{ $value }})</option>
-                                    @endforeach
+                                    <option value="{{ $key }}" data-label="{{ $key }}" data-base="{{ $value }}">
+                                        {{ $key }}({{ $defaultCode }}{{ $defaultSymbol }}{{ $value }})
+                                    </option>
+                                    @endforeach                                
                                 </select>
                                 <div class="invalid-feedback">
                                     請選擇去程交通
@@ -137,8 +172,10 @@
                                 <select required class='form-control' name='back_to' id='inputBackTo'>
                                     <option value='' selected>- 請選擇 -</option>
                                     @foreach($fare_back_to as $key => $value)
-                                    <option value='{{ $key }}' >{{ $key }}(USD{{ $value }})</option>
-                                    @endforeach
+                                    <option value="{{ $key }}" data-label="{{ $key }}" data-base="{{ $value }}">
+                                        {{ $key }}({{ $defaultCode }}{{ $defaultSymbol }}{{ $value }})
+                                    </option>
+                                    @endforeach                                
                                 </select>
                                 <div class="invalid-feedback">
                                     請選擇回程交通
@@ -148,13 +185,13 @@
                         <input class="btn btn-success" type="submit" value="confirm change 確認修改交通" id="confirmtraffic" name="confirmtraffic">
                     </form><br>
                     @php
-                        $fare_total = ($traffic?->fare ?? 0) + ($lodging?->fare ?? 0);
-                        $sum_total = ($traffic?->sum ?? 0) + ($lodging?->sum ?? 0);
+                        $fare_total = ($applicant->traffic?->fare_std ?? 0) + ($applicant->lodging?->fare_std ?? 0);
+                        $sum_total = ($applicant->traffic?->deposit_std ?? 0) + ($applicant->traffic?->cash_std ?? 0) + ($applicant->lodging?->deposit_std ?? 0) + ($applicant->lodging?->cash_std ?? 0);
                     @endphp
                     <div class="ml-2 mb-2 alert alert-info" role='alert'>
                         <b>
-                        =====&nbsp;&nbsp;&nbsp;Payment Due 應交費用：USD{{ $fare_total }}&nbsp;&nbsp;&nbsp;=====<br>
-                        =====&nbsp;&nbsp;&nbsp;Payment Received 已交費用：USD{{ $sum_total }}&nbsp;&nbsp;&nbsp;=====<br>
+                        =====&nbsp;&nbsp;&nbsp;Payment Due 應交費用：<span class="curr-code">{{ $defaultCode }}</span> <span class="curr-symbol">{{ $defaultSymbol }}</span><span id="display_fare_total" data-base="{{ $fare_total }}">{{ $fare_total }}</span>&nbsp;&nbsp;&nbsp;=====<br>
+                        =====&nbsp;&nbsp;&nbsp;Payment Received 已交費用：<span class="curr-code">{{ $defaultCode }}</span> <span class="curr-symbol">{{ $defaultSymbol }}</span><span id="display_sum_total" data-base="{{ $sum_total }}">{{ $sum_total }}</span>&nbsp;&nbsp;&nbsp;=====<br>
                         </b>
                     </div><br>
                 @endif
@@ -183,30 +220,24 @@
                     </form><br>
                 <h4>Contact 聯絡我們</h4>
                 <div class="ml-0 mb-2">If you have any question, feel free to contact</div>
-                <div class="ml-2 mb-2">Jasmine Hu</div>
-                <div class="ml-2 mb-2">Email: chunhu@blisswisdom.org</div>
-                <div class="ml-2 mb-2">Phone: (902)808-0069</div>
-                <div class="ml-2 mb-2">Online Service: https://lin.ee/8iOmovI</div>
-                <br>
+                {!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+                <br><br>
                 <div class="ml-0 mb-2">如果您有任何問題，請聯絡</div>
-                <div class="ml-2 mb-2">胡純</div>
-                <div class="ml-2 mb-2">Email: chunhu@blisswisdom.org</div>
-                <div class="ml-2 mb-2">洽詢電話(北美地區)：(902)808-0069</div>
-                <div class="ml-2 mb-2">線上客服：https://lin.ee/8iOmovI</div>
-
-                <p class="card-text text-right">The Oneness Truth Foundation</p>
-                <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
+                {!! nl2br(e(str_replace('\n', "\n", $applicant->batch->contact_card))) !!}
+                <br><br>
+                <p class="card-text">{{ \Carbon\Carbon::now()->format('n/j/Y') }}</p>
             @elseif($applicant->created_at->gte(\Carbon\Carbon::parse('2025-06-11 00:00:00')))
                 <!-----錄取中----->
                 <p class="card-text">親愛的 {{ $applicant->name }} 同學您好</p>
-                <p class="card-text indent">感謝您報名「{{ $camp_data->fullName }}」，錄取作業正在進行中，請稍後再進行錄取查詢。感謝您的耐心等待！</p>
-                <p class="card-text text-right">The Oneness Truth Foundation 敬啟</p>
-                <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
+                <p class="card-text indent">感謝您報名「{{ $camp_info->fullName }}」，錄取作業正在進行中，請稍後再進行錄取查詢。感謝您的耐心等待！</p>
+                <p class="card-text indent">Warm regards, </p>
+                <p class="card-text indent">The 2027 Life Camp Organizing Team</p>
+                <p class="card-text indent">{{ \Carbon\Carbon::now()->format('Y 年 n 月 j 日') }}</p>
             @elseif($applicant->deleted_at)
             @else
                 <!-----備取=不錄取----->
                 <p class="card-text">親愛的 {{ $applicant->name }} 同學您好</p>
-                <p class="card-text indent">非常感謝您報名參加「{{ $camp_data->fullName }}」，由於本活動報名人數踴躍，且場地有限，非常抱歉未能在第一階段錄取您。我們已將您列入優先備取名單，若有遞補機會，基金會將儘速通知您!</p>
+                <p class="card-text indent">非常感謝您報名參加「{{ $camp_info->fullName }}」，由於本活動報名人數踴躍，且場地有限，非常抱歉未能在第一階段錄取您。我們已將您列入優先備取名單，若有遞補機會，基金會將儘速通知您!</p>
                 <p class="card-text indent">開學後，各區福青學堂定期都有精彩的課程活動，竭誠歡迎您的參與!也祝福您學業順利，吉祥如意！</p>
                 <h4>各區福青學堂資訊</h4>
                 <div class="container">
@@ -217,91 +248,129 @@
                             02-2545-3788 #546<br>
                             台北市松山區南京東路四段161號9樓<br>
                             </p>
-                            <p class="card-text">
-                            桃園福青學堂<br>
-                            03-275-6133 #1314<br>
-                            桃園市中壢區強國路121號2樓<br>
-                            </p>
-                            <p class="card-text">
-                            新竹福青學堂<br>
-                            03-571-0968<br>
-                            新竹市東區忠孝路43號2樓<br>
-                            </p>
-                            <p class="card-text">
-                            台中福青學堂<br>
-                            04-37069300 #621101<br>
-                            台中市西屯區臺灣大道二段669號2樓<br>
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="card-text">
-                            雲嘉福青學堂<br>
-                            05-5370133 #125<br>
-                            雲林縣斗六市慶生路6號<br>
-                            </p>
-                            <p class="card-text">
-                            台南福青學堂<br>
-                            06-289-6558<br>
-                            台南市東區崇明路405號4樓<br>
-                            </p>
-                            <p class="card-text">
-                            高雄福青學堂<br>
-                            07-974-1170<br>
-                            高雄市新興區中正四路53號12樓之7<br>
-                            </p>
-                            <p class="card-text">
-                            花蓮大專班籌備處<br>
-                            03-831-6307<br>
-                            花蓮市中華路243號2樓<br>
-                            </p>
                         </div>
                     </div>
                 </div>
-                <!--
-                <p class="card-text indent"><a href="http://bwfoce.org/web" target="_blank" rel="noopener noreferrer">http://bwfoce.org/web</a></p>
-                <p class="card-text indent">祝福您身心健康，吉祥如意！</p>
-                -->
-                <p class="card-text text-right">The Oneness Truth Foundation 敬啟</p>
+                <p class="card-text text-right">The 2027 Life Camp Organizing Team 敬啟</p>
                 <p class="card-text text-right">{{ \Carbon\Carbon::now()->format('Y 年 n 日 j 日') }}</p>
             @endif
             <input type='button' class='btn btn-warning' value='back 回上一頁' onclick=self.history.back()>
-            <a href="{{ $camp_data->site_url }}" class="btn btn-primary">home 回營隊首頁</a>
+            <a href="{{ $camp_info->site_url }}" class="btn btn-primary">home 回營隊首頁</a>
         </div>
     </div>
 
     <script>
+        function changeCurrency(code) {
+            const checkedRadio = document.querySelector('input[name="currency_option"]:checked');
+            if(!checkedRadio) return;
+
+            const symbol = checkedRadio.getAttribute('data-symbol') || '$';
+            const xrate = parseFloat(checkedRadio.getAttribute('data-xrate')) || 1.0;
+
+            // 0. 同步目前幣別到表單的 hidden input
+            document.querySelectorAll('.curr-input').forEach(el => el.value = code);
+            // 1. 更新幣別代碼與符號
+            document.querySelectorAll('.curr-code').forEach(el => el.innerText = code);
+            document.querySelectorAll('.curr-symbol').forEach(el => el.innerText = symbol);
+
+            // 2. 更新下拉選單中的金額 (選項金額)
+            document.querySelectorAll('option[data-base]').forEach(opt => {
+                const baseVal = parseFloat(opt.dataset.base) || 0;
+                const label = opt.dataset.label;
+                opt.textContent = `${label}(${code}${symbol}${Math.round(baseVal * xrate)})`;
+            });
+
+            // 3. 更新接駁車說明內文中的單價金額
+            document.querySelectorAll('.shuttle-fare-val').forEach(el => {
+                const baseVal = parseFloat(el.getAttribute('data-base')) || 0;
+                el.innerText = Math.round(baseVal * xrate);
+            });
+
+            // 4. 更新應交/已交總金額
+            const fareTotalEl = document.getElementById('display_fare_total');
+            if(fareTotalEl) {
+                const baseFare = parseFloat(fareTotalEl.getAttribute('data-base')) || 0;
+                fareTotalEl.innerText = Math.round(baseFare * xrate);
+            }
+
+            const sumTotalEl = document.getElementById('display_sum_total');
+            if(sumTotalEl) {
+                const baseSum = parseFloat(sumTotalEl.getAttribute('data-base')) || 0;
+                sumTotalEl.innerText = Math.round(baseSum * xrate);
+            }
+        }
+
+        function calcFareTotal() {
+            const ids = ['inputRoomType', 'inputDepartFrom', 'inputBackTo'];
+            let base = 0;
+
+            ids.forEach(id => {
+                const sel = document.getElementById(id);
+                if (!sel || !sel.value) return;               // 還沒選就不加
+                const opt = sel.options[sel.selectedIndex];
+                base += parseFloat(opt.dataset.base) || 0;
+            });
+
+            const el = document.getElementById('display_fare_total');
+            if (!el) return;
+
+            el.setAttribute('data-base', base);               // 更新基準金額
+            const checked = document.querySelector('input[name="currency_option"]:checked');
+            const xrate = parseFloat(checked?.dataset.xrate) || 1;
+            el.innerText = Math.round(base * xrate);
+        }
+        
         @if(!isset($applicant->is_attend) || $applicant->is_attend)
             let cancel = document.getElementById('cancel');
-            cancel.addEventListener('click', function(event) {
-                if(confirm('confirm cancellation 確認放棄參加？')){
+            if(cancel) {
+                cancel.addEventListener('click', function(event) {
+                    if(confirm('confirm cancellation 確認放棄參加？')){
                         return true;
-                }
-                event.preventDefault();
-                return false;
-            });
+                    }
+                    event.preventDefault();
+                    return false;
+                });
+            }
         @else
             let confirmattend = document.getElementById('confirmattend');
-            confirmattend.addEventListener('click', function(event) {
-                if(confirm('confirm 確認恢復參加？')){
-                    return true;
-                }
-                event.preventDefault();
-                return false;
-            });
+            if(confirmattend) {
+                confirmattend.addEventListener('click', function(event) {
+                    if(confirm('confirm 確認恢復參加？')){
+                        return true;
+                    }
+                    event.preventDefault();
+                    return false;
+                });
+            }
         @endif
+
         @if(!isset($applicant->is_attend) || $applicant->is_attend)
             let confirmtraffic = document.getElementById('confirmtraffic');
-            confirmtraffic.addEventListener('click', function(event) {
-                if(confirm('confirm 確認修改交通？')){
+            if(confirmtraffic) {
+                confirmtraffic.addEventListener('click', function(event) {
+                    if(confirm('confirm 確認修改交通？')){
                         return true;
-                }
-                event.preventDefault();
-                return false;
-            });
+                    }
+                    event.preventDefault();
+                    return false;
+                });
+            }
 
             {{-- 回填交通選項 --}}
             (function() {
-                let traffic_data = JSON.parse('{!! $traffic ?? '{}' !!}');
+                let traffic_data = JSON.parse('{!! $applicant_data ?? '{}' !!}');
+
+                // 先依 fare_currency_id 還原幣別，這樣之後的選項文字才是正確的幣別
+                if (traffic_data.fare_currency_id) {
+                    const radio = document.querySelector(
+                        `input[name="currency_option"][data-id="${traffic_data.fare_currency_id}"]`
+                    );
+                    if (radio) {
+                        radio.checked = true;
+                        changeCurrency(radio.value);
+                    }
+                }
+
                 let selects = document.getElementsByTagName('select');
                 for (var i = 0; i < selects.length; i++){
                     if(typeof traffic_data[selects[i].name] !== "undefined"){
@@ -309,20 +378,33 @@
                     }
                 }
             })();
-        @endif
-        @if(!isset($applicant->is_attend) || $applicant->is_attend)
+
             let confirmlodging = document.getElementById('confirmlodging');
-            confirmlodging.addEventListener('click', function(event) {
-                if(confirm('confirm 確認修改活動費？')){
+            if(confirmlodging) {
+                confirmlodging.addEventListener('click', function(event) {
+                    if(confirm('confirm 確認修改活動費？')){
                         return true;
-                }
-                event.preventDefault();
-                return false;
-            });
+                    }
+                    event.preventDefault();
+                    return false;
+                });
+            }
 
             {{-- 回填活動費選項 --}}
             (function() {
-                let lodging_data = JSON.parse('{!! $lodging ?? '{}' !!}');
+                let lodging_data = JSON.parse('{!! $applicant_data ?? '{}' !!}');
+
+                // 先依 fare_currency_id 還原幣別，這樣之後的選項文字才是正確的幣別
+                if (lodging_data.fare_currency_id) {
+                    const radio = document.querySelector(
+                        `input[name="currency_option"][data-id="${lodging_data.fare_currency_id}"]`
+                    );
+                    if (radio) {
+                        radio.checked = true;
+                        changeCurrency(radio.value);
+                    }
+                }
+
                 let selects = document.getElementsByTagName('select');
                 for (var i = 0; i < selects.length; i++){
                     if(typeof lodging_data[selects[i].name] !== "undefined"){
@@ -332,19 +414,28 @@
                 }
             })();
         @endif
+
         function changeRoom(select_ele) {
             const companionSection = document.getElementsByClassName('companion-sec')[0];
             const companionInput = document.getElementById('inputCompanion');
 
-            if (select_ele.value.includes("兩人同行")) {
-                // 有同行者
-                companionSection.style.display = '';
-                companionInput.required = true;
-            } else {
-                // 一人報名
-                companionSection.style.display = 'none';
-                companionInput.required = false;
+            if (companionSection && companionInput) {
+                if (select_ele.value.includes("兩人同行")) {
+                    companionSection.style.display = '';
+                    companionInput.required = true;
+                } else {
+                    companionSection.style.display = 'none';
+                    companionInput.required = false;
+                }
             }
         };
+
+        ['inputRoomType', 'inputDepartFrom', 'inputBackTo'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', calcFareTotal);
+        });
+
+        // 頁面載入後初始化：先還原幣別，再算一次總額
+        //changeCurrency('{{ $currency_sel->code }}');
+        calcFareTotal();
     </script>
 @stop

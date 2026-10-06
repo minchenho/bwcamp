@@ -16,9 +16,7 @@
                 Your registration will be considered complete only after your payment has been received.<br>
                 <br>
                 If you have any question, feel free to contact<br>
-                Jasmine Hu<br>
-                Email: chunhu@blisswisdom.org<br>
-                Phone: (902)808-0069<br>
+                Email: youth@blisswisdom.org<br>
                 Online Service: https://lin.ee/8iOmovI<br>
             </p>
             <br>

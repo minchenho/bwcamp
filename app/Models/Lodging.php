@@ -54,4 +54,9 @@ class Lodging extends Model
     {
         return $this->belongsTo(Currency::class, 'deposit_currency_id', 'id');
     }
+    
+    public function cashCurrency()
+    {
+        return $this->belongsTo(Currency::class, 'cash_currency_id', 'id');
+    }
 }

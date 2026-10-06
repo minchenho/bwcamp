@@ -47,7 +47,7 @@ class Traffic extends Model
     {
         return $this->belongsTo(Applicant::class, 'applicant_id', 'id');
     }
-
+    
     public function fareCurrency()
     {
         return $this->belongsTo(Currency::class, 'fare_currency_id', 'id');
@@ -56,5 +56,10 @@ class Traffic extends Model
     public function depositCurrency()
     {
         return $this->belongsTo(Currency::class, 'deposit_currency_id', 'id');
+    }
+
+    public function cashCurrency()
+    {
+        return $this->belongsTo(Currency::class, 'cash_currency_id', 'id');
     }
 }

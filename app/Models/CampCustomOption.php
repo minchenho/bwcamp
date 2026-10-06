@@ -141,4 +141,42 @@ class CampCustomOption extends Model
         // 3. 資料庫完全沒設定，吐回預設值
         return $defaultFallback;
     }
+
+    /**
+     * 撈取特定類別的費用 Map [option_value => amount]
+     * 優先搜尋特定梯次 -> 再搜尋全營隊通用 (batch_id is null)
+     *
+     * @param int $campId
+     * @param int|null $batchId
+     * @param string|array $types 可傳入單一字串或陣列 (例如 'lodgingUSD' 或 ['lodgingUSD', 'fare_room'])
+     * @return array ['option_value' => amount]
+     */
+    public static function getFareMap($campId, $batchId = null, $types = [])
+    {
+        $types = (array) $types;
+
+        // 1. 優先查特定梯次
+        if (!empty($batchId)) {
+            $options = self::where('camp_id', $campId)
+                ->where('batch_id', $batchId)
+                ->whereIn('type', $types)
+                ->orderBy('sort_order', 'asc')
+                ->pluck('amount', 'option_value')
+                ->toArray();
+
+            if (!empty($options)) {
+                return array_map('floatval', $options);
+            }
+        }
+
+        // 2. 梯次沒有，退回全營隊通用設定 (batch_id IS NULL)
+        $options = self::where('camp_id', $campId)
+            //->whereNull('batch_id')
+            ->whereIn('type', $types)
+            ->orderBy('sort_order', 'asc')
+            ->pluck('amount', 'option_value')
+            ->toArray();
+
+        return array_map('floatval', $options);
+    }
 }

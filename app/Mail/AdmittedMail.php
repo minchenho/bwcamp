@@ -25,6 +25,8 @@ class AdmittedMail extends Mailable
     public $etc;
     public $carers_unified;
     public $carers;
+    public $content_link_chn;
+    public $content_link_eng;
 
     /**
      * Create a new message instance.
