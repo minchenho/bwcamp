@@ -110,6 +110,11 @@ class CampOrgController extends BackendController
         $newSet = array();
         $is_exist = false; $existed_org = null;
         
+        // 取得陣列的第一個元素，並轉為整數 (int)
+        $prevId = (int) ($formData['prev_id'][0] ?? 0);
+        // 使用 firstWhere 或整數比對
+        $org_parent = $orgs->firstWhere('id', $prevId);
+        
         $positions = count($formData['position']);
         
         foreach($formData as $key => $field) {
@@ -118,11 +123,11 @@ class CampOrgController extends BackendController
                 for($i = 0; $i < $positions; $i++) {
                     while(!isset($field[$j])) { $j++; }
                     $pos_tg = $field[$j];
-                    
                     $newSet[$j]['camp_id'] = $camp_id;
                     $newSet[$j]['batch_id'] = $formData['batch_id'][$j] ?: null;
                     $newSet[$j]['region_id'] = $formData['region_id'][$j] ?: null;
                     $newSet[$j]['position'] = $pos_tg;
+                    $newSet[$j]['depth'] = $org_parent ? $org_parent->depth + 1 : 0;
                     $newSet[$j]['prev_id'] = $formData['prev_id'][$j] ?: 0;
                     $newSet[$j]['order'] = $formData['order'][$j] ?? 0;
                     $newSet[$j]['group_id'] = (($formData['all_group'][$j] ?? 0) == 1) ? 0 : ($formData['group_id'][$j] ?? null);
@@ -132,7 +137,6 @@ class CampOrgController extends BackendController
                             $is_exist = true; $existed_org = $org; break;
                         }
                     }
-                    
                     if (!$is_exist) {
                         CampOrg::create($newSet[$j]);
                     }
