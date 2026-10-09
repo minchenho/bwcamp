@@ -42,13 +42,9 @@ class CampOrgController extends BackendController
     public function showOrgs($camp_id)
     {
         $camp = Camp::find($camp_id);
-        if (isset($camp->vcamp)) {
-            $vcamp = Camp::find($camp->vcamp->id);
-            $batches = $camp->batches->merge($vcamp->batches);
-        } else {
-            $vcamp = null;
-            $batches = $camp->batches;
-        }
+        $vcamp = $camp->resolved_vcamp;
+        $vbatches = $vcamp ? $vcamp->batches : collect();
+        $batches = $camp->batches->merge($vbatches);
         $regions = $camp->regions;
         
         // ✨ 新架構：依深度與自訂排序，全域預載ancestors寫在model裡面，避免N+1問題
@@ -162,7 +158,10 @@ class CampOrgController extends BackendController
         $org = CampOrg::find($org_id);
         $availableResources = BackendService::getAvailableModels();
         view()->share('availableResources', $availableResources);
-        return view('backend.camp.modifyOrg', compact("camp", "org"))->with('complete_permissions', $org->permissions);
+        $isCopyPermissions = false;
+        $camp_list = [];
+        $models = [];
+        return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models"))->with('complete_permissions', $org->permissions);
     }
 
     public function modifyOrg(Request $request, $camp_id, $org_id)
@@ -306,4 +305,17 @@ class CampOrgController extends BackendController
         \Session::flash('message', "職務刪除成功。");
         return back();
     }
+
+    public function showCopyPermissions($camp_id, $org_id)
+    {
+        $camp = Camp::with(['batches', 'vcamp', 'vcamp.batches' ])->find($camp_id);
+        $org = CampOrg::find($org_id);
+        $availableResources = BackendService::getAvailableModels();
+        view()->share('availableResources', $availableResources);
+        $isCopyPermissions = true;
+        $camp_list = Camp::where('table', $camp->table)->get();
+        $models = $this->backendService->getAvailableModels();
+        return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models"))->with('complete_permissions', $org->permissions);
+    }
+
 }

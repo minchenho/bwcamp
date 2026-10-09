@@ -22,7 +22,8 @@
         </div>
         <div class="text-right">
             <a href="{{ route('showAddOrgs', [$camp->id, $node->id]) }}" class="btn btn-sm btn-success py-0">＋新增子職務</a>
-            
+            {{-- 新增：載入或複製權限按鈕 --}}
+            <a href="{{ route('copyPermissions', [$camp->id, $node->id]) }}" class="btn btn-sm btn-info py-0">載入或複製權限</a>
             @if($node->depth > 0)
                 <a href="{{ route('showModifyOrg', [$camp->id, $node->id]) }}" class="btn btn-sm btn-primary py-0">修改</a>
                 <a href="{{ route('duplicateOrg', [$camp->id, $node->id]) }}" class="btn btn-sm btn-warning py-0">複製</a>

@@ -149,27 +149,60 @@
                 </div>
             </div>
 
-            {{-- ✨ 6. 新增：Laratrust 權限矩陣開關按鈕 --}}
-            <div class='row form-group mt-4'>
-                <label class='col-md-2 control-label'>後台權限設定</label>
-                <div class='col-md-6'>
-                    <button type="button" id="btn_toggle_permission" class="btn btn-outline-warning">
-                        <i class="fa fa-key"></i> 展開/折疊 權限設定明細
-                    </button>
-                    <small class="form-text text-muted">點擊按鈕可單獨展開長長的權限勾選矩陣表格。</small>
+            @if($isCopyPermissions)
+                {{-- 複製後台權限選單區塊 --}}
+                <h4 class="card-title"><i class="fas fa-copy mr-1"></i> 複製來源權限設定</h4>
+                {{-- 1. 選擇來源營隊 --}}
+                <div class='row form-group mt-4 required'>
+                    <label class='col-md-2 control-label'>來源營隊</label>    
+                    <div class='col-md-6'>
+                        <select class='form-control' name='camp2copy' id='inputCamp2Copy' required onchange='showOrgSel()'>
+                            <option value=''>- 請選擇 -</option>
+                            @foreach($camp_list as $item)
+                                @if($item->id !=$camp->id)
+                                    <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} </option>
+                                @else
+                                    <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} (本營隊)</option>
+                                @endif
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">選擇要從哪一個營隊複製權限。</small>
+                    </div>
                 </div>
-            </div>
+                
+                {{-- 2. 選擇來源職務 --}}
+                <div class='row form-group mt-4 required'>
+                    <label class='col-md-2 control-label'>來源職務</label>    
+                    <div class='col-md-6'>
+                        <select class='form-control' name="org2copy" id="inputOrg2Copy" required disabled>
+                            <option value="">- 請先選擇來源營隊 -</option>
+                        </select>
+                        <small class="form-text text-muted">選擇後，系統將會把該職務所擁有的後台權限複製並覆蓋至目前職務。</small>
+                    </div>
+                </div>
+            @else
+                {{-- ✨ 6. 新增：Laratrust 權限矩陣開關按鈕 --}}
+                <div class='row form-group mt-4'>
+                    <label class='col-md-2 control-label'>後台權限設定</label>
+                    <div class='col-md-6'>
+                        <button type="button" id="btn_toggle_permission" class="btn btn-outline-warning">
+                            <i class="fa fa-key"></i> 展開/折疊 權限設定明細
+                        </button>
+                        <small class="form-text text-muted">點擊按鈕可單獨展開長長的權限勾選矩陣表格。</small>
+                    </div>
+                </div>
 
-            {{-- ✨ 核心改動：用 div 包裹 permission_table 並預設隱藏 --}}
-            <div class='row form-group' id="permission_section" style="display: none;">
-                <div class='col-12 mt-2'>
-                    @include('backend.camp.permission_table')
+                {{-- ✨ 核心改動：用 div 包裹 permission_table 並預設隱藏 --}}
+                <div class='row form-group' id="permission_section" style="display: none;">
+                    <div class='col-12 mt-2'>
+                        @include('backend.camp.permission_table')
+                    </div>
                 </div>
-            </div>
+            @endif
         @else
-            {{-- 如果是根節點，保持其 position 欄位封包完整 --}}
-            <input type='hidden' name='position' value='{{ $org->position }}'>
-            <input type='hidden' name='order' value='{{ $org->order }}'>
+                {{-- 如果是根節點，保持其 position 欄位封包完整 --}}
+                <input type='hidden' name='position' value='{{ $org->position }}'>
+                <input type='hidden' name='order' value='{{ $org->order }}'>
         @endif
 
         <div class="mt-4">
@@ -215,5 +248,65 @@
                 }
             });
         });
+        function showOrgSel(){
+            var camp_sel = document.getElementById("inputCamp2Copy");
+            var camp_id_sel = camp_sel.options[camp_sel.selectedIndex].value;
+            var org_sel = document.getElementById("inputOrg2Copy");
+            var org_id_sel = "{{ $org->id ?? '' }}"; // 當前正在編輯的職務 ID
+
+            // 未選擇營隊時重置
+            if(!camp_id_sel){
+                org_sel.innerHTML = '<option value="">- 請先選擇來源營隊 -</option>';
+                org_sel.disabled = true;
+                return;
+            }
+
+            // 載入中狀態
+            org_sel.disabled = true;
+            org_sel.innerHTML = '<option value="">載入中...</option>';
+
+            axios.post('/semi-api/getOrgSel', { camp_id_sel: camp_id_sel })
+            .then(function (response) {
+                org_sel.innerHTML = ''; 
+
+                // 取得陣列資料（Laravel collection jsonSerialize 後會是 Array）
+                let orgs = response.data;
+
+                // 如果是物件格式（如帶 Key 的 associative array），轉成陣列處理
+                if (orgs && typeof orgs === 'object' && !Array.isArray(orgs)) {
+                    orgs = Object.values(orgs);
+                }
+
+                if (!orgs || orgs.length === 0) {
+                    org_sel.innerHTML = `<option value="">⚠️ 營隊 [${camp_id_sel}] 尚未建立組織，請選擇其它營隊。</option>`;
+                    return;
+                }
+
+                let optionsHTML = '<option value="">- 請選擇要複製權限的目標職務 -</option>';
+                let validOrgCount = 0;
+
+                orgs.forEach(org => {
+                    // 如果選到目前營隊，剔除自己（避免自己複製自己）
+                    if (org_id_sel && org.id == org_id_sel) {
+                        return;
+                    }
+
+                    // 組合顯示文字，包含 ID 與 職務名稱 (position)
+                    optionsHTML += `<option value="${org.id}">[ID: ${org.id}] ${org.position}</option>`;
+                    validOrgCount++;
+                });
+
+                if (validOrgCount > 0) {
+                    org_sel.innerHTML = optionsHTML;
+                    org_sel.disabled = false;
+                } else {
+                    org_sel.innerHTML = '<option value="">⚠️ 該營隊無其他可複製的職務</option>';
+                }
+            })
+            .catch(function (error) {
+                console.error("載入組織職務失敗:", error);
+                org_sel.innerHTML = '<option value="">❌ 載入失敗，請稍後再試</option>';
+            });
+        }
     </script>
 @endsection
