@@ -19,6 +19,30 @@
     <div class="tree-row" style="padding-left: {{ ($node->depth + 1) * 10 }}px;">
         <div class="flex-grow-1 text-muted">
             <small>ID: {{ $node->id }} | 區域: {{ $node->region?->name ?? '不限' }} | 權限數: {{ $node->permissions->count() }}</small>
+            @if($node->permissions->isNotEmpty())
+                @php
+                    $permissionRanges = [
+                        'na' => '不指定',
+                        'learner_group' => '限學員小組',
+                        'volunteer_large_group' => '限義工大組',
+                        'person' => '限個別學員',
+                        'all' => '全部',
+                    ];
+                @endphp
+                <details class="mt-1">
+                    <summary class="font-weight-normal py-0">檢視權限</summary>
+                    <ul class="mb-1 pl-4">
+                        @foreach($node->permissions as $permission)
+                            <li>
+                                {{ $permission->display_name ?: $permission->name }}
+                                <span class="badge badge-light">
+                                    範圍：{{ $permissionRanges[$permission->range] ?? $permission->range ?? '未設定' }}
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
+            @endif
         </div>
         <div class="text-right">
             <a href="{{ route('showAddOrgs', [$camp->id, $node->id]) }}" class="btn btn-sm btn-success py-0">＋新增子職務</a>

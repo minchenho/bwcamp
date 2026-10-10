@@ -49,6 +49,7 @@ class CampOrgController extends BackendController
         
         // ✨ 新架構：依深度與自訂排序，全域預載ancestors寫在model裡面，避免N+1問題
         $orgs = $camp->orgs()
+            ->with('permissions')
             ->orderBy('depth')
             ->orderBy('order')
             ->orderBy('id')

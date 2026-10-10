@@ -1,4 +1,5 @@
 @extends('backend.master')
+@vite('resources/js/app.js')
 @section('content')
     <style>
         .card-link{
@@ -157,7 +158,7 @@
                     <label class='col-md-2 control-label'>來源營隊</label>    
                     <div class='col-md-6'>
                         <select class='form-control' name='camp2copy' id='inputCamp2Copy' required onchange='showOrgSel()'>
-                            <option value=''>- 請選擇 -</option>
+                            <option value=''>- 請選擇來源營隊 -</option>
                             @foreach($camp_list as $item)
                                 @if($item->id !=$camp->id)
                                     <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} </option>
@@ -200,9 +201,9 @@
                 </div>
             @endif
         @else
-                {{-- 如果是根節點，保持其 position 欄位封包完整 --}}
-                <input type='hidden' name='position' value='{{ $org->position }}'>
-                <input type='hidden' name='order' value='{{ $org->order }}'>
+            {{-- 如果是根節點，保持其 position 欄位封包完整 --}}
+            <input type='hidden' name='position' value='{{ $org->position }}'>
+            <input type='hidden' name='order' value='{{ $org->order }}'>
         @endif
 
         <div class="mt-4">
@@ -211,7 +212,7 @@
         </div>
     </form>
 
-    {{-- ✨ 更新後的 JavaScript 聯動整合 --}}
+    {{-- ✨ JavaScript 邏輯修正 --}}
     <script>
         $(document).ready(function(){
             // --- 點擊「移動組織」按鈕的滑出/收合邏輯 ---
@@ -260,53 +261,98 @@
                 org_sel.disabled = true;
                 return;
             }
-
-            // 載入中狀態
+            
             org_sel.disabled = true;
-            org_sel.innerHTML = '<option value="">載入中...</option>';
+            org_sel.innerHTML = `<option value="">正在取得營隊 [${camp_id_sel}] 的組織結構，請稍候...</option>`;
 
             axios.post('/semi-api/getOrgSel', { camp_id_sel: camp_id_sel })
             .then(function (response) {
-                org_sel.innerHTML = ''; 
+                org_sel.disabled = false;
+                org_sel.style.display = "block";
+                org_sel.innerHTML = `正在取得營隊 [${camp_id_sel}] 的組織結構，請稍候...`;
 
-                // 取得陣列資料（Laravel collection jsonSerialize 後會是 Array）
-                let orgs = response.data;
+                let rawData = response.data;
 
-                // 如果是物件格式（如帶 Key 的 associative array），轉成陣列處理
-                if (orgs && typeof orgs === 'object' && !Array.isArray(orgs)) {
-                    orgs = Object.values(orgs);
-                }
-
-                if (!orgs || orgs.length === 0) {
+                // 1. 安全檢查：確保資料非空
+                if (!rawData || Object.keys(rawData).length === 0) {
                     org_sel.innerHTML = `<option value="">⚠️ 營隊 [${camp_id_sel}] 尚未建立組織，請選擇其它營隊。</option>`;
                     return;
                 }
 
-                let optionsHTML = '<option value="">- 請選擇要複製權限的目標職務 -</option>';
-                let validOrgCount = 0;
+                // 2. 將 API 物件/陣列統一轉成 JavaScript 陣列
+                const itemList = Object.values(rawData);
 
-                orgs.forEach(org => {
-                    // 如果選到目前營隊，剔除自己（避免自己複製自己）
-                    if (org_id_sel && org.id == org_id_sel) {
-                        return;
-                    }
+                // 3. 依據你的 Model 邏輯建樹 (根節點的 prev_id 為 0)
+                const tree = buildOrgTree(itemList, 0);
 
-                    // 組合顯示文字，包含 ID 與 職務名稱 (position)
-                    optionsHTML += `<option value="${org.id}">[ID: ${org.id}] ${org.position}</option>`;
-                    validOrgCount++;
-                });
+                // 4. 將樹狀結構攤平為帶有縮排符號的選項陣列
+                const flattenedOptions = flattenTreeForSelect(tree, org_id_sel);
 
-                if (validOrgCount > 0) {
+                // 5. 渲染成 <select> 的 <option>
+                if (flattenedOptions.length > 0) {
+                    let optionsHTML = '<option value="">- 請選擇要複製權限的目標職務 -</option>';
+                    flattenedOptions.forEach(opt => {
+                        optionsHTML += `<option value="${opt.id}">${opt.label}</option>`;
+                    });
                     org_sel.innerHTML = optionsHTML;
                     org_sel.disabled = false;
                 } else {
                     org_sel.innerHTML = '<option value="">⚠️ 該營隊無其他可複製的職務</option>';
                 }
-            })
+            }) // ✨ 修正點：移除原本多餘的 });
             .catch(function (error) {
                 console.error("載入組織職務失敗:", error);
-                org_sel.innerHTML = '<option value="">❌ 載入失敗，請稍後再試</option>';
+                org_sel.innerHTML = `<option value="">⚠️ 取得組織結構失敗，請稍後再試。</option>`;
             });
+        }
+
+        /**
+         * 搭配 CampOrg Model 的建樹函數
+         * @param {Array} items - API 轉換後的陣列
+         * @param {number} parentId - 上層 prev_id (根節點為 0)
+         */
+        function buildOrgTree(items, parentId = 0) {
+            return items
+                .filter(item => Number(item.prev_id) === Number(parentId))
+                .map(item => ({
+                    ...item,
+                    children: buildOrgTree(items, item.id)
+                }));
+        }
+
+        /**
+         * 遞迴將樹狀結構攤平為下拉選單陣列
+         * @param {Array} nodes - 樹狀節點
+         * @param {string|number} excludeId - 需排除的職務 ID (避免選擇自己)
+         * @param {number} level - 當前深度 (用於前綴縮排)
+         */
+        function flattenTreeForSelect(nodes, excludeId = '', level = 0) {
+            let options = [];
+
+            nodes.forEach(node => {
+                // 排除自己
+                if (excludeId && String(node.id) === String(excludeId)) {
+                    return;
+                }
+
+                // 根據階層產生前綴樹狀符號
+                let indent = '';
+                if (level > 0) {
+                    indent = '│  '.repeat(level - 1) + '├─ ';
+                }
+
+                options.push({
+                    id: node.id,
+                    label: `${indent}${node.position} (ID: ${node.id})`
+                });
+
+                // 遞迴處理子節點
+                if (node.children && node.children.length > 0) {
+                    options = options.concat(flattenTreeForSelect(node.children, excludeId, level + 1));
+                }
+            });
+
+            return options;
         }
     </script>
 @endsection
