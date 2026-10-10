@@ -319,4 +319,31 @@ class CampOrgController extends BackendController
         return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models"))->with('complete_permissions', $org->permissions);
     }
 
+    public function copyPermissions(Request $request, $camp_id, $org_id)
+    {
+        $orgIdSrc = $request->input('org2copy');
+        $orgDst = CampOrg::find($org_id);
+        $orgSrc = CampOrg::find($orgIdSrc);
+        
+        if (!$orgDst || !$orgSrc) {
+            \Session::flash('error', "找不到來源或目標職務。");
+            return back();
+        }
+        $campDst = $orgDst->camp;
+        $campSrc = $orgSrc->camp;
+
+        $batchIdMatchList = array("0" => 0);
+        foreach($campSrc->batches as $batchSrc) {
+            $batchDst = $campDst->batches->where('name', $batchSrc->name)->first();
+            $batchIdMatchList[$batchSrc->id] = $batchDst?->id ?? null;
+            if ($batchSrc->vbatch) {
+                $batchIdMatchList[$batchSrc->vbatch->id] = $batchDst?->vbatch?->id ?? null;
+            }
+        }
+
+        $this->campOrgService->copyPermissions($campDst, $campSrc, $orgDst, $orgSrc, $batchIdMatchList);
+
+        \Session::flash('message', "職務權限複製成功。");
+        return redirect()->route('showModifyOrg', [$camp_id, $org_id]);
+    }
 }

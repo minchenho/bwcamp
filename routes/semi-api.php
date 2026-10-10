@@ -32,4 +32,5 @@ Route::get('getCampOrganizations', [SemiApiController::class, 'getCampOrganizati
 Route::get('getCampPositions', [SemiApiController::class, 'getCampPositions']);
 Route::get('getCampVolunteers', [SemiApiController::class, 'getCampVolunteers']);
 Route::post('getOrgSel', [SemiApiController::class, 'getOrgSel']);
+Route::post('getPermissionSel', [SemiApiController::class, 'getPermissionSel']);
 //Route::post('checkUserExist', [SemiApiController::class, 'getPosSel']);

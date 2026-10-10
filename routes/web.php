@@ -145,8 +145,8 @@ Route::group(["prefix" => "backend/campManage"], function () {
         Route::get( "/{camp_id}", [CampOrgController::class, "showOrgs"])->name("showOrgs");
         Route::post("/{camp_id}/add", [CampOrgController::class, "addOrgs"])->name("addOrgs");
         Route::post("/{camp_id}/copy", [CampOrgController::class, "copyOrgs"])->name("copyOrgs");
-        Route::get( "/{camp_id}/{org_id}/copyPermission", [CampOrgController::class, "showCopyPermissions"])->name("showCopyPermissions");
-        Route::post("/{camp_id}/{org_id}/copyPermission", [CampOrgController::class, "copyPermissions"])->name("copyPermissions");
+        Route::get( "/{camp_id}/{org_id}/copyPermissions", [CampOrgController::class, "showCopyPermissions"])->name("showCopyPermissions");
+        Route::post("/{camp_id}/{org_id}/copyPermissions", [CampOrgController::class, "copyPermissions"])->name("copyPermissions");
         Route::get( "/{camp_id}/{org_id}/add", [CampOrgController::class, "showAddOrgs"])->name("showAddOrgs");
         Route::get( "/{camp_id}/{org_id}/duplicate", [CampOrgController::class, "duplicateOrg"])->name("duplicateOrg");
         Route::get( "/{camp_id}/{org_id}/modify", [CampOrgController::class, "showModifyOrg"])->name("showModifyOrg");

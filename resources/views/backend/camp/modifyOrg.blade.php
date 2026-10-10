@@ -150,38 +150,7 @@
                 </div>
             </div>
 
-            @if($isCopyPermissions)
-                {{-- 複製後台權限選單區塊 --}}
-                <h4 class="card-title"><i class="fas fa-copy mr-1"></i> 複製來源權限設定</h4>
-                {{-- 1. 選擇來源營隊 --}}
-                <div class='row form-group mt-4 required'>
-                    <label class='col-md-2 control-label'>來源營隊</label>    
-                    <div class='col-md-6'>
-                        <select class='form-control' name='camp2copy' id='inputCamp2Copy' required onchange='showOrgSel()'>
-                            <option value=''>- 請選擇來源營隊 -</option>
-                            @foreach($camp_list as $item)
-                                @if($item->id !=$camp->id)
-                                    <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} </option>
-                                @else
-                                    <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} (本營隊)</option>
-                                @endif
-                            @endforeach
-                        </select>
-                        <small class="form-text text-muted">選擇要從哪一個營隊複製權限。</small>
-                    </div>
-                </div>
-                
-                {{-- 2. 選擇來源職務 --}}
-                <div class='row form-group mt-4 required'>
-                    <label class='col-md-2 control-label'>來源職務</label>    
-                    <div class='col-md-6'>
-                        <select class='form-control' name="org2copy" id="inputOrg2Copy" required disabled>
-                            <option value="">- 請先選擇來源營隊 -</option>
-                        </select>
-                        <small class="form-text text-muted">選擇後，系統將會把該職務所擁有的後台權限複製並覆蓋至目前職務。</small>
-                    </div>
-                </div>
-            @else
+            @if(!$isCopyPermissions)
                 {{-- ✨ 6. 新增：Laratrust 權限矩陣開關按鈕 --}}
                 <div class='row form-group mt-4'>
                     <label class='col-md-2 control-label'>後台權限設定</label>
@@ -200,6 +169,7 @@
                     </div>
                 </div>
             @endif
+
         @else
             {{-- 如果是根節點，保持其 position 欄位封包完整 --}}
             <input type='hidden' name='position' value='{{ $org->position }}'>
@@ -211,6 +181,47 @@
             <a href="{{ route('showOrgs', $camp->id) }}" class="btn btn-danger">取消修改</a>
         </div>
     </form>
+
+    @if($isCopyPermissions)
+    {{-- 複製後台權限選單區塊 --}}
+    <form action="{{ route('copyPermissions', [$camp->id, $org->id]) }}" method="post">
+        @csrf
+        <h4 class="card-title"><i class="fas fa-copy mr-1"></i> 複製來源權限設定</h4>
+        {{-- 1. 選擇來源營隊 --}}
+        <div class='row form-group mt-4 required'>
+            <label class='col-md-2 control-label'>來源營隊</label>    
+            <div class='col-md-6'>
+                <select class='form-control' name='camp2copy' id='inputCamp2Copy' required onchange='showOrgSel()'>
+                    <option value=''>- 請選擇來源營隊 -</option>
+                    @foreach($camp_list as $item)
+                        @if($item->id !=$camp->id)
+                            <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} </option>
+                        @else
+                            <option value='{{$item->id}}'> [{{$item->id}}] {{$item->fullName}} (本營隊)</option>
+                        @endif
+                    @endforeach
+                </select>
+                <small class="form-text text-muted">選擇要從哪一個營隊複製權限。</small>
+            </div>
+        </div>
+        
+        {{-- 2. 選擇來源職務 --}}
+        <div class='row form-group mt-4 required'>
+            <label class='col-md-2 control-label'>來源職務</label>    
+            <div class='col-md-6'>
+                <select class='form-control' name="org2copy" id="inputOrg2Copy" required disabled onchange='showPermissionSel()'>
+                    <option value="">- 請先選擇來源營隊 -</option>
+                </select>
+                <small class="form-text text-muted">選擇後，系統將會把該職務所擁有的權限複製並覆蓋至目前職務。</small>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-block">確認複製</button>
+            </div>
+        </div>
+        <div id="permissions2copy" class="alert alert-info mt-3" style="display:none;"></div>
+    </form>
+
+    @endif
 
     {{-- ✨ JavaScript 邏輯修正 --}}
     <script>
@@ -249,6 +260,43 @@
                 }
             });
         });
+        function showPermissionSel(){
+            var org_sel = document.getElementById("inputOrg2Copy");
+            var org_id_sel = org_sel.options[org_sel.selectedIndex].value;
+            var permissions2copy = document.getElementById("permissions2copy");
+            if(!org_id_sel) return;
+
+            axios.post('/semi-api/getPermissionSel', { org_id_sel: org_id_sel })
+            .then(function (response) {
+                permissions2copy.style.display = "block";
+                permissions2copy.innerHTML = `正在取得職務 [${org_id_sel}] 的權限，請稍候...`;
+                
+                let rawData = response.data;
+                console.log(rawData); // ✨ 新增：在瀏覽器控制台中查看原始資料結構，方便除錯
+
+                // 1. 安全檢查：確保資料非空
+                if (!rawData || Object.keys(rawData).length === 0) {
+                    permissions2copy.innerHTML = `⚠️ 職務 [ID: ${org_id_sel}] 目前尚未設定任何權限。`;
+                    return;
+                }
+
+                // 2. 轉成 JavaScript 陣列
+                const itemList = Object.values(rawData);
+
+                // 3. 渲染為清單與 Badge 標籤
+                let text = `<strong><i class="fas fa-key mr-1"></i> 欲複製的權限預覽 (共 ${itemList.length} 項)：</strong><ul class="mb-0 mt-2 pl-3">`;
+                itemList.forEach(item => {
+                    text += `<li><span class="badge badge-primary mr-1">${item.name}</span> ${item.description || ''}</li>`;
+                });
+                text += `</ul>`;
+                
+                permissions2copy.innerHTML = text;
+            })
+            .catch(function (error) {
+                console.error("取得職務權限失敗:", error);
+                permissions2copy.innerHTML = `⚠️ 取得權限失敗，請稍後再試。`;
+            });
+        }
         function showOrgSel(){
             var camp_sel = document.getElementById("inputCamp2Copy");
             var camp_id_sel = camp_sel.options[camp_sel.selectedIndex].value;

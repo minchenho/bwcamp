@@ -52,7 +52,7 @@
                 <h5>🔥 複製現有營隊組織結構</h5>
                 <div class="form-group row mt-3">
                     <label class="col-md-2 col-form-label text-md-right">選擇目標營隊</label>
-                    <div class="col-md-7">
+                    <div class="col-md-6">
                         <select class='form-control' name='camp2copy' id='inputCamp2Copy' onchange='showOrgSel()'>
                             <option value=''>- 請選擇 -</option>
                             @foreach($camp_list as $item)
@@ -62,7 +62,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <button class="btn btn-primary btn-block">確認複製</button>
                     </div>
                 </div>
