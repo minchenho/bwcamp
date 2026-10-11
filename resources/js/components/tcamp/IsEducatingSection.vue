@@ -10,7 +10,7 @@
             <label
                 for="inputIsEducating"
                 class="col-md-2 control-label text-md-right"
-                >現任職於學校</label
+                >現任職於學校單位</label
             >
             <div class="col-md-10">
                 <label class="radio-inline">
