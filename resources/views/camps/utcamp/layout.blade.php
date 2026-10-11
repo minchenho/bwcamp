@@ -8,6 +8,10 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    @if ($camp_info->year < $this_year || !$camp_info->year)
+        <meta name="googlebot" content="noindex, nofollow">
+        <meta name="robots" content="noindex, nofollow">
+    @endif
     <meta name='description' content='「教育是人類升沈的樞紐」邀請您報名參加教師生命成長營。' />
     <meta name='author' content='福智文教基金會'>
     <meta property='og:url' content='https://bwfoce.org/ufscamp/'/>
@@ -15,10 +19,6 @@
     <meta property='og:description' content='「教育是人類升沈的樞紐」邀請您報名參加教師生命成長營。' />
     <meta property='og:image' content='https://bwfoce.org/ufscamp/'/>
     {{-- <link rel='icon' href='/camp/favicon.ico'> --}}
-    @if ($camp_info->year < $this_year || !$camp_info->year)
-        <meta name="googlebot" content="noindex, nofollow">
-        <meta name="robots" content="noindex, nofollow">
-    @endif
     <title> {{ $camp_info->fullName }} </title>
     <!-- Bootstrap core CSS -->
     @vite(['resources/js/app.js'])
@@ -94,7 +94,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('payment', $batch_id) }}">線上繳費</a>
                     </li>
-                    --}}                    
+                    --}}
                     <li class="nav-item">
                             <a class="nav-link" href="{{ route('queryadmitGET', $batch_id) }}">錄取查詢</a>
                     </li>
