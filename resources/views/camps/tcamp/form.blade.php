@@ -13,7 +13,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             <h5>研習時間：{{ \Carbon\Carbon::parse($camp_info->batch_start)->translatedFormat("Y年m月d日(l)") }} 起至 {{ \Carbon\Carbon::parse($camp_info->batch_end)->translatedFormat("Y年m月d日(l)") }} 止</h5>
             <h5>研習時數：凡參加研習者依規定核發研習時數或數位研習證書</h5>
             <h6>指導單位：教育部生命教育中心</h6>
-            <h6>主辦單位：財團法人福智文教基金會、國立屏東大學</h6>
+            <h6>主辦單位：財團法人福智文教基金會、開南大學</h6>
             <h6>協辦單位：福智學校財團法人、基隆市立瑪陵國民小學、屏東縣立大路關國民小學</h6>
         </div>
     <div class='alert alert-info' role='alert'>
@@ -23,6 +23,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     <div class='page-header form-group'>
         <h4>{{ $camp_info->fullName }} 報名表</h4>
     </div>
+
 <span id="tcamp-layout">
 {{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}
 @if((!isset($isModify) && $batch->is_appliable) || (isset($isModify) && $isModify))
@@ -105,42 +106,9 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 
-<!--
-    <div class='row form-group required'>
-        <label for='inputBirth' class='col-md-2 control-label text-md-right'>年齡層</label>
-        <div class='col-md-10'>
-            <select required class='form-control' name='age_range' placeholder=''>
-                <option value="">- 請選擇 -</option>
-                <option value="25 歲以下">25 歲以下</option>
-                <option value="26 歲 - 35 歲">26 歲 - 35 歲</option>
-                <option value="36 歲 - 45 歲">36 歲 - 45 歲</option>
-                <option value="46 歲 - 55 歲">46 歲 - 55 歲</option>
-                <option value="56 歲 - 65 歲">56 歲 - 65 歲</option>
-                <option value="66 歲以上">66 歲以上</option>
-            </select>
-            <div class="invalid-feedback">
-                未選擇
-            </div>
-        </div>
-    </div>
-
-    <div class='row form-group required'>
-        <label for='inputEducation' class='col-md-2 control-label text-md-right'>最高學歷</label>
-        <div class='col-md-10'>
-            <select name="education" class="form-control" required>
-                <option value=''>- 請選擇 -</option>
-                <option value='高中職'>高中職</option>
-                <option value='大專'>大專</option>
-                <option value='碩士'>碩士</option>
-                <option value='博士'>博士</option>
-                <option value='其他'>其他</option>
-            </select>
-        </div>
-    </div>
--->
     @if(!$camp_info->variant)
         <div class='row form-group required'>
-            <label for='inputHasLicense' class='col-md-2 control-label text-md-right'>教師證</label>
+            <label for='inputHasLicense' class='col-md-2 control-label text-md-right'>教師證書</label>
             <div class='col-md-10'>
                 <label class=radio-inline>
                     <input type=radio required name='has_license' value=1 > 有
@@ -200,7 +168,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
 
         <div class='row form-group required'>
-            <label for='inputUnitCounty' class='col-md-2 control-label text-md-right'>服務單位所在縣市</label>
+            <label for='inputUnitCounty' class='col-md-2 control-label text-md-right'>服務單位<br>所在縣市/行政區</label>
             <div class='col-md-10'>
                 <select required class='form-control' name='unit_county'' {{-- onChange='SchooList(this.options[this.options.selectedIndex].value);' --}}>
                     <option value='' selected>- 請選縣市 -</option>
@@ -233,14 +201,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 </div>
             </div>
         </div>
-{{--
-        <div class='row form-group'>
-            <label for='inputNationName' class='col-md-2 control-label text-md-right'>國籍</label>
-            <div class='col-md-10'>
-                <input type=text name='nationality' value='' class='form-control' id='inputNationName' placeholder='如服務單位所在縣市為海外，請加註您的國籍'>
-            </div>
-        </div>
---}}
+
         <div class='row form-group required'>
             <label for='inputNationName' class='col-md-2 control-label text-md-right required'>國籍</label>
             <div class='col-md-10'>
@@ -354,11 +315,11 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         <p class="form-control-static text-danger font-weight-bold m-0">＊因需寄發教材資料，請務必填寫詳細</p>
     </div>
 -->
-<!--
-<div class='row form-group required'>
-        <label for='inputAddress' class='col-md-2 control-label text-md-right'>通訊地址</label>
+
+    <div class='row form-group required'>
+        <label for='inputAddress' class='col-md-2 control-label text-md-right'>居住地<br>所在縣市/行政區</label>
         <div class='col-md-2'>
-            <select required name="county" class="form-control" onChange="Address(this.options[this.options.selectedIndex].value);">
+            <select required name="county" class="form-control" onChange="Address(this.options[this.options.selectedIndex].value); if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show') } else { handleHiddenCustomField('hide') } if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set') } else { handleOverseas('unset') }">
                 <option value=''>- 請先選縣市 -</option>
                 <option value='臺北市'>臺北市</option>
                 <option value='新北市'>新北市</option>
@@ -385,29 +346,30 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <option value='南海諸島'>南海諸島</option>
                 <option value='海外'>海外</option>
             </select>
-            <div class="invalid-feedback crumb">
+	    <div class="invalid-feedback crumb">
                 未選擇縣市
             </div>
         </div>
         <div class='col-md-2'>
-            <select required name=subarea class='form-control' onChange='document.Camp.zipcode.value=this.options[this.options.selectedIndex].value; document.Camp.address.value=MyAddress(document.Camp.county.value, this.options[this.options.selectedIndex].text);'>
+            <select required name=subarea id="subarea" class='form-control' onchange="updateSubarea(this)">
                 <option value=''>- 再選區鄉鎮 -</option>
             </select>
-            <div class="invalid-feedback crumb">
+	<div class="invalid-feedback crumb">
                 未選擇區鄉鎮
             </div>
         </div>
         <div class='col-md-1'>
-            <input readonly type=text name=zipcode value='' class='form-control'>
+            <input readonly type=hidden name=zipcode value='' class='form-control'>
+            <input readonly type=hidden name=subarea_text value='' class='form-control'>
         </div>
-        <div class='col-md-5'>
-            <input type=text required name='address' value='' pattern=".{10,80}" class='form-control' placeholder='請填寫通訊地址'>
+        <div class='col-md-3'>
+            <input type=hidden name=address value='' maxlength=80 class='form-control' placeholder='請填寫現居住地點'>
             <div class="invalid-feedback">
-                未填寫通訊地址
+                未填寫現居住地點
             </div>
         </div>
     </div>
--->
+
     <div class='row form-group required'>
         <label for='inputEmail' class='col-md-2 control-label text-md-right'>電子郵件</label>
         <div class='col-md-10'>
@@ -438,7 +400,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     </div>
 
     <div class='row form-group required'>
-        <label for='inputFuzhi' class='col-md-2 control-label text-md-right'>參加過「福智教師生命成長營」(寒假舉辦)</label>
+        <label for='inputFuzhi' class='col-md-2 control-label text-md-right'>參加過「福智教師生命成長營」<br>(寒假舉辦)</label>
         <div class='col-md-10'>
             <div class="form-check form-check-inline">
                 <label class="form-check-label">
@@ -497,8 +459,31 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                     請詳填廣論研討班別，例：北14宗001班
                 </div>
             </div>
-     </div>
-
+    </div>
+    <div class="row form-group required">
+        <label for='inputIsMember' class='col-md-2 control-label text-md-right'>立即加入<br>福智文教會員中心</label>
+        <div class='col-md-10'>
+            <label class="form-check-label text-info">會員好禮：享有觀看影片、閱讀文章及參加各種課程活動</label><br>
+            <div class="form-check form-check-inline">
+                <label class="form-check-label" for="1">
+                    <input class="form-check-input" type="radio" name="is_membership" value="1">
+                    立即加入
+                    <div class="invalid-feedback">
+                        未選擇加入會員
+                    </div>
+                </label>
+            </div>
+            <div class="form-check form-check-inline">
+                <label class="form-check-label" for="0">
+                    <input class="form-check-input" type="radio" name="is_membership" value="0">
+                    暫時不要
+                    <div class="invalid-feedback">
+                        &nbsp;
+                    </div>
+                </label>
+            </div>
+        </div>
+    </div>
     <div class='row form-group required'>
         <label for='inputEmail' class='col-md-2 control-label text-md-right'>願意收到福智文教基金會電子報</label>
         <div class="col-md-10">
@@ -602,8 +587,8 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <div class='col-md-10'>
                     <select required class='form-control' name='transportation_depart' onChange=''>
                         <option value='' selected>- 請選擇 -</option>
-                        <option value='屏東火車站專車接駁' >屏東火車站專車接駁</option>
-                        <option value='左營高鐵站專車接駁' >左營高鐵站專車接駁</option>
+                        <option value='桃園火車站專車接駁' >桃園火車站專車接駁</option>
+                        <option value='桃園高鐵站專車接駁' >桃園高鐵站專車接駁</option>
                         <option value='自行前往無以上需求' >自行前往無以上需求</option>
                     </select>
                 </div>
@@ -615,8 +600,8 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <div class='col-md-10'>
                     <select required class='form-control' name='transportation_back' onChange=''>
                         <option value='' selected>- 請選擇 -</option>
-                        <option value='專車接駁至屏東火車站' >專車接駁至屏東火車站</option>
-                        <option value='專車接駁至左營高鐵站' >專車接駁至左營高鐵站</option>                        
+                        <option value='專車接駁至桃園火車站' >專車接駁至桃園火車站</option>
+                        <option value='專車接駁至桃園高鐵站' >專車接駁至桃園高鐵站</option>                        
                         <option value='自行返回無以上需求' >自行返回無以上需求</option>
                     </select>
                 </div>
@@ -776,7 +761,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <label><input type="checkbox" name=interesting[] value='親子教育' > 親子教育</label> <br/>
                 <label><input type="checkbox" name=interesting[] value='婚姻經營' > 婚姻經營</label> <br/>
                 <label><input type="checkbox" name=interesting[] value='班級經營' > 班級經營</label> <br/>
-                <label><input type="checkbox" name=interesting[] value='情緒管理' > 情緒管理</label> <br/>
+                <label><input type="checkbox" name=interesting[] value='情緒教育(SEL)' > 情緒教育(SEL)</label> <br/>
                 <label><input type="checkbox" name=interesting[] value='環保淨灘' > 環保淨灘</label> <br/>
                 <label><input type="checkbox" name=interesting[] value='農場體驗' > 農場體驗</label> <br/>
                 <label><input type="checkbox" name=interesting[] value='正念禪修' > 正念禪修</label> <br/>
@@ -846,7 +831,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </div> --}}
         </div>
     </div>
-
+{{--
     <!--- 同意書 -->
     <div class='row form-group required'>
         <label for='inputTerm' class='col-md-2 control-label text-md-right'>肖像權</label>
@@ -908,6 +893,19 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </div>
         </div>
     </div>
+--}}
+
+    <!--- 同意書 -->
+    <div class='row form-group'>
+        <label for='notes' class='col-md-2 control-label text-md-right text-danger'>附註</label>
+        <div class='col-md-10 form-check'>
+            <p class='form-control-static text-danger'>
+            本人同意：福智文教基金會取得之個人資料，於營隊期間及後續基金會所屬福智團體舉辦之活動，作為訊息通知、行政處理等非營利目的之使用，不提供予無相關之其他單位使用。在營隊期間拍照、錄影之活動記錄可使用於營隊及主辦單位之非營利教育推廣使用。
+            </p>
+        </div>
+    </div>
+    <input type='hidden' name="profile_agree" value='0'>
+    <input type='hidden' name="portrait_agree" value='0'>
 
     {{-- !isset($isModify):報名狀態，此時才預填is_attend=1 --}}
     @if(!isset($isModify))
@@ -1114,6 +1112,19 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             for(let i = 0; i < elements.length; i++){
                 elements[i].required = true;
             }
+        }
+
+        function updateSubarea(ele,address_type = null) {
+            //console.log(ele);
+            if(!address_type)
+                address_type = '';
+            else
+                address_type = address_type + '_';
+
+            document.Camp[address_type + 'zipcode'].value=ele.options[ele.options.selectedIndex].value;
+            document.Camp[address_type + 'subarea_text'].value=ele.options[ele.options.selectedIndex].text;
+            document.Camp[address_type + 'address'].value = MyAddress(document.Camp[address_type + 'county'].value, ele.options[ele.options.selectedIndex].text);
+            return;
         }
 
         @if(isset($applicant_data))
