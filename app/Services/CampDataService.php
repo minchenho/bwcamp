@@ -132,6 +132,10 @@ class CampDataService
             } else {
                 // Use custom text field if provided (for class_address), otherwise substring
                 $newValue = $elseField ? $request->input($elseField) : \Str::substr($request->input($addrField), 3);
+                // 新竹市、嘉義市的 address 只有縣市名，substr 後為空，改用選單文字
+                if ($newValue === '' && $request->filled($subField . '_text')) {
+                    $newValue = $request->input($subField . '_text');
+                }
                 $request->merge([$subField => $newValue]);
             }
         }
@@ -341,7 +345,7 @@ class CampDataService
             }
 
             if ($formData["unit_county"] == "苗栗縣") {
-                if (isset($formData["unit_district"]) && ($formData["unit_district"] == "頭份鎮" || $formData["unit_district"] == "竹南鎮")) {
+                if (isset($formData["unit_district"]) && ($formData["unit_district"] == "頭份市" || $formData["unit_district"] == "頭份鎮" || $formData["unit_district"] == "竹南鎮")) {
                     $region = "新竹";
                 } elseif ($MiauLiInHsinChu->first(function ($item) use ($formData) {
                     return str_contains($formData["unit"], $item);
@@ -501,7 +505,8 @@ class CampDataService
                 "桃園縣" => "桃園", // 保留舊縣名以防萬一
                 "新竹市" => "新竹",
                 "新竹縣" => "新竹",
-                "苗栗縣頭份鎮" => "新竹",
+                "苗栗縣頭份市" => "新竹",
+                "苗栗縣頭份鎮" => "新竹", // 保留舊名（2015 年升格為市）
                 "苗栗縣竹南鎮" => "新竹",
                 "苗栗縣" => "中區",
                 "臺中市" => "中區",
@@ -532,8 +537,8 @@ class CampDataService
 
             // 情況 1: unit_county 已設定
             if (isset($formData["unit_county"]) && $formData["unit_county"] != "") {
-                // 優先處理苗栗縣頭份鎮/竹南鎮的特殊規則
-                if ($formData["unit_county"] == "苗栗縣" && isset($formData["unit_subarea"]) && ($formData["unit_subarea"] == "頭份鎮" || $formData["unit_subarea"] == "竹南鎮")) {
+                // 優先處理苗栗縣頭份市(鎮)/竹南鎮的特殊規則
+                if ($formData["unit_county"] == "苗栗縣" && isset($formData["unit_subarea"]) && ($formData["unit_subarea"] == "頭份市" || $formData["unit_subarea"] == "頭份鎮" || $formData["unit_subarea"] == "竹南鎮")) {
                     $determinedRegion = "新竹";
                     $regionFound = true;
                 } else {

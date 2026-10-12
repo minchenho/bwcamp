@@ -294,7 +294,12 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </p>
             <div class='row'>
                 <div class='col-md-3'>
-                    <select name="class_county" class="form-control" onChange="Address(this.options[this.options.selectedIndex].value, 'class'); if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show', 'class') } else { handleHiddenCustomField('hide', 'class') } if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set', 'class') } else { handleOverseas('unset', 'class') }" required>
+                    <select name="class_county" class="form-control" 
+                    onChange="Address(this.options[this.options.selectedIndex].value, 'class'); 
+                    if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show', 'class') } 
+                    else { handleHiddenCustomField('hide', 'class') } 
+                    if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set', 'class') } 
+                    else { handleOverseas('unset', 'class') }" required>
                         <option value=''>- 請選擇縣市 -</option>
                         <option value='臺北市'>臺北市</option>
                         <option value='新北市'>新北市</option>
@@ -833,7 +838,12 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     <div class='row form-group'>
         <label for='inputAddress' class='col-md-2 control-label text-md-right'>現居住地點</label>
         <div class='col-md-2'>
-            <select name="county" class="form-control" onChange="Address(this.options[this.options.selectedIndex].value); if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show') } else { handleHiddenCustomField('hide') } if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set') } else { handleOverseas('unset') }">
+            <select name="county" class="form-control" 
+            onChange="Address(this.options[this.options.selectedIndex].value); 
+            if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show') } 
+            else { handleHiddenCustomField('hide') } 
+            if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set') } 
+            else { handleOverseas('unset') }">
                 <option value=''>- 請先選縣市 -</option>
                 <option value='臺北市'>臺北市</option>
                 <option value='新北市'>新北市</option>
@@ -891,7 +901,12 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     <div class='row form-group'>
         <label for='inputUnitCounty' class='col-md-2 control-label text-md-right'>服務地點</label>
         <div class='col-md-2'>
-            <select name="unit_county" class="form-control" onChange="Address(this.options[this.options.selectedIndex].value, 'unit'); if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show', 'unit') } else { handleHiddenCustomField('hide', 'unit') } if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set', 'unit') } else { handleOverseas('unset', 'unit') }">
+            <select name="unit_county" class="form-control" 
+            onChange="Address(this.options[this.options.selectedIndex].value, 'unit'); 
+            if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show', 'unit') } 
+            else { handleHiddenCustomField('hide', 'unit') } 
+            if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set', 'unit') } 
+            else { handleOverseas('unset', 'unit') }">
                 <option value=''>- 請選擇縣市 -</option>
                 <option value='臺北市'>臺北市</option>
                 <option value='新北市'>新北市</option>
@@ -1095,34 +1110,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 document.getElementById('blisswisdom_type_other_checkbox').addEventListener("change", function(){
                     document.Camp.blisswisdom_type_other.required = document.getElementById('blisswisdom_type_other_checkbox').checked;
                 });
-{{--
-                /**
-                * 是否在學校或教育單位任職，勾選後顯示/隱藏任職單位相關欄位。
-                */
-                rowIsEducating = document.getElementById("rowIsEducating");
-                document.getElementById("is_educating_y").addEventListener("change", showFields);
-                document.getElementById("is_educating_n").addEventListener("change", hideFields);
-                if(document.getElementById("is_educating_n").checked){
-                    hideFields();
-                }
-                /**
-                * 任職機關/任教學程，勾選後顯示對應職稱。
-                */
-                categories = document.getElementsByName("school_or_course");
-                for(let i = 0; i < categories.length; i++){
-                    categories[i].addEventListener("click", changeJobTitleList);
-                    categories[i].addEventListener("change", changeJobTitleList);
-                }
 
-                /**
-                * 選擇職稱後，將職稱填至欄位中。
-                */
-                titles = document.getElementsByName("data[12]");
-                for(let i = 0; i < titles.length; i++){
-                    titles[i].addEventListener("click", fillTheTitle);
-                    titles[i].addEventListener("change", fillTheTitle);
-                }
---}}
             }
         };
 
@@ -1218,128 +1206,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             document.Camp[address_type + 'address'].value = MyAddress(document.Camp[address_type + 'county'].value, ele.options[ele.options.selectedIndex].text);
             return;
         }
-{{--
-        function showFields(){
-            rowIsEducating.innerHTML = "<div class='row form-group required'>" +
-                "    <label for='inputSchoolOrCourse' class='col-md-2 control-label text-md-right'>任職機關/任教學程</label>" +
-                "    <div class='col-md-10'>" +
-                "        <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=教育部 class='officials'> 教育部" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                請勾選任職機關/任教學程" +
-                "            </div>" +
-                "        </label> " +
-                "        <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=教育局/處 class='officials'> 教育局/處" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                &nbsp;" +
-                "            </div>" +
-                "        </label> " +
-                "        <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=大專校院 class='universities'> 大專校院" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                &nbsp;" +
-                "            </div>" +
-                "        </label> <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=高中職 class='compulsories'> 高中職" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                &nbsp;" +
-                "            </div>" +
-                "        </label> <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=國中 class='compulsories'> 國中" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                &nbsp;" +
-                "            </div>" +
-                "        </label> <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=國小 class='compulsories'> 國小" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                &nbsp;" +
-                "            </div>" +
-                "        </label> <label class=radio-inline>" +
-                "            <input type=radio required name='school_or_course' value=幼教 class='compulsories'> 幼教" +
-                "            <div class='invalid-feedback crumb'>" +
-                "                &nbsp;" +
-                "            </div>" +
-                "        </label> " +
-                "    </div>" +
-                "</div>" +
-                "<div class='row form-group required'> " +
-                "<label for='inputSubjectTeaches' class='col-md-2 control-label text-md-right'>任教科系/任教科目</label>" +
-                "    <div class='col-md-10'>" +
-                "        <input type=text required  name='subject_teaches' value='' class='form-control' id='inputSubjectTeaches'>" +
-                "        <div class='invalid-feedback crumb'>" +
-                "            請填寫任教科系/任教科目" +
-                "        </div>" +
-                "    </div>" +
-                "</div>";
 
-            document.getElementById("tip").innerHTML = '請先選擇任教機關/任教學程';
-
-            /*************************************
-             * 物件重建後需重新設定 event listener
-             *************************************/
-            categories = document.getElementsByName("school_or_course");
-            for(let i = 0; i < categories.length; i++){
-                categories[i].addEventListener("click", changeJobTitleList);
-                categories[i].addEventListener("change", changeJobTitleList);
-            }
-
-            titles = document.getElementsByName("data[12]");
-            for(let i = 0; i < titles.length; i++){
-                titles[i].addEventListener("click", fillTheTitle);
-                titles[i].addEventListener("change", fillTheTitle);
-            }
-        }
-
-        function hideFields(){
-            rowIsEducating.innerHTML = '';
-            document.getElementById("tip").innerHTML = '';
-        }
-
-        function setUnrequired(elements){
-            for(let i = 0; i < elements.length; i++){
-                elements[i].required = false;
-            }
-        }
-
-        function setRequired(elements){
-            for(let i = 0; i < elements.length; i++){
-                elements[i].required = true;
-            }
-        }
-
-        function changeJobTitleList(){
-            if(this.checked){
-                document.getElementById('tip').style.display = 'none';
-                document.getElementById('title').value = '';
-                titleSets = document.getElementsByClassName("titles");
-                for(let i = 0 ; i < titleSets.length ; i++){
-                    if(titleSets[i].className.includes(this.className)){
-                        titleSets[i].style.display = "";
-                    }
-                    else{
-                        inputs = titleSets[i].getElementsByTagName('input');
-                        for(let j = 0 ; j < inputs.length ; j++){
-                            inputs[j].checked = false;
-                        }
-                        titleSets[i].style.display = "none";
-                    }
-                }
-            }
-        }
-
-        function fillTheTitle(){
-            if(this.value == '其他'){
-                document.getElementById('title').value = '請在此處自行輸入職稱';
-            }
-            else if(this.value == '兼課老師'){
-                document.getElementById('title').value = '兼課老師(兼課時數: 小時)';
-            }
-            else if(this.value != null){
-                document.getElementById('title').value = this.value;
-            }
-        }
---}}
         @if(isset($applicant_data))
             {{-- 回填報名資料 --}}
             sleep(10).then(() => {
@@ -1408,7 +1275,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                                     var optionText = options[j].text;
 
                                     // Check if the text equals to the specific text
-                                    if (optionText == applicant_data['class_subarea']) {
+                                    if (isSameSubarea(optionText, applicant_data['class_subarea'])) {
                                         options[j].selected = true;
                                     }
                                 }
@@ -1435,7 +1302,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                                     var optionText = options[j].text;
 
                                     // Check if the text equals to the specific text
-                                    if (optionText == applicant_data['subarea']) {
+                                    if (isSameSubarea(optionText, applicant_data['subarea'])) {
                                         options[j].selected = true;
                                     }
                                 }
@@ -1461,7 +1328,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                                     var optionText = options[j].text;
 
                                     // Check if the text equals to the specific text
-                                    if (optionText == applicant_data['unit_subarea']) {
+                                    if (isSameSubarea(optionText, applicant_data['unit_subarea'])) {
                                         options[j].selected = true;
                                     }
                                 }
@@ -1547,7 +1414,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                                 var optionText = options[j].text;
 
                                 // Check if the text equals to the specific text
-                                if (optionText == elements[1]) {
+                                if (isSameSubarea(optionText, elements[1])) {
                                     options[j].selected = true;
                                     set = true;
                                 }
@@ -1596,19 +1463,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                         else if(inputs[i].type == "text"){
                             inputs[i].value = applicant_data[inputs[i].name];
                         }
-                        /*else if(inputs[i].type == "hidden" && inputs[i].name == 'address'){
-                            if (applicant_data["address"].includes("新竹市")) {
-                                Address("新竹市");
-                                document.getElementById('subarea').options[1].selected = true;
-                            }
-                            inputs[i].value = applicant_data[inputs[i].name] + applicant_data["subarea"];
-                        }
-                        else if(inputs[i].type == "hidden" && (inputs[i].name == 'unit_address' && !applicant_data["unit_county"].includes("海外"))){
-                            inputs[i].value = applicant_data["unit_county"] + applicant_data["unit_subarea"];
-                        }
-                        else if(inputs[i].type == "hidden" && (inputs[i].name == 'class_address' && !applicant_data["class_county"].includes("海外"))){
-                            inputs[i].value = applicant_data["class_county"] + applicant_data["class_subarea"];
-                        }*/
                         if(inputs[i].name == 'emailConfirm'){
                             inputs[i].value = applicant_data['email'];
                         }
@@ -1652,6 +1506,4 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         }
     </style>
 @stop
-{{--
-    參考頁面：https://bwfoce.org/ecamp/form/2020ep01.php
---}}
+
