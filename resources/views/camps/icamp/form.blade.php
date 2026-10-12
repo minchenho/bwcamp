@@ -864,7 +864,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                                     var optionText = options[j].text;
 
                                     // Check if the text equals to the specific text
-                                    if (optionText == applicant_data['unit_subarea']) {
+                                    if (isSameSubarea(optionText, applicant_data['unit_subarea'])) {
                                         options[j].selected = true;
                                     }
                                 }
@@ -946,7 +946,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                                 var optionText = options[j].text;
 
                                 // Check if the text equals to the specific text
-                                if (optionText == elements[1]) {
+                                if (isSameSubarea(optionText, elements[1])) {
                                     options[j].selected = true;
                                     set = true;
                                 }
