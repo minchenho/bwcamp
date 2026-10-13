@@ -93,11 +93,11 @@
                         <a class="nav-link" href="{{ route('payment', $batch_id) }}">線上繳費</a>
                     </li>
                     --}}
-                    @if($today >= $camp_info->admission_announcing_date)
+                @if($today >= $camp_info->admission_announcing_date)
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route("queryadmitGET", $batch_id) }}">錄取查詢</a>
                         </li>
-                    @endif
+		@endif
                     <li class="nav-item">
                         <a class="nav-link" href="{{ $camp_info->site_url }}">課程表</a>
                     </li>

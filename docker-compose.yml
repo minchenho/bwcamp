@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      secrets:
+        - composer_auth
     image: laravel-app
     container_name: bwcamp
     restart: unless-stopped
@@ -63,6 +65,11 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
+
+secrets:
+  composer_auth:
+    file: ./auth.json
+
 #Docker Networks
 networks:
   app-network:

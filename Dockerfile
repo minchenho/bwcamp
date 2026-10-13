@@ -63,7 +63,10 @@ COPY --chown=www-data:www-data . /var/www
 RUN npm install
 RUN npm install -g vite
 RUN npm install vite
-RUN composer install --no-interaction --prefer-dist
+RUN --mount=type=secret,id=composer_auth,target=/app/auth.json \
+    COMPOSER_AUTH=$(cat /app/auth.json) \
+    composer install --no-interaction --prefer-dist
+# RUN composer install --no-interaction --prefer-dist
 
 # Change current user to www
 USER www-data
