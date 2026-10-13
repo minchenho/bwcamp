@@ -1,10 +1,18 @@
+@php
+	$today = \Carbon\Carbon::now();
+	$this_year = $today->year;
+@endphp
 <html lang='zh-Hant'>
 <head>
     <meta charset='utf-8'>
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <meta name="robots" content="noindex, nofollow">
+    <!--meta name="robots" content="noindex, nofollow"-->
+    @if ($camp_info->year < $this_year || !$camp_info->year)
+        <meta name="googlebot" content="noindex, nofollow">
+        <meta name="robots" content="noindex, nofollow">
+    @endif
     <meta name='description' content='「教育是人類升沈的樞紐」邀請您報名參加教師生命成長營。' />
     <meta name='author' content='福智文教基金會'>
     <meta property='og:url' content='https://bwfoce.org/tcamp/'/>
@@ -12,7 +20,7 @@
     <meta property='og:description' content='「教育是人類升沈的樞紐」邀請您報名參加教師生命成長營。' />
     <meta property='og:image' content='https://bwfoce.org/tcamp/'/>
     {{-- <link rel='icon' href='/camp/favicon.ico'> --}}
-    <title> {{ $camp_data->fullName }} </title>
+    <title> {{ $camp_info->fullName }} </title>
     <!-- Bootstrap core CSS -->
     @vite(['resources/js/app.js'])
     <link href='{{ asset('css/app.css') }}' rel='stylesheet'>
@@ -21,11 +29,8 @@
     <link href='{{ asset('css/camp.css') }}' rel='stylesheet'>
     <!-- jQuery library-->
     {{-- <script src='{{ asset('js/jquery-3.5.1.min.js') }}'></script> --}}
-    <script src="{{ asset('js/popper.2.11.6.min.js') }}"></script>
     <!-- Bootstrap core JS -->
     {{-- <script src='{{ asset('js/bootstrap.bundle.min.js') }}'></script> --}}
-    <!-- Bootstrap confirmation JS -->
-    <script src='{{ asset('js/bootstrap-confirmation.min.js') }}'></script>
     <script
         src="https://browser.sentry-cdn.com/8.20.0/bundle.tracing.replay.min.js"
         integrity="sha384-e4DRKCQjGj8HoVTcv07HyAm3g1wDECvRclj9gsw2d06z1aLh+78iJ21phn6RhkJD"
@@ -83,23 +88,21 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('query', $batch_id) }}">報名查詢/修改</a>
                     </li>
-                    {{-- 
-                        <li class="nav-item">
+                    {{--
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ route('payment', $batch_id) }}">線上繳費</a>
-                        </li> 
+                    </li>
                     --}}
-                    @if(\Carbon\Carbon::now() >= $camp_data->admission_announcing_date)
+                @if($today >= $camp_info->admission_announcing_date)
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route("queryadmitGET", $batch_id) }}">錄取查詢</a>
                         </li>
-                    @endif
+		@endif
                     <li class="nav-item">
-                        <!--<a class="nav-link" href="{{ url("downloads/tcamp2022/2022第30屆教師生命成長營課程表.pdf") }}">課程表</a>-->
-                        <a class="nav-link" href="{{ $camp_data->site_url }}">課程表</a>
+                        <a class="nav-link" href="{{ $camp_info->site_url }}">課程表</a>
                     </li>
                     <li class="nav-item">
-                        <!--<a class="nav-link" href="{{ url("downloads/tcamp2022/2022教師生命成長營簡章(網頁版)1109F.pdf") }}">報名簡章下載</a>-->
-                        <a class="nav-link" href="{{ $camp_data->site_url }}">報名須知</a>
+                        <a class="nav-link" href="{{ $camp_info->site_url }}">報名須知</a>
                     </li>
                 </ul>
             </div>

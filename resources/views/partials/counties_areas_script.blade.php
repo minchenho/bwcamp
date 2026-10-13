@@ -1,5 +1,25 @@
 <script LANGUAGE='javascript'>
 
+    // 舊資料的區鄉鎮名稱（改名、升格或用字不同）對應到目前選項名稱，回填時使用
+    // 註：舊的高雄市 849「三民區」無法和 807 三民區用名稱分辨，故不列入
+    var legacySubareaNames = {
+        '頭份鎮': '頭份市',
+        '員林鎮': '員林市',
+        '阿里山': '阿里山鄉',
+        '三地門': '三地門鄉',
+        '太麻里': '太麻里鄉',
+        '台東市': '臺東市',
+        '台西鄉': '臺西鄉',
+        '霧台鄉': '霧臺鄉',
+    };
+
+    // 比對選項文字與已存的區鄉鎮名稱，相容舊名稱與全形空白（如「中　區」）
+    function isSameSubarea(optionText, saved) {
+        if (!saved) return false;
+        saved = String(saved).replace(/[\s　]/g, '');
+        return optionText == saved || legacySubareaNames[saved] == optionText;
+    }
+
     function Address(num, address_type = null) {
         var ctr = 1;
         let ele = null;
@@ -143,7 +163,7 @@
 
         if (num=='苗栗縣') { ele.options[0]=new Option('- 請選鄉鎮 -',''); }
         if (num=='苗栗縣') { ele.options[ctr]=new Option('竹南鎮','350');	ctr=ctr+1;	}
-        if (num=='苗栗縣') { ele.options[ctr]=new Option('頭份鎮','351');	ctr=ctr+1;	}
+        if (num=='苗栗縣') { ele.options[ctr]=new Option('頭份市','351');	ctr=ctr+1;	}
         if (num=='苗栗縣') { ele.options[ctr]=new Option('三灣鄉','352');	ctr=ctr+1;	}
         if (num=='苗栗縣') { ele.options[ctr]=new Option('南庄鄉','353');	ctr=ctr+1;	}
         if (num=='苗栗縣') { ele.options[ctr]=new Option('獅潭鄉','354');	ctr=ctr+1;	}
@@ -164,11 +184,11 @@
     /*臺中市*/
 
         if (num=='臺中市') { ele.options[0]=new Option('- 請選區域 -',''); }
-        if (num=='臺中市') { ele.options[ctr]=new Option('中　區','400');	ctr=ctr+1;	}
-        if (num=='臺中市') { ele.options[ctr]=new Option('東　區','401');	ctr=ctr+1;	}
-        if (num=='臺中市') { ele.options[ctr]=new Option('南　區','402');	ctr=ctr+1;	}
-        if (num=='臺中市') { ele.options[ctr]=new Option('西　區','403');	ctr=ctr+1;	}
-        if (num=='臺中市') { ele.options[ctr]=new Option('北　區','404');	ctr=ctr+1;	}
+        if (num=='臺中市') { ele.options[ctr]=new Option('中區','400');	ctr=ctr+1;	}
+        if (num=='臺中市') { ele.options[ctr]=new Option('東區','401');	ctr=ctr+1;	}
+        if (num=='臺中市') { ele.options[ctr]=new Option('南區','402');	ctr=ctr+1;	}
+        if (num=='臺中市') { ele.options[ctr]=new Option('西區','403');	ctr=ctr+1;	}
+        if (num=='臺中市') { ele.options[ctr]=new Option('北區','404');	ctr=ctr+1;	}
         if (num=='臺中市') { ele.options[ctr]=new Option('北屯區','406');	ctr=ctr+1;	}
         if (num=='臺中市') { ele.options[ctr]=new Option('西屯區','407');	ctr=ctr+1;	}
         if (num=='臺中市') { ele.options[ctr]=new Option('南屯區','408');	ctr=ctr+1;	}
@@ -209,7 +229,7 @@
         if (num=='彰化縣') { ele.options[ctr]=new Option('線西鄉','507');	ctr=ctr+1;	}
         if (num=='彰化縣') { ele.options[ctr]=new Option('和美鎮','508');	ctr=ctr+1;	}
         if (num=='彰化縣') { ele.options[ctr]=new Option('伸港鄉','509');	ctr=ctr+1;	}
-        if (num=='彰化縣') { ele.options[ctr]=new Option('員林鎮','510');	ctr=ctr+1;	}
+        if (num=='彰化縣') { ele.options[ctr]=new Option('員林市','510');	ctr=ctr+1;	}
         if (num=='彰化縣') { ele.options[ctr]=new Option('社頭鄉','511');	ctr=ctr+1;	}
         if (num=='彰化縣') { ele.options[ctr]=new Option('永靖鄉','512');	ctr=ctr+1;	}
         if (num=='彰化縣') { ele.options[ctr]=new Option('埔心鄉','513');	ctr=ctr+1;	}
@@ -253,7 +273,7 @@
         if (num=='雲林縣') { ele.options[ctr]=new Option('土庫鎮','633');	ctr=ctr+1;	}
         if (num=='雲林縣') { ele.options[ctr]=new Option('褒忠鄉','634');	ctr=ctr+1;	}
         if (num=='雲林縣') { ele.options[ctr]=new Option('東勢鄉','635');	ctr=ctr+1;	}
-        if (num=='雲林縣') { ele.options[ctr]=new Option('台西鄉','636');	ctr=ctr+1;	}
+        if (num=='雲林縣') { ele.options[ctr]=new Option('臺西鄉','636');	ctr=ctr+1;	}
         if (num=='雲林縣') { ele.options[ctr]=new Option('崙背鄉','637');	ctr=ctr+1;	}
         if (num=='雲林縣') { ele.options[ctr]=new Option('麥寮鄉','638');	ctr=ctr+1;	}
         if (num=='雲林縣') { ele.options[ctr]=new Option('斗六市','640');	ctr=ctr+1;	}
@@ -275,7 +295,7 @@
         if (num=='嘉義縣') { ele.options[ctr]=new Option('番路鄉','602');	ctr=ctr+1;	}
         if (num=='嘉義縣') { ele.options[ctr]=new Option('梅山鄉','603');	ctr=ctr+1;	}
         if (num=='嘉義縣') { ele.options[ctr]=new Option('竹崎鄉','604');	ctr=ctr+1;	}
-        if (num=='嘉義縣') { ele.options[ctr]=new Option('阿里山','605');	ctr=ctr+1;	}
+        if (num=='嘉義縣') { ele.options[ctr]=new Option('阿里山鄉','605');	ctr=ctr+1;	}
         if (num=='嘉義縣') { ele.options[ctr]=new Option('中埔鄉','606');	ctr=ctr+1;	}
         if (num=='嘉義縣') { ele.options[ctr]=new Option('大埔鄉','607');	ctr=ctr+1;	}
         if (num=='嘉義縣') { ele.options[ctr]=new Option('水上鄉','608');	ctr=ctr+1;	}
@@ -295,9 +315,9 @@
 
         if (num=='臺南市') { ele.options[0]=new Option('- 請選區域 -',''); }
         if (num=='臺南市') { ele.options[ctr]=new Option('中西區','700');	ctr=ctr+1;	}
-        if (num=='臺南市') { ele.options[ctr]=new Option('東　區','701');	ctr=ctr+1;	}
-        if (num=='臺南市') { ele.options[ctr]=new Option('南　區','702');	ctr=ctr+1;	}
-        if (num=='臺南市') { ele.options[ctr]=new Option('北　區','704');	ctr=ctr+1;	}
+        if (num=='臺南市') { ele.options[ctr]=new Option('東區','701');	ctr=ctr+1;	}
+        if (num=='臺南市') { ele.options[ctr]=new Option('南區','702');	ctr=ctr+1;	}
+        if (num=='臺南市') { ele.options[ctr]=new Option('北區','704');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('安平區','708');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('安南區','709');	ctr=ctr+1;	}
 
@@ -330,7 +350,6 @@
         if (num=='臺南市') { ele.options[ctr]=new Option('柳營區','736');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('鹽水區','737');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('善化區','741');	ctr=ctr+1;	}
-        if (num=='臺南市') { ele.options[ctr]=new Option('新市區','741');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('大內區','742');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('山上區','743');	ctr=ctr+1;	}
         if (num=='臺南市') { ele.options[ctr]=new Option('新市區','744');	ctr=ctr+1;	}
@@ -377,7 +396,7 @@
         if (num=='高雄市') { ele.options[ctr]=new Option('杉林區','846');	ctr=ctr+1;	}
         if (num=='高雄市') { ele.options[ctr]=new Option('甲仙區','847');	ctr=ctr+1;	}
         if (num=='高雄市') { ele.options[ctr]=new Option('桃源區','848');	ctr=ctr+1;	}
-        if (num=='高雄市') { ele.options[ctr]=new Option('三民區','849');	ctr=ctr+1;	}
+        if (num=='高雄市') { ele.options[ctr]=new Option('那瑪夏區','849');	ctr=ctr+1;	}
         if (num=='高雄市') { ele.options[ctr]=new Option('茂林區','851');	ctr=ctr+1;	}
         if (num=='高雄市') { ele.options[ctr]=new Option('茄萣區','852');	ctr=ctr+1;	}
 
@@ -395,8 +414,8 @@
 
         if (num=='屏東縣') { ele.options[0]=new Option('- 請選鄉鎮 -',''); }
         if (num=='屏東縣') { ele.options[ctr]=new Option('屏東市','900');	ctr=ctr+1;	}
-        if (num=='屏東縣') { ele.options[ctr]=new Option('三地門','901');	ctr=ctr+1;	}
-        if (num=='屏東縣') { ele.options[ctr]=new Option('霧台鄉','902');	ctr=ctr+1;	}
+        if (num=='屏東縣') { ele.options[ctr]=new Option('三地門鄉','901');	ctr=ctr+1;	}
+        if (num=='屏東縣') { ele.options[ctr]=new Option('霧臺鄉','902');	ctr=ctr+1;	}
         if (num=='屏東縣') { ele.options[ctr]=new Option('瑪家鄉','903');	ctr=ctr+1;	}
         if (num=='屏東縣') { ele.options[ctr]=new Option('九如鄉','904');	ctr=ctr+1;	}
         if (num=='屏東縣') { ele.options[ctr]=new Option('里港鄉','905');	ctr=ctr+1;	}
@@ -431,7 +450,7 @@
     /*臺東縣*/
 
         if (num=='臺東縣') { ele.options[0]=new Option('- 請選鄉鎮 -',''); }
-        if (num=='臺東縣') { ele.options[ctr]=new Option('台東市','950');	ctr=ctr+1;	}
+        if (num=='臺東縣') { ele.options[ctr]=new Option('臺東市','950');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('綠島鄉','951');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('蘭嶼鄉','952');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('延平鄉','953');	ctr=ctr+1;	}
@@ -443,7 +462,7 @@
         if (num=='臺東縣') { ele.options[ctr]=new Option('東河鄉','959');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('成功鎮','961');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('長濱鄉','962');	ctr=ctr+1;	}
-        if (num=='臺東縣') { ele.options[ctr]=new Option('太麻里','963');	ctr=ctr+1;	}
+        if (num=='臺東縣') { ele.options[ctr]=new Option('太麻里鄉','963');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('金峰鄉','964');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('大武鄉','965');	ctr=ctr+1;	}
         if (num=='臺東縣') { ele.options[ctr]=new Option('達仁鄉','966');	ctr=ctr+1;	}

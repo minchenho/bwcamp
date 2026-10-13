@@ -20,5 +20,5 @@ use App\Http\Controllers\ApiController;
 //     return $request->user();
 // });
 Route::post('getBatch', [FormFieldApiController::class, 'getBatch']);
-Route::post('getFieldData', [FormFieldApiController::class, 'getFieldData']);
+//Route::post('getFieldData', [FormFieldApiController::class, 'getFieldData']);
 Route::post('getCampData', [ApiController::class, 'sendCampData']);
