@@ -21,15 +21,16 @@ class SemiApiController extends Controller
         $campId = $request->input('camp_id');
         $batchGroups = $this->backendService
                     ->getBatchGroups(Camp::findOrFail($campId));
-        if ($request->input('batch_id')) {
-            $groups = $batchGroups->filter(function ($batch) use ($request) {
-                    return $batch->id == $request->input('batch_id');
-                })->first()->groups;
+        if ($request->filled('batch_id')) {
+            $batch = $batchGroups->first(function ($batch) use ($request) {
+                return (int) $batch->id === (int) $request->input('batch_id');
+            });
+            $groups = $batch?->groups ?? collect();
         }
         else {
-            $groups = $batchGroups->map(function ($batch) {
-                return $batch->groups;
-            })->flatten();
+            $groups = $batchGroups->flatMap(function ($batch) {
+                return $batch->groups ?? collect();
+            });
         }
         $groups = $groups->map(function ($group) {
             return [
@@ -37,7 +38,7 @@ class SemiApiController extends Controller
                 'name' => $group->batch->name . ": " . $group->alias,
             ];
         });
-        return response()->json($groups);
+        return response()->json($groups->values());
     }
 
     public function setGroup(Request $request)
@@ -74,11 +75,11 @@ class SemiApiController extends Controller
         $campId = $request->input('camp_id');
         $camp = Camp::findOrFail($campId);
         $vcamp = Camp::find($camp->vcamp?->id ?? null);
-        $vbatches = $vcamp?->batches ?? null;
+        $vbatches = $vcamp?->batches;
         $orgs = $this->backendService
-                    ->getCampOrganizations($camp);
+                    ->getCampOrganizations($camp) ?? collect();
         $orgs = $orgs->map(function ($org) use ($vbatches) {
-            if ($vbatches->contains($org->batch)) {
+            if ($vbatches && $vbatches->contains($org->batch)) {
                 $org->camp_name = "義工";
             }
             else {
@@ -119,7 +120,7 @@ class SemiApiController extends Controller
             return response()->json([]);
         }
         $orgs = $this->backendService
-                    ->getCampOrganizations(Camp::findOrFail($campId));
+                    ->getCampOrganizations(Camp::findOrFail($campId)) ?? collect();
         $orgs = $orgs->filter(function ($org) use ($target_org) {
             if ($org->section == "root" && $target_org->section == "root") {
                 return $org->prev_id == 0 && !$org->is_node && $org->region_id == $target_org->region_id;
@@ -144,16 +145,22 @@ class SemiApiController extends Controller
                     ->where('table', 'like', '%' . str_replace('camp', '', $camp->table) . '%')
                     ->where('year', $camp->year)
                     ->first();
-        return response()->json($theVcamp);
+        return response()->json($theVcamp ?? []);
     }
 
-        public function getOrgSel(Request $request)
+    public function getOrgSel(Request $request)
     {
         $campId = $request->input('camp_id_sel');
         $camp = Camp::findOrFail($campId);
         $orgs = $camp->organizations;
         $orgs = $orgs->sortByDesc('section');
-        //dd($orgs);
         return response()->json($orgs);
+    }
+    public function getPermissionSel(Request $request)
+    {
+        $orgId = $request->input('org_id_sel');
+        $org = CampOrg::findOrFail($orgId);
+        $permissions = $org->permissions->sortBy('display_name');
+        return response()->json($permissions);
     }
 }

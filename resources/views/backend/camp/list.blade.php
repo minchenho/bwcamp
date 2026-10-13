@@ -2,6 +2,10 @@
 @php
     // 自動計算近三年的年份陣列
     $currentYear = (int)date('Y');
+    $currentMonth = (int)date('m');
+    if ($currentMonth > 8) {
+        $currentYear += 1; // 如果現在是 9~12 月，就把年份加 1，因為營隊通常是跨年度的
+    }
     $recentYears = [$currentYear, $currentYear - 1, $currentYear - 2];
     $recentYearsJson = json_encode($recentYears);
 
