@@ -212,7 +212,7 @@ return [
         'password' => env('TCAMP_MAIL_PASSWORD'),
         'name' => env('TCAMP_MAIL_FROM_NAME'),
     ],
-/*
+
     'ses_tcamp' => [
         'host' => env('SES_MAIL_HOST'),
         'address' => env('SES_TCAMP_MAIL_FROM_ADDRESS', 'hello@example.com'),
@@ -220,12 +220,20 @@ return [
         'password' => env('SES_TCAMP_MAIL_PASSWORD'),
         'name' => env('SES_TCAMP_MAIL_FROM_NAME'),
     ],
-*/
+
     'tvcamp' => [
         'address' => env('TVCAMP_MAIL_FROM_ADDRESS', 'hello@example.com'),
         'username' => env('TVCAMP_MAIL_USERNAME'),
         'password' => env('TVCAMP_MAIL_PASSWORD'),
         'name' => env('TVCAMP_MAIL_FROM_NAME'),
+    ],
+
+    'ses_tvcamp' => [
+        'host' => env('SES_MAIL_HOST'),
+        'address' => env('SES_TVCAMP_MAIL_FROM_ADDRESS', 'hello@example.com'),
+        'username' => env('SES_TVCAMP_MAIL_USERNAME'),
+        'password' => env('SES_TVCAMP_MAIL_PASSWORD'),
+        'name' => env('SES_TVCAMP_MAIL_FROM_NAME'),
     ],
 
     'utcamp' => [
@@ -235,11 +243,29 @@ return [
         'name' => env('UTCAMP_MAIL_FROM_NAME'),
     ],
 
+    //ses_tcamp settings
+    'ses_utcamp' => [
+        'host' => env('SES_MAIL_HOST'),
+        'address' => env('SES_TCAMP_MAIL_FROM_ADDRESS', 'hello@example.com'),
+        'username' => env('SES_TCAMP_MAIL_USERNAME'),
+        'password' => env('SES_TCAMP_MAIL_PASSWORD'),
+        'name' => env('SES_TCAMP_MAIL_FROM_NAME'),
+    ],
+
     'utvcamp' => [
         'address' => env('UTVCAMP_MAIL_FROM_ADDRESS', 'hello@example.com'),
         'username' => env('UTVCAMP_MAIL_USERNAME'),
         'password' => env('UTVCAMP_MAIL_PASSWORD'),
         'name' => env('UTVCAMP_MAIL_FROM_NAME'),
+    ],
+
+    //ses_tvcamp settings
+    'ses_utvcamp' => [
+        'host' => env('SES_MAIL_HOST'),
+        'address' => env('SES_TVCAMP_MAIL_FROM_ADDRESS', 'hello@example.com'),
+        'username' => env('SES_TVCAMP_MAIL_USERNAME'),
+        'password' => env('SES_TVCAMP_MAIL_PASSWORD'),
+        'name' => env('SES_TVCAMP_MAIL_FROM_NAME'),
     ],
 
     'wcamp' => [

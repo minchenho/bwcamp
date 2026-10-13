@@ -110,7 +110,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </div>
         </div>
 
-        @if(!$camp_info->variant)
         <div class='row form-group required'>
             <label for='inputHasLicense' class='col-md-2 control-label text-md-right'>教師證書</label>
             <div class='col-md-10'>
@@ -128,7 +127,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 </label>
             </div>
         </div>
-        @endif
 
         <div class='row form-group required'>
             <label for='inputBirth' class='col-md-2 control-label text-md-right'>研習時數申請</label>
@@ -136,9 +134,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <select required class='form-control' name='workshop_credit_type' placeholder='' onchange="id_setRequired(this)">
                     <option value="">- 請選擇 -</option>
                     <option value="不申請">不申請</option>
-                    @if(!$camp_info->variant)
-                        <option value="一般教師研習時數">一般教師研習時數</option>
-                    @endif
+                    <option value="一般教師研習時數">一般教師研習時數</option>
                     <option value="公務員研習時數">公務員研習時數</option>
                     <option value="基金會研習數位證明書">基金會研習數位證明書</option>
                 </select>
@@ -157,16 +153,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 </div>
             </div>
         </div>
-    {{--
-        <div class='row form-group required'>
-            <label for='inputIsForeigner' class='col-md-2 control-label text-md-right'>海外身份</label>
-            <div class='col-md-10'>
-                <input type='checkbox' name='is_foreigner' value='' class='form-control' id='inputIsForeigner' placeholder='' required @if(isset($isModify) && $isModify) disabled @endif>
-                （若勾選「海外身份」，「身份證字號」請填護照號碼）
-            </div>
-        </div>
-    --}}
-        @if(!$camp_info->variant)
         <div id="is-educating-section" class="m-0 p-0">
             <Is-Educating-Section></Is-Educating-Section>
         </div>
@@ -272,21 +258,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             </div>
         </div>
 
-    @elseif($camp_info->variant == "utcamp")
-        <div class="row form-group required">
-            <label for="inputSchoolOrCourse" class="col-md-2 control-label text-md-right">服務系所/部門</label>
-            <div class="col-md-10">
-                <input type="text" required name="school_or_course" class='form-control' value=""/>
-                <div class="invalid-feedback crumb">
-                    請輸入服務系所/部門
-                </div>
-            </div>
-        </div>
-        <span id="utcamp-title" class="m-0 p-0">
-            <utcamp-title></utcamp-title>
-        </span>
-    @endif
-
         <h5 class='form-control-static text-primary'>聯絡方式</h5>
         <!--<p class="form-control-static text-danger">＊因需寄發教材資料及通知，請務必填寫正確</p>-->
         <div class='row form-group required'>
@@ -312,21 +283,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <input type=text name='line' value='' class='form-control' id='inputLineID'>
             </div>
         </div>
-
-    @if($camp_info->variant ?? null == 'utcamp')
-        <div class='row form-group'>
-            <label for='inputTelHome' class='col-md-2 control-label text-md-right'>工作場所電話</label>
-            <div class='col-md-10'>
-                <input type=tel  name='phone_work' value='' class='form-control' id='inputTelWork' placeholder='格式：0225452546#1234'>
-            </div>
-        </div>
-    @endif
-<!--
-    <div class='row form-group m-0'>
-        <div class="col-md-2 m-0"></div>
-        <p class="form-control-static text-danger font-weight-bold m-0">＊因需寄發教材資料，請務必填寫詳細</p>
-    </div>
--->
 
         <div class='row form-group required'>
             <label for='inputAddress' class='col-md-2 control-label text-md-right'>居住地<br>所在縣市/行政區</label>
@@ -406,7 +362,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </script>
 
         <div class='row form-group required'>
-            <label for='inputEmail' class='col-md-2 control-label text-md-right'>確認電子郵件</label>
+            <label for='inputEmailConfirm' class='col-md-2 control-label text-md-right'>確認電子郵件</label>
             <div class='col-md-10'>
                 <input type='email' required name='emailConfirm' value='' class='form-control' id='inputEmailConfirm' placeholder='請再次填寫，確認郵件正確'>
                 {{-- data-match='#inputEmail' data-match-error='郵件不符合' placeholder='請再次填寫確認郵件填寫正確' --}}
@@ -764,15 +720,11 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
                 <label><input type="checkbox" name=info_source[] value='學校公文' > 學校公文</label> <br/>
                 <label><input type="checkbox" name=info_source[] value='宣傳海報/小卡' > 宣傳海報/小卡</label> <br/>
                 <label><input type="checkbox" name=info_source[] value='福智文教基金會官網' > 福智文教基金會官網</label> <br/>
-                @if(!isset($camp_info->variant) || $camp_info->variant != 'utcamp')
-                    <label><input type="checkbox" name=info_source[] value='幸福心學堂 Online 臉書' > 幸福心學堂 Online 臉書</label> <br/>
-                    <!--<label><input type="checkbox" name=info_source[] value='哈特麥臉書' > 哈特麥臉書</label> <br/>-->
-                @endif
+                <label><input type="checkbox" name=info_source[] value='幸福心學堂 Online 臉書' > 幸福心學堂 Online 臉書</label> <br/>
                 <label><input type="checkbox" name=info_source[] value='自行搜尋' > 自行搜尋</label>
             </div>
         </div>
 
-    @if(!isset($camp_info->variant) || $camp_info->variant != 'utcamp')
         <div class='row form-group'>
             <label for='inputFuzhi' class='col-md-2 control-label text-md-right'>對哪些活動有興趣(可複選)</label>
             <div class='col-md-10'>
@@ -803,7 +755,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
 --}}
 
-    @else
+    @if(0)
         <div class='row form-group'>
             <label class='col-md-2 control-label text-md-right'>推薦人</label>
             <div class='col-md-10'>

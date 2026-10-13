@@ -6,60 +6,62 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
 ?>
 @extends('camps.utcamp.layout')
 @section('content')
-@if(!isset($isBackend))
-    <div class='alert alert-info' role='alert'>
-        您在本網站所填寫的個人資料，僅用於此次教師營的報名及活動聯絡之用。
-    </div>
-@endif
+@include('partials.schools_script')
+@include('partials.counties_areas_script')
+<div class='alert alert-info' role='alert'>
+    您在本網站所填寫的個人資料，僅用於此次教師營的報名及活動聯絡之用。
+</div>
 
 <div class='page-header form-group'>
     <h4>{{ $camp_info->fullName }} 報名表</h4>
 </div>
 
 <span id="utcamp-layout">
-{{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}
-@if((!isset($isModify) && $batch->is_appliable) || (isset($isModify) && $isModify))
-    <form method='post' action='{{ route('formSubmit', [$batch_id]) }}' id='Camp' name='Camp' class='form-horizontal needs-validation' role='form'>
-{{-- 禁止前台報名 --}}
-@elseif(!$batch->is_appliable)
+    {{-- !isset($isModify): 沒有 $isModify 變數，即為報名狀態、 $isModify: 修改資料狀態 --}}
+    @if((!isset($isModify) && $batch->is_appliable) || (isset($isModify) && $isModify))
+    <form method='post' action='{{ route('formSubmit', [$batch_id]) }}?{{ \Str::random(10) }}={{ \Str::random(10) }}' id='Camp' name='Camp' class='form-horizontal needs-validation' role='form'>
+    
+    {{-- 禁止前台報名 --}}
+    @elseif(!$batch->is_appliable)
     <script>window.location = "/";</script>
-        @exit
-{{-- 以上皆非: 檢視資料狀態 --}}
-@else
-    <form action="{{ route('queryupdate', $batch_id) }}" method="post" class="d-inline">
-@endif
+    @exit
+    {{-- 以上皆非: 檢視資料狀態 --}}
+    @else
+    <form method='post' action='{{ route("queryupdate", [$batch_id]) }}?{{ \Str::random(10) }}={{ \Str::random(10) }}' id='Camp' name='Camp' class='d-inline'>
+    @endif
 
     @csrf
-    <div class='row form-group'>
-        <div class='col-md-2'></div>
-        <div class='col-md-10'>
-            <span class='text-danger'>＊必填</span>
-        </div>
-    </div>
+        <input type="hidden" name="{{ \Str::random(10) }}" value="{{ \Str::random(10) }}">
+	<div class='row form-group'>
+	    <div class='col-md-2'></div>
+	    <div class='col-md-10'>
+	    	<span class='text-danger'>＊必填</span>
+	    </div>
+	</div>
 
-@if(isset($applicant_data))
-    <div class='row form-group'>
-        <label for='inputBatch' class='col-md-2 control-label text-md-right'>營隊梯次</label>
-        <div class='col-md-10'>
-            <h4>{{ $batch->name }} ({{ $batch->batch_start }} ~ {{ $batch->batch_end }})</h4>
-            <input type='hidden' name='applicant_id' value='{{ $applicant_id }}'>
+    @if(isset($applicant_data))
+        <div class='row form-group'>
+            <label for='inputBatch' class='col-md-2 control-label text-md-right'>營隊梯次</label>
+            <div class='col-md-10'>
+                <h4>{{ $batch->name }} ({{ $batch->batch_start }} ~ {{ $batch->batch_end }})</h4>
+                <input type='hidden' name='applicant_id' value='{{ $applicant_id }}'>
+            </div>
         </div>
-    </div>
-    <div class='row form-group'>
-        <label for='inputBatch' class='col-md-2 control-label text-md-right'>報名日期</label>
-        <div class='col-md-10'>
-            {{ $applicant_raw_data->created_at }}
+    @endif
+
+    @if(isset($isModify))
+        <div class='row form-group'>
+            <label for='inputBatch' class='col-md-2 control-label text-md-right'>報名日期</label>
+            <div class='col-md-10'>
+                {{ $applicant_raw_data->created_at }}
+            </div>
         </div>
-    </div>
-@else
-    {{-- $applicant_data不存在，表示是報名狀態。報名時預設會參加。 --}}
-    <input type="hidden" name="is_attend" value=1>
-@endif
+    @endif
 
     <div class='row form-group required'>
         <label for='inputName' class='col-md-2 control-label text-md-right'>姓名</label>
         <div class='col-md-10'>
-            <input type='text' name='name' value='' class='form-control' id='inputName' placeholder='請填寫全名' required @if(isset($isModify) && $isModify) readonly @endif>
+            <input required type='text' name='name' value='' class='form-control' id='inputName' placeholder='請填寫全名'>
             <div class="invalid-feedback">
                 未填寫姓名
             </div>
@@ -100,39 +102,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 
-<!--
-    <div class='row form-group required'>
-        <label for='inputBirth' class='col-md-2 control-label text-md-right'>年齡層</label>
-        <div class='col-md-10'>
-            <select required class='form-control' name='age_range' placeholder=''>
-                <option value="">- 請選擇 -</option>
-                <option value="25 歲以下">25 歲以下</option>
-                <option value="26 歲 - 35 歲">26 歲 - 35 歲</option>
-                <option value="36 歲 - 45 歲">36 歲 - 45 歲</option>
-                <option value="46 歲 - 55 歲">46 歲 - 55 歲</option>
-                <option value="56 歲 - 65 歲">56 歲 - 65 歲</option>
-                <option value="66 歲以上">66 歲以上</option>
-            </select>
-            <div class="invalid-feedback">
-                未選擇
-            </div>
-        </div>
-    </div>
-
-    <div class='row form-group required'>
-        <label for='inputEducation' class='col-md-2 control-label text-md-right'>最高學歷</label>
-        <div class='col-md-10'>
-            <select name="education" class="form-control" required>
-                <option value=''>- 請選擇 -</option>
-                <option value='高中職'>高中職</option>
-                <option value='大專'>大專</option>
-                <option value='碩士'>碩士</option>
-                <option value='博士'>博士</option>
-                <option value='其他'>其他</option>
-            </select>
-        </div>
-    </div>
--->
 
     <div class='row form-group'>
         <label class = 'col-md-2'></label>
@@ -161,9 +130,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     </span>
     {{-- 大專教師營 --}}
 
-    <!--
     <h5 class='form-control-static text-primary'>聯絡方式</h5>
-    -->
     <div class='row form-group required'>
         <label for='inputCell' class='col-md-2 control-label text-md-right'>聯絡電話(手機)</label>
         <div class='col-md-10'>
@@ -187,42 +154,7 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             <input type=tel  name='phone_home' value='' class='form-control' id='inputTelHome' placeholder='格式：0225452546'>
         </div>
     </div>
-
-    <div class='row form-group required'>
-        <label for='inputAddress' class='col-md-2 control-label text-md-right'>居住縣市</label>
-        <div class='col-md-10'>
-            <select required class='form-control' name='address'>
-                <option value='' selected>- 請選縣市 -</option>
-                <option value='臺北市' >臺北市</option>
-                <option value='新北市' >新北市</option>
-                <option value='基隆市' >基隆市</option>
-                <option value='宜蘭縣' >宜蘭縣</option>
-                <option value='花蓮縣' >花蓮縣</option>
-                <option value='桃園市' >桃園市</option>
-                <option value='新竹市' >新竹市</option>
-                <option value='新竹縣' >新竹縣</option>
-                <option value='苗栗縣' >苗栗縣</option>
-                <option value='臺中市' >臺中市</option>
-                <option value='彰化縣' >彰化縣</option>
-                <option value='南投縣' >南投縣</option>
-                <option value='雲林縣' >雲林縣</option>
-                <option value='嘉義市' >嘉義市</option>
-                <option value='嘉義縣' >嘉義縣</option>
-                <option value='臺南市' >臺南市</option>
-                <option value='高雄市' >高雄市</option>
-                <option value='屏東縣' >屏東縣</option>
-                <option value='臺東縣' >臺東縣</option>
-                <option value='澎湖縣' >澎湖縣</option>
-                <option value='金門縣' >金門縣</option>
-                <option value='連江縣' >連江縣</option>
-                <option value='其它' >其它</option>
-            </select>
-            <div class="invalid-feedback crumb">
-                未選擇居住縣市
-            </div>
-        </div>
-    </div>
-
+    
     <div class='row form-group'>
         <label for='inputLineID' class='col-md-2 control-label text-md-right'>LINE ID</label>
         <div class='col-md-10'>
@@ -230,8 +162,69 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 
+        <div class='row form-group required'>
+            <label for='inputAddress' class='col-md-2 control-label text-md-right'>居住地<br>所在縣市/行政區</label>
+            <div class='col-md-2'>
+                <select required name="county" class="form-control" 
+                onChange="Address(this.options[this.options.selectedIndex].value); 
+                if(this.options[this.options.selectedIndex].value == '其他'){ handleHiddenCustomField('show') } 
+                else { handleHiddenCustomField('hide') } 
+                if(this.options[this.options.selectedIndex].value == '海外'){ handleOverseas('set') } 
+                else { handleOverseas('unset') }">
+                    <option value=''>- 請先選縣市 -</option>
+                    <option value='海外'>海外</option>
+                    <option value='臺北市'>臺北市</option>
+                    <option value='新北市'>新北市</option>
+                    <option value='基隆市'>基隆市</option>
+                    <option value='宜蘭縣'>宜蘭縣</option>
+                    <option value='花蓮縣'>花蓮縣</option>
+                    <option value='桃園市'>桃園市</option>
+                    <option value='新竹市'>新竹市</option>
+                    <option value='新竹縣'>新竹縣</option>
+                    <option value='苗栗縣'>苗栗縣</option>
+                    <option value='臺中市'>臺中市</option>
+                    <option value='彰化縣'>彰化縣</option>
+                    <option value='南投縣'>南投縣</option>
+                    <option value='雲林縣'>雲林縣</option>
+                    <option value='嘉義市'>嘉義市</option>
+                    <option value='嘉義縣'>嘉義縣</option>
+                    <option value='臺南市'>臺南市</option>
+                    <option value='高雄市'>高雄市</option>
+                    <option value='屏東縣'>屏東縣</option>
+                    <option value='臺東縣'>臺東縣</option>
+                    <option value='澎湖縣'>澎湖縣</option>
+                    <option value='金門縣'>金門縣</option>
+                    <option value='連江縣'>連江縣</option>
+                </select>
+            <div class="invalid-feedback crumb">
+                    未選擇縣市
+                </div>
+            </div>
+            <div class='col-md-2'>
+                <select required name=subarea id="subarea" class='form-control' 
+                onchange="updateSubarea(this)">
+                    <option value=''>- 再選區鄉鎮 -</option>
+                </select>
+                <div class="invalid-feedback crumb">
+                    未選擇區鄉鎮
+                </div>
+            </div>
+            <div class='col-md-1'>
+                <input readonly type=hidden name=zipcode value='' class='form-control'>
+                <input readonly type=hidden name=subarea_text value='' class='form-control'>
+            </div>
+            <div class='col-md-3'>
+                <input type=hidden name=address value='' maxlength=80 class='form-control' placeholder='請填寫現居住地點'>
+                <div class="invalid-feedback">
+                    請填寫居住地所在縣市/行政區
+                </div>
+            </div>
+        </div>
+
+
+
     <div class='row form-group required'>
-        <label for='inputEmail' class='col-md-2 control-label text-md-right'>電子信箱</label>
+        <label for='inputEmail' class='col-md-2 control-label text-md-right'>電子郵件</label>
         <div class='col-md-10'>
             <input type='email' required name='email' value='' class='form-control' id='inputEmail' placeholder='請務必填寫正確，以利營隊相關訊息通知'>
             <div class="invalid-feedback">
@@ -259,6 +252,32 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 <!--
+        <div class="row form-group required">
+            <label for='inputIsMember' class='col-md-2 control-label text-md-right'>立即加入<br>福智文教會員中心</label>
+            <div class='col-md-10'>
+                <label class="form-check-label text-info">會員好禮：享有觀看影片、閱讀文章及參加各種課程活動</label><br>
+                <div class="form-check form-check-inline">
+                    <label class="form-check-label" for="1">
+                        <input class="form-check-input" type="radio" name="is_membership" value="1">
+                        立即加入
+                        <div class="invalid-feedback">
+                            未選擇加入會員
+                        </div>
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <label class="form-check-label" for="0">
+                        <input class="form-check-input" type="radio" name="is_membership" value="0">
+                        暫時不要
+                        <div class="invalid-feedback">
+                            &nbsp;
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+<!--
+
     <div class='row form-group required'>
         <label for='inputEmail' class='col-md-2 control-label text-md-right'>願意收到福智文教基金會電子報</label>
         <div class="col-md-10">
@@ -283,51 +302,8 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 -->
-    <div class='row form-group'>
-        <label for='inputInfoSource' class='col-md-2 control-label text-md-right'>如何得知報名訊息(可複選)</label>
-        <div class='col-md-10'>
-            <label><input type="checkbox" name=info_source[] value='親友推薦' > 親友推薦</label> <br/>
-            <label><input type="checkbox" name=info_source[] value='同事推薦' > 同事推薦</label> <br/>
-            <label><input type="checkbox" name=info_source[] value='學校公文' > 學校公文</label> <br/>
-            <label><input type="checkbox" name=info_source[] value='宣傳海報/小卡' > 宣傳海報/小卡</label> <br/>
-            <label><input type="checkbox" name=info_source[] value='福智文教基金會官網' > 福智文教基金會官網</label> <br/>
-            <label><input type="checkbox" name=info_source[] value='自行搜尋' > 自行搜尋</label> <br/>
-            <label><input type="checkbox" name=info_source[] value='其他' onchange="toggleISOrequired()"> 其它</label> <br>
-            <input type=text class='form-control' name="info_source_other" value='' id="info_source_other">
-            <div class="invalid-feedback">
-                請填寫其它管道
-            </div>
-        </div>
-    </div>
 
-    <div class='row form-group'>
-        <label class='col-md-2 control-label text-md-right'>介紹人</label>
-        <div class='col-md-10'>
-            <div class='row form-group'>
-                <label class='col-md-2 control-label text-md-right'>姓名</label>
-                <div class='col-md-10'>
-                    <input type='text'class='form-control' name="introducer_name" value=''>
-                </div>
-            </div>
-            <!--
-            <div class='row form-group'>
-                <label class='col-md-2 control-label'>關係</label>
-                <div class='col-md-10'>
-                    <select name="introducer_relationship" class="form-control">
-                        <option value=''>- 請選擇 -</option>
-                        <option value='配偶'>配偶</option>
-                        <option value='學生'>學生</option>
-                        <option value='父母'>父母</option>
-                        <option value='朋友'>朋友</option>
-                        <option value='同事'>同事</option>
-                        <option value='子女'>子女</option>
-                        <option value='其他'>其他</option>
-                    </select>
-                </div>
-            </div>
-            -->
-        </div>
-    </div>
+
 
     <!-- 是否參加過福智舉辦活動
     <span id="utcamp-is-blisswisdom">
@@ -335,12 +311,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     </span>
     -->
 
-    <div class='row form-group'>
-        <label for='inputExpection' class='col-md-2 control-label text-md-right'>您對營隊的期待</label>
-        <div class='col-md-10'>
-            <textarea class='form-control' rows=2 name='expectation' id=inputExpection></textarea>
-        </div>
-    </div>
 
     <div class='row form-group'>
         <label class='col-md-2 control-label text-md-right'>緊急聯絡人</label>
@@ -393,7 +363,95 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 
-    @include('camps.' . $camp_info->table . '.formSection');
+    <div class='row form-group'>
+        <label class='col-md-2 control-label text-md-right'>交通需求</label>
+        <div class='col-md-10'>
+            <div class='row form-group'>
+                <div class='col-md-12 text-primary'>
+                    ＊＊＊僅供大會接駁規劃用，活動前另有義工個別聯繫確認＊＊＊
+                </div>
+            </div>
+            <div class='row form-group required'>
+                <label for='inputTransportationDepart' class='col-md-2 control-label text-md-right'>
+                    去程
+                </label>
+                <div class='col-md-10'>
+                    <select required class='form-control' name='transportation_depart' onChange=''>
+                        <option value='' selected>- 請選擇 -</option>
+                        <option value='桃園火車站專車接駁' >桃園火車站專車接駁</option>
+                        <option value='桃園高鐵站專車接駁' >桃園高鐵站專車接駁</option>
+                        <option value='自行前往無以上需求' >自行前往無以上需求</option>
+                    </select>
+                </div>
+            </div>
+            <div class='row form-group required'>
+                <label for='inputTransportationBack' class='col-md-2 control-label text-md-right'>
+                    回程
+                </label>
+                <div class='col-md-10'>
+                    <select required class='form-control' name='transportation_back' onChange=''>
+                        <option value='' selected>- 請選擇 -</option>
+                        <option value='專車接駁至桃園火車站' >專車接駁至桃園火車站</option>
+                        <option value='專車接駁至桃園高鐵站' >專車接駁至桃園高鐵站</option>
+                        <option value='自行返回無以上需求' >自行返回無以上需求</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class='row form-group'>
+        <label class='col-md-2 control-label text-md-right'>介紹人</label>
+        <div class='col-md-10'>
+            <div class='row form-group'>
+                <label class='col-md-2 control-label text-md-right'>姓名</label>
+                <div class='col-md-10'>
+                    <input type='text'class='form-control' name="introducer_name" value=''>
+                </div>
+            </div>
+            <!--
+            <div class='row form-group'>
+                <label class='col-md-2 control-label'>關係</label>
+                <div class='col-md-10'>
+                    <select name="introducer_relationship" class="form-control">
+                        <option value=''>- 請選擇 -</option>
+                        <option value='配偶'>配偶</option>
+                        <option value='學生'>學生</option>
+                        <option value='父母'>父母</option>
+                        <option value='朋友'>朋友</option>
+                        <option value='同事'>同事</option>
+                        <option value='子女'>子女</option>
+                        <option value='其他'>其他</option>
+                    </select>
+                </div>
+            </div>
+            -->
+        </div>
+    </div>
+
+    <div class='row form-group'>
+        <label for='inputInfoSource' class='col-md-2 control-label text-md-right'>如何得知報名訊息(可複選)</label>
+        <div class='col-md-10'>
+            <label><input type="checkbox" name=info_source[] value='親友推薦' > 親友推薦</label> <br/>
+            <label><input type="checkbox" name=info_source[] value='同事推薦' > 同事推薦</label> <br/>
+            <label><input type="checkbox" name=info_source[] value='學校公文' > 學校公文</label> <br/>
+            <label><input type="checkbox" name=info_source[] value='宣傳海報/小卡' > 宣傳海報/小卡</label> <br/>
+            <label><input type="checkbox" name=info_source[] value='福智文教基金會官網' > 福智文教基金會官網</label> <br/>
+            <label><input type="checkbox" name=info_source[] value='自行搜尋' > 自行搜尋</label> <br/>
+            <label><input type="checkbox" name=info_source[] value='其他' onchange="toggleISOrequired()"> 其它</label> <br>
+            <input type=text class='form-control' name="info_source_other" value='' id="info_source_other">
+            <div class="invalid-feedback">
+                請填寫其它管道
+            </div>
+        </div>
+    </div>
+
+    <div class='row form-group'>
+        <label for='inputExpection' class='col-md-2 control-label text-md-right'>您對營隊的期待</label>
+        <div class='col-md-10'>
+            <textarea class='form-control' rows=2 name='expectation' id=inputExpection></textarea>
+        </div>
+    </div>
 
 {{-- 
     <!--- 同意書 -->
@@ -459,56 +517,22 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
 --}}
-    <div class='row form-group required'>
-        <label for='inputTerm' class='col-md-2 control-label text-md-right'>肖像權</label>
+    <!--- 同意書(新版)   -->
+    <div class='row form-group'>
+        <label for='notes' class='col-md-2 control-label text-md-right text-danger'>附註</label>
         <div class='col-md-10 form-check'>
-            <p style="color: #F37021;" class='form-control-static'>
-            主辦單位在營隊期間拍照、錄影之活動記錄，可使用於營隊及主辦單位的非營利教育推廣使用，並以網路方式推播。
+            <p class='form-control-static text-danger'>
+            本人同意：福智文教基金會取得之個人資料，於營隊期間及後續基金會所屬福智團體舉辦之活動，作為訊息通知、行政處理等非營利目的之使用，不提供予無相關之其他單位使用。在營隊期間拍照、錄影之活動記錄可使用於營隊及主辦單位之非營利教育推廣使用。
             </p>
-            <div class="form-check form-check-inline">
-                <label class=radio-inline>
-                    <input type='radio' required name="portrait_agree" value='1' checked> 我同意
-                    <div class="invalid-feedback">
-                        請圈選本欄位
-                    </div>
-                </label>
-            </div>
-            <div class="form-check form-check-inline">
-                <label class=radio-inline>
-                    <input type=radio required name="portrait_agree" value='0' > 我不同意
-                    <div class="invalid-feedback">
-                        &nbsp;
-                    </div>
-                </label>
-            </div>
         </div>
     </div>
+    <input type='hidden' name="profile_agree" value='0'>
+    <input type='hidden' name="portrait_agree" value='0'>
 
-    <div class='row form-group required'>
-        <label for='inputTerm' class='col-md-2 control-label text-md-right'>個人資料</label>
-        <div class='col-md-10 form-check'>
-            <p style="color: #F37021;" class='form-control-static'>
-            為落實個人資料之保護，於本次營隊活動及活動結束後，福智文教基金會（簡稱本基金會）將利用被推薦人所提供之個人資料通知被推薦人本次營隊活動相關訊息，及日後本基金會相關課程、活動訊息通知之非營利目的使用。同意期間自被推薦人同意參加活動之日起，至被推薦人提出刪除日止。營隊活動期間由本基金會保存被推薦人的個人資料，以作為被推薦人、本基金會查詢、確認證明之用。<br>
-            除上述情形外，本基金會於本次營隊取得之個人資料，不會未經被推薦人以言詞、書面、電話、簡訊、電子郵件、傳真、電子文件等方式同意提供給第三單位使用。
-            </p>
-            <div class="form-check form-check-inline">
-                <label class=radio-inline>
-                    <input type='radio' required name="profile_agree" value='1' checked> 我同意
-                    <div class="invalid-feedback">
-                        請圈選本欄位
-                    </div>
-                </label>
-            </div>
-            <div class="form-check form-check-inline">
-                <label class=radio-inline>
-                    <input type=radio required name="profile_agree" value='0' > 我不同意
-                    <div class="invalid-feedback">
-                        &nbsp;
-                    </div>
-                </label>
-            </div>
-        </div>
-    </div>
+    {{-- !isset($isModify):報名狀態，此時才預填is_attend=1 --}}
+    @if(!isset($isModify))
+    <input type="hidden" name="is_attend" value=1>
+    @endif
 
     <div class="row form-group text-danger tips d-none">
         <div class='col-md-2'></div>
@@ -535,7 +559,8 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         </div>
     </div>
     </form>
-    </span> <!--span id="utcamp-layout"-->
+    
+</span> <!--span id="utcamp-layout"-->
 
 <script>
     window.addEventListener("load", function() {
@@ -547,7 +572,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             popout: true,
             onConfirm: function() {
                         let isValid = document.Camp.checkValidity();
-                        console.log(123);
                         if(document.Camp.title) {
                             if(document.Camp.title.value == '' && document.Camp.title.disabled) {
                                 document.Camp.title.classList.add("is-invalid");
@@ -603,7 +627,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             var validation = Array.prototype.filter.call(forms, function(form) {
                 form.addEventListener('submit', function(event) {
                     let isValid = form.checkValidity();
-                    console.log(223);
                     if(form.title) {
                         if(form.title.value == '' && form.title.disabled) {
                             form.title.classList.add("is-invalid");
@@ -647,7 +670,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
     function toggleBTCrequired() {
         document.getElementById('blisswisdom_type_complement').required = !document.getElementById('blisswisdom_type_complement').required ? true : false;
     }
-    //??
     function toggleComplement(val) {
         let blisswisdom_type_complements = $('input').filter(function() {
     return this.name.match(/blisswisdom_type_complement\[\d\]/);
@@ -687,23 +709,6 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
             idnoInput.required = false;
         }
     }
-    //統編與抬頭欄位必填與否
-    function taxid_setRequired(ele) {
-        const taxidSection = document.getElementsByClassName('taxid-sec')[0];
-        const taxidInput = document.getElementById('inputTaxID');
-        const invoiceTitleInput = document.getElementById('inputInvoiceTitle');
-
-        if(ele.value == "單位發票") {
-            taxidSection.style.display = '';
-            taxidInput.required = true;
-            invoiceTitleInput.required = true;
-        }
-        else {
-            taxidSection.style.display = 'none';
-            taxidInput.required = false;
-            invoiceTitleInput.required = false;
-        }
-    }
 
     function setRequired(elements){
         for(let i = 0; i < elements.length; i++){
@@ -711,116 +716,215 @@ header("Expires: Fri, 01 Jan 1990 00:00:00 GMT");
         }
     }
 
-    function changeRoom(select_ele) {
-        const companionSection = document.getElementsByClassName('companion-sec')[0];
-        const companionName = document.getElementById('inputCompanionName');
-        const roommateY = document.getElementById('inputRoommateY');
-        const roommateN = document.getElementById('inputRoommateN');
+        function updateSubarea(ele,address_type = null) {
+            //console.log(ele);
+            if(!address_type)
+                address_type = '';
+            else
+                address_type = address_type + '_';
 
-        if (select_ele.value.includes("兩人同行")) {
-            // 有同行者
-            companionSection.style.display = '';
-            companionName.required = true;
-            roommateY.required = true;
-            roommateN.required = true;
-        } else {
-            // 一人報名
-            companionSection.style.display = 'none';
-            companionName.required = false;
-            roommateY.required = false;
-            roommateN.required = false;
+            document.Camp[address_type + 'zipcode'].value=ele.options[ele.options.selectedIndex].value;
+            document.Camp[address_type + 'subarea_text'].value=ele.options[ele.options.selectedIndex].text;
+            document.Camp[address_type + 'address'].value = MyAddress(document.Camp[address_type + 'county'].value, ele.options[ele.options.selectedIndex].text);
+            return;
         }
-    };
-    
-    @if(isset($applicant_data))
-        {{-- 回填報名資料 --}}
-        (function() {
-            window.applicant_id = '{{ $applicant_id }}';
-            let applicant_data = JSON.parse('{!! $applicant_data !!}');
+        @if(isset($applicant_data))
+            {{-- 回填報名資料 --}}
+            (function() {
+                window.applicant_id = @json($applicant_id);
+                window.applicant_data = @json(json_decode(stripslashes($applicant_data)));  {{-- ApplicantService 有 addslashes，需先還原 --}}
+                let applicant_data = window.applicant_data;
+                let inputs = document.getElementsByTagName('input');
+                let selects = document.getElementsByTagName('select');
+                let textareas = document.getElementsByTagName('textarea');
+                let complementPivot = 0;
+                let complementData = applicant_data["blisswisdom_type_complement"] ? applicant_data["blisswisdom_type_complement"].split("||/") : null;
+                for (var i = 0; i < selects.length; i++){
+                    //console.log(selects[i].name);
 
-            let inputs = document.getElementsByTagName('input');
-            let selects = document.getElementsByTagName('select');
-            let textareas = document.getElementsByTagName('textarea');
-            let complementPivot = 0;
-            let complementData = applicant_data["blisswisdom_type_complement"] ? applicant_data["blisswisdom_type_complement"].split("||/") : null;
-            // console.log(inputs);
-            for (var i = 0; i < inputs.length; i++){
-                if(typeof applicant_data[inputs[i].name] !== "undefined" || inputs[i].type == "checkbox"){
-                    if(inputs[i].type == "radio"){
-                        let radios = document.getElementsByName(inputs[i].name);
-                        for( j = 0; j < radios.length; j++ ) {
-                            if( radios[j].value == applicant_data[inputs[i].name] ) {
-                                radios[j].checked = true;
-                                radios[j].dispatchEvent(new Event('click'));
-                            }
+                    if(typeof applicant_data[selects[i].name] !== "undefined"){
+
+                        //先有county才能有正確subarea,所以跳過
+                        if (selects[i].name == 'class_subarea'
+                            || selects[i].name == 'subarea'
+                            || selects[i].name == 'unit_subarea'){
+                            continue;
                         }
-                    }
-                    else if(inputs[i].type == "checkbox"){
-                        let checkboxes = document.getElementsByName(inputs[i].name);
-                        let deArray = inputs[i].name.slice(0, -2);
-                        if(applicant_data[deArray]){
-                            let checkedValues = applicant_data[deArray].split("||/");
-                            for( j = 0; j < checkboxes.length; j++ ) {
-                                for( k = 0; k < checkboxes.length; k++ ) {
-                                    if( checkboxes[j].value == checkedValues[k] ) {
-                                        checkboxes[j].checked = true;
-                                    }
+
+                        selects[i].value = applicant_data[selects[i].name];
+
+                        if (selects[i].name == 'class_county'){
+                            Address(applicant_data[selects[i].name], 'class');
+
+                            var selectElement = document.getElementById("class_subarea");
+
+                            // Get the options of the select element
+                            var options = selectElement.options;
+
+                            // Iterate through the options
+                            for (var j = 0; j < options.length; j++) {
+
+                                // Get the text of the option
+                                var optionText = options[j].text;
+
+                                // Check if the text equals to the specific text
+                                if (isSameSubarea(optionText, applicant_data['class_subarea'])) {
+                                    options[j].selected = true;
+                                }
+                            }
+                            //update address, zipcode, etc.
+                            updateSubarea(selectElement,'class');
+                        }
+
+                        if (selects[i].name == 'county'){
+                            Address(applicant_data[selects[i].name]);
+
+                            var selectElement = document.getElementById("subarea");
+
+                            // Get the options of the select element
+                            var options = selectElement.options;
+
+                            // Iterate through the options
+                            for (var j = 0; j < options.length; j++) {
+
+                                // Get the text of the option
+                                var optionText = options[j].text;
+
+                                // Check if the text equals to the specific text
+                                if (isSameSubarea(optionText, applicant_data['subarea'])) {
+                                    options[j].selected = true;
+                                }
+                            }
+                            updateSubarea(selectElement);
+                        }
+
+                        if (selects[i].name == 'unit_county'){
+                            Address(applicant_data[selects[i].name], 'unit');
+
+                            var selectElement = document.getElementById("unit_subarea");
+
+                            // Get the options of the select element
+                            var options = selectElement.options;
+
+                            // Iterate through the options
+                            for (var j = 0; j < options.length; j++) {
+
+                                // Get the text of the option
+                                var optionText = options[j].text;
+
+                                // Check if the text equals to the specific text
+                                if (isSameSubarea(optionText, applicant_data['unit_subarea'])) {
+                                    options[j].selected = true;
+                                }
+                            }
+                            updateSubarea(selectElement,'unit');
+                        }
+
+                        if (selects[i].name == 'transportation') {
+                            var selectElement = document.getElementsByName("transportation")[0];
+                            // Get the options of the select element
+                            var options = selectElement.options;
+                            // Iterate through the options
+                            for (var j = 0; j < options.length; j++) {
+                                // Check if the text equals to the specific text
+                                if (options[j].text == applicant_data['transportation']) {
+                                    options[j].selected = true;
                                 }
                             }
                         }
                     }
-                    else if(applicant_data[inputs[i].name]){
+                }
+                for (var i = 0; i < inputs.length; i++){
+                    if(typeof applicant_data[inputs[i].name] !== "undefined" || inputs[i].type == "checkbox") {
+                        if(inputs[i].type == "radio"){
+                            let radios = document.getElementsByName(inputs[i].name);
+                            for( j = 0; j < radios.length; j++ ) {
+                                if( radios[j].value == applicant_data[inputs[i].name] ) {
+                                    radios[j].checked = true;
+                                }
+                            }
+                        }
+                        else if(inputs[i].type == "checkbox"){
+                            let checkboxes = document.getElementsByName(inputs[i].name);
+                            let deArray = inputs[i].name.slice(0, -2);
+                            if(applicant_data[deArray]){
+                                let checkedValues = applicant_data[deArray].split("||/");
+                                for( j = 0; j < checkboxes.length; j++ ) {
+                                    for( k = 0; k < checkboxes.length; k++ ) {
+                                        if( checkboxes[j].value == checkedValues[k] ) {
+                                            checkboxes[j].checked = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else if(applicant_data[inputs[i].name]){
+                            inputs[i].value = applicant_data[inputs[i].name];
+                        }
+                    }
+                    else if(inputs[i].type == "text" && (
+                           inputs[i].name == 'blisswisdom_type_complement[]' 
+                        || inputs[i].name == 'blisswisdom_type_complement[0]' 
+                        || inputs[i].name == 'blisswisdom_type_complement[1]')){
+                        toggleComplement(applicant_data["is_blisswisdom"]);
+                        inputs[i].value = complementData ? complementData[complementPivot] : null;
+                        complementPivot++;
+                    }
+                    else if(inputs[i].type == "text"){
                         inputs[i].value = applicant_data[inputs[i].name];
                     }
-                }
-                else if(inputs[i].type == "text" && (inputs[i].name == 'blisswisdom_type_complement[]' || inputs[i].name == 'blisswisdom_type_complement[0]' || inputs[i].name == 'blisswisdom_type_complement[1]')){
-                    toggleComplement(applicant_data["is_blisswisdom"]);
-                    inputs[i].value = complementData ? complementData[complementPivot] : null;
-                    complementPivot++;
-                }
-                else if(inputs[i].type == "text"){
-                    inputs[i].value = applicant_data[inputs[i].name];
-                }
-                if(inputs[i].name == 'emailConfirm'){
-                    inputs[i].value = applicant_data['email'];
-                }
-            }
-            for (var i = 0; i < selects.length; i++){
-                if(typeof applicant_data[selects[i].name] !== "undefined"){
-                    selects[i].value = applicant_data[selects[i].name];
-                }
-            }
-            for (var i = 0; i < textareas.length; i++){
-                if(typeof applicant_data[textareas[i].name] !== "undefined"){
-                    textareas[i].value = applicant_data[textareas[i].name];
-                }
-            }
 
-            @if(!$isModify)
-                for (var i = 0; i < inputs.length; i++){
-                    if(typeof applicant_data[inputs[i].name] !== "undefined" || inputs[i].type == "checkbox" || inputs[i].name == 'emailConfirm' || inputs[i].name == "blisswisdom_type[]" || inputs[i].name == "blisswisdom_type_complement[]"
-                    || inputs[i].name == "blisswisdom_type_complement[0]" || inputs[i].name == "blisswisdom_type_complement[1]"){
-                        inputs[i].disabled = true;
+                    if(inputs[i].name == 'emailConfirm'){
+                        inputs[i].value = applicant_data['email'];
                     }
                 }
                 for (var i = 0; i < selects.length; i++){
-                    selects[i].disabled = true;
+                    //subarea 存的是文字，option value 是郵遞區號，上面已用文字比對選好，這裡不可覆蓋
+                    if (selects[i].name == 'class_subarea'
+                        || selects[i].name == 'subarea'
+                        || selects[i].name == 'unit_subarea'){
+                        continue;
+                    }
+                    if(typeof applicant_data[selects[i].name] !== "undefined"){
+                        selects[i].value = applicant_data[selects[i].name];
+                    }
                 }
                 for (var i = 0; i < textareas.length; i++){
-                    textareas[i].disabled = true;
+                    if(typeof applicant_data[textareas[i].name] !== "undefined"){
+                        textareas[i].value = applicant_data[textareas[i].name];
+                    }
                 }
-            @endif
-        })();
 
-        function checkIfNull(val) {
-            return val == "";
+                @if(!$isModify)
+                    for (var i = 0; i < inputs.length; i++){
+                        if(typeof applicant_data[inputs[i].name] !== "undefined" 
+                            || inputs[i].type == "checkbox" 
+                            || inputs[i].name == 'emailConfirm' 
+                            || inputs[i].name == "blisswisdom_type[]" 
+                            || inputs[i].name == "blisswisdom_type_complement[]"
+                            || inputs[i].name == "blisswisdom_type_complement[0]" 
+                            || inputs[i].name == "blisswisdom_type_complement[1]"){
+                            inputs[i].disabled = true;
+                        }
+                    }
+                    for (var i = 0; i < selects.length; i++){
+                        selects[i].disabled = true;
+                    }
+                    for (var i = 0; i < textareas.length; i++){
+                        textareas[i].disabled = true;
+                    }
+                @endif
+            })();
+
+            function checkIfNull(val) {
+                return val == "";
+            }
+        @endif
+    </script>
+    <style>
+        .required .control-label::after {
+            content: "＊";
+            color: red;
         }
-    @endif
-</script>
-<style>
-    .required .control-label::after {
-        content: "＊";
-        color: red;
-    }
-</style>
+    </style>
 @stop
