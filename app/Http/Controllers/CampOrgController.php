@@ -273,7 +273,18 @@ class CampOrgController extends BackendController
         }
 
         DB::transaction(function () use ($campSrc, $camp_id, $batchIdMatchList, $campDst, $formData) {
+            // 來源 org id => 目的 org id，用來把 prev_id 換成新營隊的 id
+            $orgIdMatchList = [];
+            $orgsDst = [];
+
+            // 目的營隊若已有根節點（例如進入新增職務頁時自動建立的「大會」），沿用它，避免出現兩個根
+            $rootDst = CampOrg::where('camp_id', $camp_id)->roots()->first();
+
             foreach ($campSrc->organizations as $org) {
+                if ($rootDst && $org->isRoot()) {
+                    $orgIdMatchList[$org->id] = $rootDst->id;
+                    continue;
+                }
                 $orgDst = $org->replicate();
                 $orgDst->camp_id = $camp_id;
                 if ($orgDst->batch_id) {
@@ -281,9 +292,19 @@ class CampOrgController extends BackendController
                 }
                 $orgDst->created_at = Carbon::now();
                 $orgDst->save();
-                
+                $orgIdMatchList[$org->id] = $orgDst->id;
+                $orgsDst[$org->id] = $orgDst;
+
                 if($formData['do_copy_permissions'] ?? false) {
                     $this->campOrgService->copyPermissions($campDst, $campSrc, $orgDst, $org, $batchIdMatchList);
+                }
+            }
+
+            // 全部建立完才能對應 id（來源的順序不保證父節點先於子節點）
+            foreach ($orgsDst as $orgDst) {
+                if ((int) $orgDst->prev_id !== 0) {
+                    $orgDst->prev_id = $orgIdMatchList[$orgDst->prev_id] ?? null;
+                    $orgDst->save();
                 }
             }
             $this->campOrgService->rebuildTree(CampOrg::where('camp_id', $camp_id)->get());
@@ -304,6 +325,34 @@ class CampOrgController extends BackendController
         $this->campOrgService->rebuildTree(CampOrg::where('camp_id', $camp_id)->get());
         
         \Session::flash('message', "職務刪除成功。");
+        return back();
+    }
+
+    public function saveAsPermissionTemplate(Request $request, $camp_id, $org_id)
+    {
+        $org = CampOrg::where('camp_id', $camp_id)->find($org_id);
+        if (!$org) { \Session::flash('error', "找不到該職務。"); return back(); }
+
+        $request->validate([
+            'template_name' => 'required|string|max:255',
+            'template_description' => 'nullable|string|max:255',
+        ]);
+
+        if ($org->permissions->isEmpty()) {
+            \Session::flash('error', "此職務尚未設定任何權限，無法另存為範本。");
+            return back();
+        }
+
+        $campTable = $request->boolean('limit_camp_table') ? $org->camp->table : null;
+        $template = $this->campOrgService->saveAsTemplate(
+            $org,
+            $request->input('template_name'),
+            $request->input('template_description'),
+            $campTable,
+            auth()->id()
+        );
+
+        \Session::flash('message', "已將「{$org->position}」的權限另存為範本「{$template->name}」，共 {$template->items()->count()} 項。");
         return back();
     }
 

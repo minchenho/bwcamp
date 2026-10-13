@@ -16,6 +16,12 @@
     </style>
     
     <h2>{{ $camp->abbreviation }} 修改組織職務</h2>
+    @if(\Session::has('message'))
+        <div class='alert alert-success' role='alert'>{{ \Session::get('message') }}</div>
+    @endif
+    @if(\Session::has('error'))
+        <div class='alert alert-danger' role='alert'>{{ \Session::get('error') }}</div>
+    @endif
     
     <form action="{{ route('modifyOrg', [$camp->id, $org->id]) }}" method="POST">
         @csrf
@@ -181,6 +187,41 @@
             <a href="{{ route('showOrgs', $camp->id) }}" class="btn btn-danger">取消修改</a>
         </div>
     </form>
+
+    @if(!$isCopyPermissions && !$org->isRoot() && $complete_permissions->isNotEmpty())
+    {{-- 將目前職務的權限另存為範本 --}}
+    <form action="{{ route('saveAsPermissionTemplate', [$camp->id, $org->id]) }}" method="post" class="mt-5">
+        @csrf
+        <h4 class="card-title"><i class="fas fa-save mr-1"></i> 另存為權限範本</h4>
+        <small class="form-text text-muted mb-3">只會儲存權限內容（資源、動作、範圍），不含營隊與梯次；套用到其他職務時會自動依該職務的營隊與梯次產生權限。</small>
+        <div class='row form-group required'>
+            <label class='col-md-2 control-label'>範本名稱</label>
+            <div class='col-md-6'>
+                <input type="text" name="template_name" class="form-control" value="{{ old('template_name', $org->position) }}" required maxlength="255">
+                @error('template_name')
+                    <div class="text-danger text-sm mt-1">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+        <div class='row form-group'>
+            <label class='col-md-2 control-label'>說明</label>
+            <div class='col-md-6'>
+                <input type="text" name="template_description" class="form-control" value="{{ old('template_description') }}" maxlength="255">
+            </div>
+        </div>
+        <div class='row form-group'>
+            <div class='col-md-6 offset-md-2'>
+                <div class="form-check">
+                    <input type="checkbox" name="limit_camp_table" id="limit_camp_table" class="form-check-input" value="1" checked>
+                    <label class="form-check-label" for="limit_camp_table">只用於同類型營隊（{{ $camp->table }}）</label>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-block">另存為範本</button>
+            </div>
+        </div>
+    </form>
+    @endif
 
     @if($isCopyPermissions)
     {{-- 複製後台權限選單區塊 --}}

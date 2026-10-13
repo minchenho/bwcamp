@@ -147,6 +147,7 @@ Route::group(["prefix" => "backend/campManage"], function () {
         Route::post("/{camp_id}/copy", [CampOrgController::class, "copyOrgs"])->name("copyOrgs");
         Route::get( "/{camp_id}/{org_id}/copyPermissions", [CampOrgController::class, "showCopyPermissions"])->name("showCopyPermissions");
         Route::post("/{camp_id}/{org_id}/copyPermissions", [CampOrgController::class, "copyPermissions"])->name("copyPermissions");
+        Route::post("/{camp_id}/{org_id}/saveAsPermissionTemplate", [CampOrgController::class, "saveAsPermissionTemplate"])->name("saveAsPermissionTemplate");
         Route::get( "/{camp_id}/{org_id}/add", [CampOrgController::class, "showAddOrgs"])->name("showAddOrgs");
         Route::get( "/{camp_id}/{org_id}/duplicate", [CampOrgController::class, "duplicateOrg"])->name("duplicateOrg");
         Route::get( "/{camp_id}/{org_id}/modify", [CampOrgController::class, "showModifyOrg"])->name("showModifyOrg");
