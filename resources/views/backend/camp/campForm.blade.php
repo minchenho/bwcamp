@@ -22,33 +22,33 @@
             <div class='col-md-6'>
                 <select name="table" id="" class='form-control' required>
                     <option value="">請選擇</option>
-                    <option value="acamp" @if(isset($camp) && $camp->table == "acamp") selected @endif>卓青營</option>
-                    <option value="avcamp" @if(isset($camp) && $camp->table == "avcamp") selected @endif>卓青營義工</option>
-                    <option value="ceocamp" @if(isset($camp) && $camp->table == "ceocamp") selected @endif>菁英營</option>
-                    <option value="ceovcamp" @if(isset($camp) && $camp->table == "ceovcamp") selected @endif>菁英營義工</option>
-                    <option value="ecamp" @if(isset($camp) && $camp->table == "ecamp") selected @endif>企業營</option>
-                    <option value="evcamp" @if(isset($camp) && $camp->table == "evcamp") selected @endif>企業營義工</option>
+                    @if(is_null($allowedTables ?? null) || in_array("acamp", $allowedTables))<option value="acamp" @if(isset($camp) && $camp->table == "acamp") selected @endif>卓青營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("avcamp", $allowedTables))<option value="avcamp" @if(isset($camp) && $camp->table == "avcamp") selected @endif>卓青營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("ceocamp", $allowedTables))<option value="ceocamp" @if(isset($camp) && $camp->table == "ceocamp") selected @endif>菁英營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("ceovcamp", $allowedTables))<option value="ceovcamp" @if(isset($camp) && $camp->table == "ceovcamp") selected @endif>菁英營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("ecamp", $allowedTables))<option value="ecamp" @if(isset($camp) && $camp->table == "ecamp") selected @endif>企業營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("evcamp", $allowedTables))<option value="evcamp" @if(isset($camp) && $camp->table == "evcamp") selected @endif>企業營義工</option>@endif
                     <!--option value="hcamp" @if(isset($camp) && $camp->table == "hcamp") selected @endif>快樂營</option-->
                     <!--option value="icamp" @if(isset($camp) && $camp->table == "icamp") selected @endif>國際事務處營隊</option-->
                     <!--option value="ivcamp" @if(isset($camp) && $camp->table == "ivcamp") selected @endif>國際事務處營隊義工</option-->
-                    <option value="mcamp" @if(isset($camp) && $camp->table == "mcamp") selected @endif>醫事人員營</option>
-                    <option value="mvcamp" @if(isset($camp) && $camp->table == "mvcamp") selected @endif>醫事人員營義工</option>
-                    <option value="nycamp" @if(isset($camp) && $camp->table == "nycamp") selected @endif>國際青年營</option>
-                    <option value="nyvcamp" @if(isset($camp) && $camp->table == "nyvcamp") selected @endif>國際青年營義工</option>
-                    <option value="tcamp" @if(isset($camp) && $camp->table == "tcamp") selected @endif>教師營</option>
-                    <option value="tvcamp" @if(isset($camp) && $camp->table == "tvcamp") selected @endif>教師營義工</option>
-                    <option value="utcamp" @if(isset($camp) && $camp->table == "utcamp") selected @endif>大專教師營</option>
-                    <option value="utvcamp" @if(isset($camp) && $camp->table == "utvcamp") selected @endif>大專教師營義工</option>
-                    <option value="wcamp" @if(isset($camp) && $camp->table == "wcamp") selected @endif>講師培訓營</option>
-                    <option value="wvcamp" @if(isset($camp) && $camp->table == "wvcamp") selected @endif>講師培訓營義工</option>
-                    <option value="ycamp" @if(isset($camp) && $camp->table == "ycamp") selected @endif>大專營</option>
-                    <option value="yvcamp" @if(isset($camp) && $camp->table == "yvcamp") selected @endif>大專營義工</option>
+                    @if(is_null($allowedTables ?? null) || in_array("mcamp", $allowedTables))<option value="mcamp" @if(isset($camp) && $camp->table == "mcamp") selected @endif>醫事人員營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("mvcamp", $allowedTables))<option value="mvcamp" @if(isset($camp) && $camp->table == "mvcamp") selected @endif>醫事人員營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("nycamp", $allowedTables))<option value="nycamp" @if(isset($camp) && $camp->table == "nycamp") selected @endif>國際青年營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("nyvcamp", $allowedTables))<option value="nyvcamp" @if(isset($camp) && $camp->table == "nyvcamp") selected @endif>國際青年營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("tcamp", $allowedTables))<option value="tcamp" @if(isset($camp) && $camp->table == "tcamp") selected @endif>教師營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("tvcamp", $allowedTables))<option value="tvcamp" @if(isset($camp) && $camp->table == "tvcamp") selected @endif>教師營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("utcamp", $allowedTables))<option value="utcamp" @if(isset($camp) && $camp->table == "utcamp") selected @endif>大專教師營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("utvcamp", $allowedTables))<option value="utvcamp" @if(isset($camp) && $camp->table == "utvcamp") selected @endif>大專教師營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("wcamp", $allowedTables))<option value="wcamp" @if(isset($camp) && $camp->table == "wcamp") selected @endif>講師培訓營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("wvcamp", $allowedTables))<option value="wvcamp" @if(isset($camp) && $camp->table == "wvcamp") selected @endif>講師培訓營義工</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("ycamp", $allowedTables))<option value="ycamp" @if(isset($camp) && $camp->table == "ycamp") selected @endif>大專營</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("yvcamp", $allowedTables))<option value="yvcamp" @if(isset($camp) && $camp->table == "yvcamp") selected @endif>大專營義工</option>@endif
                     <!-- <option value="actcamp" @if(isset($camp) && $camp->table == "actcamp") selected @endif>小活動</option> -->
                     <!-- <option value="actvcamp" @if(isset($camp) && $camp->table == "actvcamp") selected @endif>小活動義工</option> -->
-                    <option value="lrcamp" @if(isset($camp) && $camp->table == "lrcamp") selected @endif>研討班</option>
+                    @if(is_null($allowedTables ?? null) || in_array("lrcamp", $allowedTables))<option value="lrcamp" @if(isset($camp) && $camp->table == "lrcamp") selected @endif>研討班</option>@endif
                     <!-- <option value="lrvcamp" @if(isset($camp) && $camp->table == "lrvcamp") selected @endif>研討班護持</option> -->
-                    <option value="scamp" @if(isset($camp) && $camp->table == "scamp") selected @endif>永續課程</option>
-                    <option value="svcamp" @if(isset($camp) && $camp->table == "svcamp") selected @endif>永續課程義工</option>
+                    @if(is_null($allowedTables ?? null) || in_array("scamp", $allowedTables))<option value="scamp" @if(isset($camp) && $camp->table == "scamp") selected @endif>永續課程</option>@endif
+                    @if(is_null($allowedTables ?? null) || in_array("svcamp", $allowedTables))<option value="svcamp" @if(isset($camp) && $camp->table == "svcamp") selected @endif>永續課程義工</option>@endif
                     <!-- <option value="coupon" @if(isset($camp) && $camp->table == "coupon") selected @endif>優惠碼/劵</option> -->
                 </select>
             </div>

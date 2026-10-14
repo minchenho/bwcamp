@@ -14,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // 營隊管理的存取判斷：同一個 request 共用快取
+        $this->app->singleton(\App\Services\CampManageAccessService::class);
         if ($this->app->isLocal()) {
             $this->app->register(\Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
         }

@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Services\BackendService;
 use App\Services\CampOrgService;
+use App\Services\CampManageAccessService;
 use Illuminate\Support\Facades\DB;
 
 class CampOrgController extends BackendController 
@@ -60,7 +61,8 @@ class CampOrgController extends BackendController
             $num_users[$org->id] = DB::table('org_user')->where('org_id', $org->id)->count();
         }
 
-        $camp_list = Camp::where('table', $camp->table)->get();
+        $camp_list = Camp::where('table', $camp->table)->get()
+            ->filter(fn ($item) => $this->campAccess()->allows($item, 'org', 'read'))->values();
         $models = $this->backendService->getAvailableModels();
         
         return view('backend.camp.orgList', compact('camp', 'batches', 'orgs', 'camp_list', 'models', 'num_users'));
@@ -162,7 +164,9 @@ class CampOrgController extends BackendController
         $isCopyPermissions = false;
         $camp_list = [];
         $models = [];
-        return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models"))->with('complete_permissions', $org->permissions);
+        // 權限勾選需要「指派」權限，避免只有修改權限的人替自己所屬的職務加權限
+        $canAssignPermissions = $this->campAccess()->allows($camp, 'org', 'assign');
+        return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models", "canAssignPermissions"))->with('complete_permissions', $org->permissions);
     }
 
     public function modifyOrg(Request $request, $camp_id, $org_id)
@@ -170,9 +174,12 @@ class CampOrgController extends BackendController
         $camp = Camp::find($camp_id);
         $org_tg = CampOrg::find($org_id);
 
-        // 1. 處理 Laratrust 權限矩陣
-        $totalPermissions = $this->backendService->permissionTableProcessor($request, $org_tg->id, $camp);
-        if (!is_array($totalPermissions)) { return $totalPermissions; }
+        // 1. 處理 Laratrust 權限矩陣（需要「指派」權限，否則不變動職務的權限）
+        $canAssignPermissions = $this->campAccess()->allows($camp, 'org', 'assign');
+        if ($canAssignPermissions) {
+            $totalPermissions = $this->backendService->permissionTableProcessor($request, $org_tg->id, $camp);
+            if (!is_array($totalPermissions)) { return $totalPermissions; }
+        }
 
         // 2. 核心：精準清洗 group_id 規格
         $allGroupMode = $request->input('all_group');
@@ -226,7 +233,9 @@ class CampOrgController extends BackendController
         $org_tg->save(); // 儲存組織變更
 
         // 4. 同步權限關係
-        $org_tg->syncPermissions($totalPermissions);
+        if ($canAssignPermissions) {
+            $org_tg->syncPermissions($totalPermissions);
+        }
         
         // 5. 如果有改prev_id，重新計算、洗刷整棵樹的關係
             // 加上 ()->get()，強迫 Laravel 重新去資料庫拉出最新組織關聯！
@@ -257,7 +266,15 @@ class CampOrgController extends BackendController
     {
         $formData = $request->toArray();
         $campDst = Camp::find($camp_id);
-        $campSrc = Camp::find($formData['camp2copy']);
+        $campSrc = Camp::find($formData['camp2copy'] ?? null);
+
+        // 來源營隊的組織也必須是自己看得到的；複製權限需要目的營隊的「指派」權限
+        if (!$this->campAccess()->allows($campSrc, 'org', 'read')) {
+            \Session::flash('error', "您沒有來源營隊的組織權限，無法複製。"); return back();
+        }
+        if (($formData['do_copy_permissions'] ?? false) && !$this->campAccess()->allows($campDst, 'org', 'assign')) {
+            \Session::flash('error', "您沒有指派權限的權限，請改選「只複製組織架構」。"); return back();
+        }
 
         if ($campDst->batches->count() != $campSrc->batches->count()) {
             \Session::flash('error', "梯次數量不同，無法複製"); return back();
@@ -326,6 +343,11 @@ class CampOrgController extends BackendController
         
         \Session::flash('message', "職務刪除成功。");
         return back();
+    }
+
+    private function campAccess(): CampManageAccessService
+    {
+        return app(CampManageAccessService::class);
     }
 
     /**
@@ -461,7 +483,8 @@ class CampOrgController extends BackendController
         $availableResources = BackendService::getAvailableModels();
         view()->share('availableResources', $availableResources);
         $isCopyPermissions = true;
-        $camp_list = Camp::where('table', $camp->table)->get();
+        $camp_list = Camp::where('table', $camp->table)->get()
+            ->filter(fn ($item) => $this->campAccess()->allows($item, 'org', 'read'))->values();
         $models = $this->backendService->getAvailableModels();
         return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models"))->with('complete_permissions', $org->permissions);
     }
@@ -478,6 +501,10 @@ class CampOrgController extends BackendController
         }
         $campDst = $orgDst->camp;
         $campSrc = $orgSrc->camp;
+        if (!$this->campAccess()->allows($campSrc, 'org', 'read')) {
+            \Session::flash('error', "您沒有來源營隊的組織權限，無法複製。");
+            return back();
+        }
 
         $batchIdMatchList = array("0" => 0);
         foreach($campSrc->batches as $batchSrc) {

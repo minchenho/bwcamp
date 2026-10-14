@@ -384,7 +384,14 @@
                                 <a class="nav-link card-link" href="/checkin?camp_id={{ $campFullData->id }}&t={{ time() }}&openExternalBrowser=1" target="_blank">本營隊報到系統</a>
                             </li>
                         @endif
-                        @if(auth()->user()->getPermission()->level == 1 || (isset($currentUser) && $currentUser->canAccessResource(new \App\Models\Camp, "update", $campFullData)))
+                        @php
+                            // 與 App\Http\Middleware\Admin 的規則一致：可建立營隊，或對本營隊有營隊 / 梯次 / 組織權限
+                            $menuCampAccess = app(\App\Services\CampManageAccessService::class);
+                            $showCampManagement = $menuCampAccess->canCreateCamp(auth()->user())
+                                || (isset($campFullData) && collect(['camp' => 'update', 'batch' => 'read', 'org' => 'read'])
+                                    ->contains(fn ($action, $resource) => $menuCampAccess->allows($campFullData, $resource, $action)));
+                        @endphp
+                        @if($showCampManagement)
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route("campManagement") }}" target="_blank">營隊管理</a>
                             </li>

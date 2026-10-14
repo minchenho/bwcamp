@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\File;
 use App\Services\ApplicantService;
 use App\Services\BackendService;
 use App\Services\CampDataService;
+use App\Services\CampManageAccessService;
 use App\Services\GSheetService;
 //use App\Services\CampOrgService;
 use App\Services\LodgingService;
@@ -164,12 +165,18 @@ class AdminController extends BackendController {
         return \DB::table('failed_jobs')->truncate();
     }
 
-    public function campManagement(){
-        $camps = Camp::orderBy('id', 'desc')->get();
-        return view('backend.camp.list', compact('camps'));
+    public function campManagement(CampManageAccessService $access){
+        // superuser：全部；event_admin：範圍內的類型；其他人：有營隊 / 梯次 / 組織權限的營隊
+        $camps = $access->accessibleCamps(auth()->user());
+        $canCreateCamp = $access->canCreateCamp(auth()->user());
+        return view('backend.camp.list', compact('camps', 'canCreateCamp'));
     }
 
-    public function addCamp(Request $request){
+    public function addCamp(Request $request, CampManageAccessService $access){
+        if (!$access->canManageCampTable(auth()->user(), $request->input('table'))) {
+            \Session::flash('error', "您不能建立此類型的營隊。");
+            return back()->withInput();
+        }
         $formData = $request->toArray();
         $camp = Camp::create($formData);
         $campName = $formData["abbreviation"];
@@ -180,13 +187,23 @@ class AdminController extends BackendController {
         return redirect()->route("campManagement");
     }
 
-    public function showAddCamp(){
-        return view('backend.camp.campForm', ["action" => "建立", "actionURL" => route("addCamp")]);
+    public function showAddCamp(CampManageAccessService $access){
+        return view('backend.camp.campForm', ["action" => "建立", "actionURL" => route("addCamp"), "allowedTables" => $access->manageableCampTables(auth()->user())]);
     }
 
-    public function modifyCamp(Request $request, $camp_id){
+    public function modifyCamp(Request $request, $camp_id, CampManageAccessService $access){
         $formData = $request->toArray();
         $camp = Camp::find($camp_id);
+        // 營隊類型：superuser 可任意更改；event_admin 只能改成範圍內的類型；其他人不能更改
+        if ($request->has('table') && $request->input('table') !== $camp->table
+            && !$access->canManageCampTable(auth()->user(), $request->input('table'))) {
+            \Session::flash('error', "您不能將營隊改成此類型。");
+            return back()->withInput();
+        }
+        if ($request->vcamp_id && !$access->can(auth()->user(), Camp::find($request->vcamp_id), 'camp', 'update')) {
+            \Session::flash('error', "您沒有連結此義工營隊的權限。");
+            return back()->withInput();
+        }
         $camp->update($formData);
         $campName = $formData["abbreviation"];
         $camp->regions()->detach();
@@ -200,11 +217,17 @@ class AdminController extends BackendController {
         return redirect()->route("campManagement");
     }
 
-    public function showModifyCamp($camp_id){
+    public function showModifyCamp($camp_id, CampManageAccessService $access){
         $camp = Camp::find($camp_id);
         $camp_orgs = $camp->orgs;
-        $vcamps = Camp::where('registration_end', '>', now()->year . "-01-01")->where('table', 'like', '%vcamp%')->get();
-        return view('backend.camp.campForm', ["action" => "修改", "actionURL" => route("modifyCamp", $camp->id), "camp" => $camp, "vcamps" => $vcamps]);
+        $vcamps = Camp::where('registration_end', '>', now()->year . "-01-01")->where('table', 'like', '%vcamp%')->get()
+            ->filter(fn ($vcamp) => $access->can(auth()->user(), $vcamp, 'camp', 'update'))->values();
+        // 一般使用者不能更改營隊類型，只保留目前的類型
+        $allowedTables = $access->manageableCampTables(auth()->user());
+        if (is_array($allowedTables) && !in_array($camp->table, $allowedTables, true)) {
+            $allowedTables = [$camp->table];
+        }
+        return view('backend.camp.campForm', ["action" => "修改", "actionURL" => route("modifyCamp", $camp->id), "camp" => $camp, "vcamps" => $vcamps, "allowedTables" => $allowedTables]);
     }
 
     public function addBatches(Request $request, $camp_id){
@@ -398,5 +421,71 @@ class AdminController extends BackendController {
             \Session::flash('message', " 非屬此營隊，DSLink修改失敗。");
             return redirect()->route("showAddDSLink", $camp_id);
         }
+    }
+
+    /**
+     * event_admin 與其可管理的營隊類型（僅限 superuser，由 admin middleware 檢查）
+     */
+    public function showEventAdmins(){
+        $eventAdmins = \App\Models\User::where('permission', 'event_admin')->orderBy('name')->get(['id', 'name', 'email']);
+        $scopes = \App\Models\UserCampTableScope::whereIn('user_id', $eventAdmins->pluck('id'))->get()->groupBy('user_id');
+        // 只列主營隊類型，義工營會自動包含
+        $campTables = Camp::query()->distinct()->orderBy('table')->pluck('table')
+            ->filter(fn ($table) => CampManageAccessService::vcampTableOf($table))->values();
+        return view('backend.user.eventAdmins', compact('eventAdmins', 'scopes', 'campTables'));
+    }
+
+    public function saveEventAdmin(Request $request){
+        $request->validate([
+            'user' => 'required|string',
+            'camp_tables' => 'array',
+            'camp_tables.*' => 'string|max:255',
+        ]);
+
+        $keyword = trim($request->input('user'));
+        $user = \App\Models\User::where('email', $keyword)
+            ->when(ctype_digit($keyword), fn ($query) => $query->orWhere('id', (int) $keyword))
+            ->first();
+        if (!$user) {
+            \Session::flash('error', "找不到使用者「{$keyword}」，請輸入 Email 或使用者 ID。");
+            return back()->withInput();
+        }
+        if ($user->permission && $user->permission !== 'event_admin') {
+            \Session::flash('error', "{$user->name} 目前的身分是 {$user->permission}，不能設為 event_admin。");
+            return back()->withInput();
+        }
+
+        $tables = collect($request->input('camp_tables', []))
+            ->filter(fn ($table) => CampManageAccessService::vcampTableOf($table))
+            ->unique()->values();
+
+        \DB::transaction(function () use ($user, $tables) {
+            $user->permission = 'event_admin';
+            $user->save();
+            \App\Models\UserCampTableScope::where('user_id', $user->id)->whereNotIn('camp_table', $tables)->delete();
+            foreach ($tables as $table) {
+                \App\Models\UserCampTableScope::firstOrCreate(['user_id' => $user->id, 'camp_table' => $table]);
+            }
+        });
+
+        \Session::flash('message', "已設定 {$user->name} 為 event_admin，可管理：" . ($tables->isEmpty() ? '（無）' : $tables->implode('、')));
+        return redirect()->route('showEventAdmins');
+    }
+
+    public function removeEventAdmin(Request $request){
+        $user = \App\Models\User::where('permission', 'event_admin')->find($request->input('user_id'));
+        if (!$user) {
+            \Session::flash('error', "找不到該 event_admin。");
+            return back();
+        }
+
+        \DB::transaction(function () use ($user) {
+            $user->permission = null;
+            $user->save();
+            \App\Models\UserCampTableScope::where('user_id', $user->id)->delete();
+        });
+
+        \Session::flash('message', "已移除 {$user->name} 的 event_admin 身分。");
+        return redirect()->route('showEventAdmins');
     }
 }
