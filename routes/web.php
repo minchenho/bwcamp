@@ -203,6 +203,8 @@ Route::group(["prefix" => "backend/{camp_id}", ], function () {
         Route::get("/list", "BackendController@showRegistrationList")->name("showRegistrationList");
         Route::post("/getList", "BackendController@getRegistrationList")->name("getRegistrationList");
         Route::post("/upload", "BackendController@registrationUpload")->name("registrationUpload");
+        Route::get("/batchRegistration", "BackendController@showBatchRegistration")->name("showBatchRegistration");
+        Route::post("/batchRegistration", "BackendController@batchRegistration")->name("batchRegistration");
         // 群組與分組
         Route::get("/groupList", "BackendController@showGroupList")->name("showGroupList");
         Route::get("/sectionList/{org_id}", "BackendController@showSectionList")->name("showSectionList");

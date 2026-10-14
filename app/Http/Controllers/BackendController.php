@@ -37,6 +37,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Jobs\CheckResourceAccessJob;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Arr;
+use App\Jobs\SendApplicantMail;
 
 class BackendController extends Controller
 {
@@ -525,6 +527,113 @@ class BackendController extends Controller
         }
         $user_batch_or_region = null;
         return view('backend.registration.registration', compact('user_batch_or_region'));
+    }
+
+    /**
+     * 後台批次報名（一次報名多人），供欄位簡單的義工營使用。
+     * 需有 backend/registration/batchRegistration/{camp_table} 的 view 才會開放。
+     */
+    public function showBatchRegistration(Request $request)
+    {
+        if ($error = $this->checkBatchRegistrationAccess()) {
+            return $error;
+        }
+        $targetBatch = $this->camp_info->batches->firstWhere('id', $request->target_batch_id);
+        if (!$targetBatch) {
+            return "<h3>錯誤：請由後台報名頁選擇梯次。</h3>";
+        }
+        return view('backend.registration.batchRegistration.' . $this->camp_table, compact('targetBatch'));
+    }
+
+    public function batchRegistration(Request $request)
+    {
+        if ($error = $this->checkBatchRegistrationAccess()) {
+            return $error;
+        }
+        $targetBatch = $this->camp_info->batches->firstWhere('id', $request->target_batch_id);
+        if (!$targetBatch) {
+            return "<h3>錯誤：請由後台報名頁選擇梯次。</h3>";
+        }
+
+        $request->validate([
+            'applicants' => 'required|array|min:1|max:50',
+            'applicants.*.name' => ['required', 'string', 'max:27', 'regex:/^[\x{4e00}-\x{9fa5}a-zA-Z\s\-]+$/u'],
+            'applicants.*.gender' => 'required|in:M,F',
+            'applicants.*.email' => 'required|email',
+            'applicants.*.mobile' => 'required|string|max:20',
+            'applicants.*.region' => 'required|string|max:20',
+            'applicants.*.self_intro' => 'required|string|max:500',
+        ], [], [
+            'applicants.*.name' => '姓名',
+            'applicants.*.gender' => '生理性別',
+            'applicants.*.email' => '電子郵件',
+            'applicants.*.mobile' => '行動電話',
+            'applicants.*.region' => '區域',
+            'applicants.*.self_intro' => '我是誰',
+        ]);
+
+        // 寄信需要合併梯次欄位的營隊資料
+        $campBatchInfo = $this->campDataService->getCampBatchInfo($targetBatch->id);
+        $model = '\\App\\Models\\' . ucfirst($this->camp_table);
+        $results = [];
+        foreach ($request->applicants as $row) {
+            $row = array_map('trim', Arr::only($row, ['name', 'gender', 'email', 'mobile', 'region', 'self_intro']));
+
+            // 防重複報名：同營隊、同姓名、同 email 視為已報名
+            $applicant = Applicant::where('camp_id', $this->camp_id)
+                ->where('name', $row['name'])
+                ->where('email', $row['email'])
+                ->withTrashed()->first();
+            if ($applicant) {
+                if ($applicant->trashed()) {
+                    $applicant->restore();
+                }
+                $results[] = ['applicant' => $applicant, 'isRepeat' => true];
+                continue;
+            }
+
+            $formData = $row + [
+                'batch_id' => $targetBatch->id,
+                'camp_id' => $this->camp_id,
+                'profile_agree' => 0,
+                'portrait_agree' => 0,
+            ];
+            $region = $this->camp_info->regions->where('name', $formData['region'])->first();
+            if ($region) {
+                $formData['region_id'] = $region->id;
+            }
+            $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
+
+            $applicant = \DB::transaction(function () use ($formData, $model) {
+                \DB::statement("SET SESSION sql_mode = '';");
+                $applicant = Applicant::create($formData);
+                $formData['applicant_id'] = $applicant->id;
+                $model::create($formData);
+                return $applicant;
+            });
+            try {
+                SendApplicantMail::dispatch($applicant->id, $campBatchInfo, false);
+            } catch (\Exception $e) {
+                logger($e);
+            }
+            $results[] = ['applicant' => $applicant, 'isRepeat' => false];
+        }
+
+        return view('backend.registration.batchRegistration.' . $this->camp_table, compact('targetBatch', 'results'));
+    }
+
+    private function checkBatchRegistrationAccess()
+    {
+        if (!View::exists('backend.registration.batchRegistration.' . $this->camp_table)) {
+            abort(404);
+        }
+        if (!$this->isVcamp && !$this->user->canAccessResource(new \App\Models\Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability') && !$this->user->isSuperuser) {
+            return "<h3>沒有權限：瀏覽任何學員</h3>";
+        }
+        if ($this->isVcamp && !$this->user->canAccessResource(new \App\Models\Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability') && !$this->user->isSuperuser) {
+            return "<h3>沒有權限：瀏覽任何義工</h3>";
+        }
+        return null;
     }
 
     public function showRegistrationUpload()
