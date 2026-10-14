@@ -72,6 +72,12 @@ class User extends Authenticatable
         return $this->permission === 'superuser';
     }
 
+    // 可在營隊中直接指定使用者職務：僅限 superuser
+    public function canAssignOrgsDirectly(): bool
+    {
+        return $this->isSuperuser;
+    }
+
     public function role_relations(){
         return $this->hasMany('App\Models\RoleUser');
     }
