@@ -92,9 +92,9 @@ Route::group(["prefix" => "camp/{batch_id}", "middleware" => ["throttle:60,1"]],
 Route::get("/backend", "BackendController@masterIndex")->name("backendIndex");
 Route::get("/jobs/{camp_id?}", [AdminController::class, "showJobs"])->name("jobs");
 Route::get("/failedJobsClear", [AdminController::class, "failedJobsClear"])->name("failedJobsClear");
-Route::middleware(["admin"])->group(function () {
-    Route::get('switchToUser/{id}', [BackendController::class, "switchToUser"]);
-    Route::get('switch-back', [BackendController::class, "switchUserBack"]);
+Route::middleware(["auth", "admin"])->group(function () {
+    Route::get('switchToUser/{id}', [BackendController::class, "switchToUser"])->name("switchToUser");
+    Route::get('switch-back', [BackendController::class, "switchUserBack"])->name("switchUserBack");
     Route::get("/userlist/{camp_id?}", [AdminController::class, "userlist"])->name("userlist");
     Route::get("/user/userAddRole/{user_id}", [AdminController::class, "userAddRole"])->name("userAddRole");
     Route::post("/user/removeRole", [AdminController::class, "removeRole"])->name("removeRole");
@@ -105,6 +105,9 @@ Route::middleware(["admin"])->group(function () {
     Route::post("/listrole/removeRole", [AdminController::class, "listRemoveRole"])->name("listRemoveRole");
     Route::get("/listrole/addRole/{camp_id?}", [AdminController::class, "listAddRole"])->name("listAddRoleGET");
     Route::post("/listrole/addRole/{camp_id?}", [AdminController::class, "listAddRole"])->name("listAddRole");
+    Route::get("/eventAdmins", [AdminController::class, "showEventAdmins"])->name("showEventAdmins");
+    Route::post("/eventAdmins", [AdminController::class, "saveEventAdmin"])->name("saveEventAdmin");
+    Route::post("/eventAdmins/remove", [AdminController::class, "removeEventAdmin"])->name("removeEventAdmin");
 });
 
 Route::group(["prefix" => "checkin", ], function () {
@@ -119,7 +122,8 @@ Route::group(["prefix" => "checkin", ], function () {
     Route::get("/detailedStat", [CheckInController::class, "detailedStatOptimized"]);
 });
 
-Route::group(["prefix" => "backend/campManage"], function () {
+// 存取規則見 App\Http\Middleware\Admin
+Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"]], function () {
     // 營隊基本管理
     Route::group(['prefix' => 'list'], function () {
         Route::get("/", [AdminController::class, "campManagement"])->name("campManagement");
@@ -145,11 +149,14 @@ Route::group(["prefix" => "backend/campManage"], function () {
         Route::get( "/{camp_id}", [CampOrgController::class, "showOrgs"])->name("showOrgs");
         Route::post("/{camp_id}/add", [CampOrgController::class, "addOrgs"])->name("addOrgs");
         Route::post("/{camp_id}/copy", [CampOrgController::class, "copyOrgs"])->name("copyOrgs");
+        Route::get( "/{camp_id}/assignUsers", [CampOrgController::class, "showAssignUsers"])->name("showAssignUsers");
+        Route::post("/{camp_id}/assignUsers", [CampOrgController::class, "assignUser"])->name("assignUser");
+        Route::post("/{camp_id}/unassignUser", [CampOrgController::class, "unassignUser"])->name("unassignUser");
         Route::get( "/{camp_id}/{org_id}/copyPermissions", [CampOrgController::class, "showCopyPermissions"])->name("showCopyPermissions");
         Route::post("/{camp_id}/{org_id}/copyPermissions", [CampOrgController::class, "copyPermissions"])->name("copyPermissions");
         Route::post("/{camp_id}/{org_id}/saveAsPermissionTemplate", [CampOrgController::class, "saveAsPermissionTemplate"])->name("saveAsPermissionTemplate");
         Route::get( "/{camp_id}/{org_id}/add", [CampOrgController::class, "showAddOrgs"])->name("showAddOrgs");
-        Route::get( "/{camp_id}/{org_id}/duplicate", [CampOrgController::class, "duplicateOrg"])->name("duplicateOrg");
+        Route::post("/{camp_id}/{org_id}/duplicate", [CampOrgController::class, "duplicateOrg"])->name("duplicateOrg");
         Route::get( "/{camp_id}/{org_id}/modify", [CampOrgController::class, "showModifyOrg"])->name("showModifyOrg");
         Route::post("/{camp_id}/{org_id}/modify", [CampOrgController::class, "modifyOrg"])->name("modifyOrg");
         Route::post("/remove", [CampOrgController::class, "removeOrg"])->name("removeOrg");

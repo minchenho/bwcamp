@@ -9,7 +9,9 @@
         }
     </style>
     <h2 class="d-inline-block">{{ $camp->abbreviation }} 梯次列表</h2>
-    <a href="{{ route("showAddBatch", $camp->id) }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">建立梯次</a>
+    @if($campAccess->allows($camp, 'batch', 'create'))
+        <a href="{{ route("showAddBatch", $camp->id) }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">建立梯次</a>
+    @endif
     @if(\Session::has('message'))
         <div class='alert alert-success' role='alert'>
             {{ \Session::get('message') }}
@@ -55,12 +57,14 @@
                 <td>{{ $num_applicants[$batch->id]}}</td>
                 <td>
                     <a href="{{ route("showModifyBatch", [$camp->id, $batch->id]) }}" class="btn btn-primary">修改</a>
+                    @if($campAccess->allows($camp, 'batch', 'create'))
                     <form action="{{ route('copyBatch', $camp->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="batch_id" value="{{ $batch->id }}">
                         <input type="submit" class="btn btn-success float-right" value="複製">
                     </form>
-                    @if(!$num_applicants[$batch->id])
+                    @endif
+                    @if(!$num_applicants[$batch->id] && $campAccess->allows($camp, 'batch', 'delete'))
                     <form action="{{ route('removeBatch', $camp->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="batch_id" value="{{ $batch->id }}">

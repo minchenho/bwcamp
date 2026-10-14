@@ -48,8 +48,16 @@
 
 @section('content')
     <h2 class="d-inline-block">營隊列表</h2>
-    <a href="{{ route('showAddCamp') }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">建立營隊</a>
-    
+    @if($canCreateCamp)
+        <a href="{{ route('showAddCamp') }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">建立營隊</a>
+    @endif
+    @if(auth()->user()->permission === 'superuser')
+        <a href="{{ route('showEventAdmins') }}" class="btn btn-outline-secondary d-inline-block" style="margin-bottom: 10px">event_admin 管理</a>
+    @endif
+
+    @if(\Session::has('error'))
+        <div class='alert alert-danger' role='alert'>{{ \Session::get('error') }}</div>
+    @endif
     @if(\Session::has('message'))
         <div class='alert alert-success' role='alert'>
             {{ \Session::get('message') }}
@@ -114,9 +122,13 @@
                         <td class="col-modify">{{ $camp->modifying_deadline ?? '' }}</td>
                         <td class="col-cancel">{{ $camp->cancellation_deadline ?? '' }}</td>
                         <td class="text-nowrap col-actions">
-                            <a href="{{ route('showModifyCamp', $camp->id) }}" class="btn btn-primary btn-sm">編輯營隊</a><br>
-                            <a href="{{ route('showBatch', $camp->id) }}" class="btn btn-success btn-sm" target="_blank">梯次列表</a><br>
-                            @if(!str_contains($camp->table, 'vcamp'))
+                            @if($campAccess->allows($camp, 'camp', 'update'))
+                                <a href="{{ route('showModifyCamp', $camp->id) }}" class="btn btn-primary btn-sm">編輯營隊</a><br>
+                            @endif
+                            @if($campAccess->allows($camp, 'batch', 'read'))
+                                <a href="{{ route('showBatch', $camp->id) }}" class="btn btn-success btn-sm" target="_blank">梯次列表</a><br>
+                            @endif
+                            @if(!str_contains($camp->table, 'vcamp') && $campAccess->allows($camp, 'org', 'read'))
                                 <a href="{{ route('showOrgs', $camp->id) }}" class="btn btn-secondary btn-sm">組織列表</a>
                             @endif
                         </td>

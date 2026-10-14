@@ -136,10 +136,6 @@ class BackendController extends Controller
             }
         }
 
-        if (\Str::contains(url()->current(), "campManage")) {
-            $this->middleware('admin');
-        }
-
         // 營隊資料，存入 view 全域
         View::share('batch_id', $this->batch_id);
         View::share('batch', $this->batch);

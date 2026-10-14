@@ -312,7 +312,6 @@ return [
         ],
     ],
 
-
     'ecamp' => [
         'sec_basic' => [
             'is_shown' => 1,
@@ -519,13 +518,15 @@ return [
             'is_shown' => 1,
             'title' => 'none',
             'fields1' => [  //姓名姓別年齡
-                'name'  => '中文姓名',
+                "name" => "姓名",
+                "chinese_first_name" => "中文名字",
+                "chinese_last_name" => "中文姓氏",
+                "english_name" => "英文名字",
+                "english_last_name" => "英文姓氏",
                 'gender' => '生理性別',
                 'birthdate' => '生日',
             ],
             'fields2' => [  //工作
-                "system" => "課程學制",
-                "day_nigh" => "部別",
                 "school" => "就讀學校",
                 "department" => "系所",
                 "grade" => "年級",
@@ -544,10 +545,10 @@ return [
             'is_shown' => 1,
         ],
         'sec_lodging' => [
-            'is_shown' => 0,
+            'is_shown' => 1,
         ],
         'sec_traffic' => [
-            'is_shown' => 0,
+            'is_shown' => 1,
         ],
         'sec_file_upload' => [
             'is_shown' => 0,
@@ -557,7 +558,6 @@ return [
             'title' => '聯絡方式',
             'fields' => [
                 'mobile' => '行動電話',
-                'phone_home' => '住家電話',
                 'line' => 'lineID',
                 'email' => 'Email',
                 'zipcode' => '郵遞區號',
@@ -568,19 +568,10 @@ return [
             'is_shown' => 1,
             'title' => '關係人資訊',
             'fields' => [
-                "father_name" => "父親姓名",
-                "father_lamrim" => "父親廣論班別",
-                "father_phone" => "父親聯絡電話",
-                "mother_name" => "母親姓名",
-                "mother_lamrim" => "母親廣論班別",
-                "mother_phone" => "母親聯絡電話",
                 "introducer_name" => "介紹人姓名",
                 "introducer_relationship" => "介紹人關係",
                 "introducer_phone" => "介紹人電話",
                 "introducer_participated" => "介紹人參加過的福智活動",
-                "in_inperson" => "是否本人填表",
-                "agent_name" => "代填人姓名",
-                "agent_phone" => "代填人電話",
                 "emergency_name" => "緊急聯絡人姓名",
                 "emergency_relationship" => "緊急聯絡人關係",
                 "emergency_mobile" => "緊急聯絡人電話",
@@ -595,8 +586,6 @@ return [
                 "club" => "社團活動及擔任職務",
                 "goal" => "這一生目標",
                 "expectation" => "對活動的期望",
-                "blisswisdom_type" => "曾參與福智活動",
-                "blisswisdom_type_other" => "曾參與福智活動(其它)",
                 'portrait_agree' => '肖像權',
                 'profile_agree' => '個資使用',
             ],
@@ -727,7 +716,6 @@ return [
             'title' => '訪談記錄',
         ],
     ],
-
 
     //---------- utcamp --------------------
     //---------- utcamp --------------------
