@@ -73,7 +73,7 @@ class CheckInController extends Controller {
                 $camps = $camps->push($camp->vcamp);
             }
         }
-        if ($camps->count() == 0 && $this->user->id == 1) {
+        if ($camps->count() == 0 && $this->user->isSuperuser) {
             $camps = Camp::orderByDesc('id')->get();
         }
         return view('checkIn.select', compact('camps'));
