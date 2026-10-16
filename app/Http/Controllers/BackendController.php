@@ -573,7 +573,8 @@ class BackendController extends Controller
         ]);
 
         // 寄信需要合併梯次欄位的營隊資料
-        $campBatchInfo = $this->campDataService->getCampBatchInfo($targetBatch->id);
+        $sendMail = $request->boolean('send_mail');
+        $campBatchInfo = $sendMail ? $this->campDataService->getCampBatchInfo($targetBatch->id) : null;
         $model = '\\App\\Models\\' . ucfirst($this->camp_table);
         $results = [];
         foreach ($request->applicants as $row) {
@@ -611,10 +612,12 @@ class BackendController extends Controller
                 $model::create($formData);
                 return $applicant;
             });
-            try {
-                SendApplicantMail::dispatch($applicant->id, $campBatchInfo, false);
-            } catch (\Exception $e) {
-                logger($e);
+            if ($sendMail) {
+                try {
+                    SendApplicantMail::dispatch($applicant->id, $campBatchInfo, false);
+                } catch (\Exception $e) {
+                    logger($e);
+                }
             }
             $results[] = ['applicant' => $applicant, 'isRepeat' => false];
         }

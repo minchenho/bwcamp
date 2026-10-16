@@ -4,13 +4,15 @@
     @php
         $regions = ['總部', '台北', '桃園', '新竹', '台中', '雲嘉', '台南', '高雄', '其它'];
         $rows = old('applicants', [[]]);
+        // 預設寄信；送出後沿用上次的選擇
+        $sendMail = old('send_mail', request('send_mail', 1));
     @endphp
     <h2>{{ $campFullData->fullName }} 批次報名</h2>
     <p>梯次：{{ $targetBatch->name }}，{{ $targetBatch->batch_start }} ~ {{ $targetBatch->batch_end }}</p>
 
     @if(isset($results))
         <div class="alert alert-success">
-            本次送出 {{ count($results) }} 人，新報名 {{ collect($results)->where('isRepeat', false)->count() }} 人。
+            本次送出 {{ count($results) }} 人，新報名 {{ collect($results)->where('isRepeat', false)->count() }} 人{{ request()->boolean('send_mail') ? '，已寄送報名確認信' : '，未寄送報名確認信' }}。
         </div>
         <table class="table table-sm table-bordered mb-4">
             <thead><tr><th>報名序號</th><th>姓名</th><th>Email</th><th>結果</th></tr></thead>
@@ -90,6 +92,11 @@
             @endforeach
         </div>
         <button type="button" class="btn btn-outline-primary mb-3" id="addRow">＋ 新增一位</button>
+        <div class="form-check mb-3">
+            <input type="hidden" name="send_mail" value="0">
+            <input type="checkbox" class="form-check-input" name="send_mail" value="1" id="sendMail" @checked($sendMail)>
+            <label class="form-check-label" for="sendMail">寄送報名確認信給報名者</label>
+        </div>
         <div>
             <button type="submit" class="btn btn-success" onclick="return confirm('確定送出 ' + document.querySelectorAll('.applicant-row').length + ' 位的報名資料？')">確認送出</button>
         </div>
