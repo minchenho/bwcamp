@@ -664,6 +664,12 @@ class BackendService
 
     public function permissionTableProcessor($request, $roleID, $camp, $totalPermissions = [], $rolesModel = "\App\Models\CampOrg", $permissionModel = "\App\Models\Permission") {
         if ($request->resources && $request->range) {
+            // 匯出一律是整營匯出，範圍必須是「全部 / 不指定」
+            foreach ($request->resources as $resource => $actions) {
+                if (in_array('export', $actions) && !in_array($request->range[$resource] ?? null, \App\Services\CampManageAccessService::EXPORT_RANGES)) {
+                    return back()->withErrors(['range' => ($request->resources_name[$resource] ?? $resource) . '：匯出權限的範圍只能是「全部」或「不指定」。']);
+                }
+            }
             foreach ($request->resources as $resource => $actions) {
                 foreach ($actions as $key => $action) {
                     $role = $rolesModel::findOrFail($roleID);

@@ -2,33 +2,7 @@
     <!-- Always remember that you are absolutely unique. Just like everyone else. - Margaret Mead -->
     <p align="right">
         @php
-            $ceoEmails = config('special_permissions.ceo_emails', []);
-            $ecampEmails = config('special_permissions.ecamp_emails', []);
-            $utcampEmails = config('special_permissions.utcamp_emails', []);
-            $ycampEmails = config('special_permissions.ycamp_emails', []);
-
-            $showExportButton = false;
-            $tableContent = $campFullData->table;
-            $userEmail = $currentUser->email;
-            $isCeocamp = str_contains($tableContent, 'ceo');
-            $isEcamp = str_contains($tableContent, 'ecamp');
-            $isUtcamp = str_contains($tableContent, 'utcamp');
-            $isYcamp = str_contains($tableContent, 'ycamp') || str_contains($tableContent, 'yvcamp');
-
-            if (!$isCeocamp && !$isEcamp && !$isUtcamp && !$isYcamp) {
-                $showExportButton = true;
-            } else {
-                // 否則，根據 email 判斷
-                if ($isCeocamp && in_array($userEmail, $ceoEmails)) {
-                    $showExportButton = true;
-                } elseif ($isEcamp && in_array($userEmail, $ecampEmails)) {
-                    $showExportButton = true;
-                } elseif ($isUtcamp && in_array($userEmail, $utcampEmails)) {
-                    $showExportButton = true;
-                } elseif ($isYcamp && in_array($userEmail, $ycampEmails)) {
-                    $showExportButton = true;
-                }
-            }
+            $showExportButton = app(\App\Services\CampManageAccessService::class)->canExport($currentUser, $campFullData, (bool) $isShowVolunteers);
         @endphp
         @if($showExportButton)
             <a href="{{ route("export", $campFullData->id) }}?vcamp={{ $isShowVolunteers }}" target="_blank" rel="noopener noreferrer" class="btn btn-danger mb-3">匯出資料</a>

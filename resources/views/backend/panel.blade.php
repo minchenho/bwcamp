@@ -20,35 +20,8 @@
                 }
             @endphp
             @if(isset($campFullData))
-                <!--使用 options.blade.php 設定--->
                 @php
-                    $ceoEmails = config('special_permissions.ceo_emails', []);
-                    $ecampEmails = config('special_permissions.ecamp_emails', []);
-                    $utcampEmails = config('special_permissions.utcamp_emails', []);
-                    $ycampEmails = config('special_permissions.ycamp_emails', []);
-
-                    $showExportButton = false;
-                    $tableContent = $campFullData->table;
-                    $userEmail = $currentUser->email;
-                    $isCeocamp = str_contains($tableContent, 'ceo');
-                    $isEcamp = str_contains($tableContent, 'ecamp');
-                    $isUtcamp = str_contains($tableContent, 'utcamp');
-                    $isYcamp = str_contains($tableContent, 'ycamp') || str_contains($tableContent, 'yvcamp');
-
-                    if (!$isCeocamp && !$isEcamp && !$isUtcamp && !$isYcamp) {
-                        $showExportButton = false;
-                    } else {
-                        // 否則，根據 email 判斷
-                        if ($isCeocamp && in_array($userEmail, $ceoEmails)) {
-                            $showExportButton = true;
-                        } elseif ($isEcamp && in_array($userEmail, $ecampEmails)) {
-                            $showExportButton = true;
-                        } elseif ($isUtcamp && in_array($userEmail, $utcampEmails)) {
-                            $showExportButton = true;
-                        } elseif ($isYcamp && in_array($userEmail, $ycampEmails)) {
-                            $showExportButton = true;
-                        }
-                    }
+                    $showExportButton = app(\App\Services\CampManageAccessService::class)->canExport($currentUser, $campFullData);
                 @endphp
                 @if($userOnlyCarer)
                     {{-- If user is only a Carer, show only Learner List --}}

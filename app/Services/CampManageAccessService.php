@@ -24,6 +24,11 @@ class CampManageAccessService
         'org' => \App\Models\CampOrg::class,
     ];
 
+    /**
+     * 匯出一律是整營匯出，只有範圍為「全部 / 不指定」的匯出權限才有效
+     */
+    public const EXPORT_RANGES = ['all', 'na'];
+
     private array $tablesCache = [];
     private array $permissionsCache = [];
 
@@ -104,6 +109,39 @@ class CampManageAccessService
 
         $class = '\\' . ltrim(self::RESOURCES[$resource] ?? $resource, '\\');
         return $this->userPermissions($user)->contains("{$permissionCampId}|{$class}|{$action}");
+    }
+
+    /**
+     * 匯出名單：superuser、範圍內的 event_admin，
+     * 或所屬職務有該資源（學員 / 義工）的 export 權限且範圍為全部
+     *
+     * @param bool $isVolunteer 匯出義工名單；傳入義工營時一律視為義工
+     */
+    public function canExport($user, ?Camp $camp, bool $isVolunteer = false): bool
+    {
+        if (!$user || !$camp) {
+            return false;
+        }
+        if ($this->isSuperuser($user) || $this->canManageCampTable($user, $camp->table)) {
+            return true;
+        }
+
+        $isVolunteer = $isVolunteer || $camp->isVcamp;
+        $permissionCampId = $camp->isVcamp ? $camp->mainCamp?->id : $camp->id;
+        if (!$permissionCampId) {
+            return false;
+        }
+
+        $class = '\\' . ($isVolunteer ? \App\Models\Volunteer::class : \App\Models\Applicant::class);
+        return DB::table('org_user')
+            ->join('org_permission', 'org_permission.org_id', '=', 'org_user.org_id')
+            ->join('permissions', 'permissions.id', '=', 'org_permission.permission_id')
+            ->where('org_user.user_id', $user->id)
+            ->where('permissions.camp_id', $permissionCampId)
+            ->where('permissions.resource', $class)
+            ->where('permissions.action', 'export')
+            ->whereIn('permissions.range', self::EXPORT_RANGES)
+            ->exists();
     }
 
     /**

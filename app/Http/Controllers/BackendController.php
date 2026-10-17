@@ -874,6 +874,9 @@ class BackendController extends Controller
         // todo: fcb440ab06a18ae2baa4dc39bad6ed04a9e79455 把原先的權限過濾拿掉了，後續要考慮加回來
         //----- 處理「下載」：開始 -----
         if (isset($request->download)) {
+            if (!app(\App\Services\CampManageAccessService::class)->canExport($this->user, $this->camp_info)) {
+                abort(403, '沒有權限：匯出名單');
+            }
             if ($applicants) {
                 // 參加者報到日期
                 $checkInDates = CheckIn::select('check_in_date')->whereIn('applicant_id', $applicants->pluck('sn'))->groupBy('check_in_date')->get();
@@ -2480,6 +2483,9 @@ private function getCarersData($user, Request $request): array
 
     public function export(Request $request)
     {
+        if (!app(\App\Services\CampManageAccessService::class)->canExport($this->user, $this->camp_info, (bool) $request->input('vcamp'))) {
+            abort(403, '沒有權限：匯出名單');
+        }
         ini_set('memory_limit', -1);
         ini_set('max_execution_time', 0);
         if ($request->input('vcamp')) {
@@ -2490,7 +2496,7 @@ private function getCarersData($user, Request $request): array
             $filename = $camp->fullName . '學員名單' . Carbon::now()->format('YmdHis') .  '.xlsx';
         }
 
-        if ($request->allData && $this->user->email == "lzong.tw@gmail.com") {
+        if ($request->allData && $this->user->isSuperuser) {
             return Excel::download(new ApplicantsExport($camp, true), $filename);
         }
         return Excel::download(new ApplicantsExport($camp), $filename);
