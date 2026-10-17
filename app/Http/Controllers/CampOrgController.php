@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Services\BackendService;
 use App\Services\CampOrgService;
+use App\Services\CampManageAccessService;
 use Illuminate\Support\Facades\DB;
 
 class CampOrgController extends BackendController 
@@ -42,17 +43,14 @@ class CampOrgController extends BackendController
     public function showOrgs($camp_id)
     {
         $camp = Camp::find($camp_id);
-        if (isset($camp->vcamp)) {
-            $vcamp = Camp::find($camp->vcamp->id);
-            $batches = $camp->batches->merge($vcamp->batches);
-        } else {
-            $vcamp = null;
-            $batches = $camp->batches;
-        }
+        $vcamp = $camp->resolved_vcamp;
+        $vbatches = $vcamp ? $vcamp->batches : collect();
+        $batches = $camp->batches->merge($vbatches);
         $regions = $camp->regions;
         
         // ✨ 新架構：依深度與自訂排序，全域預載ancestors寫在model裡面，避免N+1問題
         $orgs = $camp->orgs()
+            ->with('permissions')
             ->orderBy('depth')
             ->orderBy('order')
             ->orderBy('id')
@@ -63,7 +61,8 @@ class CampOrgController extends BackendController
             $num_users[$org->id] = DB::table('org_user')->where('org_id', $org->id)->count();
         }
 
-        $camp_list = Camp::where('table', $camp->table)->get();
+        $camp_list = Camp::where('table', $camp->table)->get()
+            ->filter(fn ($item) => $this->campAccess()->allows($item, 'org', 'read'))->values();
         $models = $this->backendService->getAvailableModels();
         
         return view('backend.camp.orgList', compact('camp', 'batches', 'orgs', 'camp_list', 'models', 'num_users'));
@@ -162,7 +161,12 @@ class CampOrgController extends BackendController
         $org = CampOrg::find($org_id);
         $availableResources = BackendService::getAvailableModels();
         view()->share('availableResources', $availableResources);
-        return view('backend.camp.modifyOrg', compact("camp", "org"))->with('complete_permissions', $org->permissions);
+        $isCopyPermissions = false;
+        $camp_list = [];
+        $models = [];
+        // 權限勾選需要「指派」權限，避免只有修改權限的人替自己所屬的職務加權限
+        $canAssignPermissions = $this->campAccess()->allows($camp, 'org', 'assign');
+        return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models", "canAssignPermissions"))->with('complete_permissions', $org->permissions);
     }
 
     public function modifyOrg(Request $request, $camp_id, $org_id)
@@ -170,9 +174,12 @@ class CampOrgController extends BackendController
         $camp = Camp::find($camp_id);
         $org_tg = CampOrg::find($org_id);
 
-        // 1. 處理 Laratrust 權限矩陣
-        $totalPermissions = $this->backendService->permissionTableProcessor($request, $org_tg->id, $camp);
-        if (!is_array($totalPermissions)) { return $totalPermissions; }
+        // 1. 處理 Laratrust 權限矩陣（需要「指派」權限，否則不變動職務的權限）
+        $canAssignPermissions = $this->campAccess()->allows($camp, 'org', 'assign');
+        if ($canAssignPermissions) {
+            $totalPermissions = $this->backendService->permissionTableProcessor($request, $org_tg->id, $camp);
+            if (!is_array($totalPermissions)) { return $totalPermissions; }
+        }
 
         // 2. 核心：精準清洗 group_id 規格
         $allGroupMode = $request->input('all_group');
@@ -226,7 +233,9 @@ class CampOrgController extends BackendController
         $org_tg->save(); // 儲存組織變更
 
         // 4. 同步權限關係
-        $org_tg->syncPermissions($totalPermissions);
+        if ($canAssignPermissions) {
+            $org_tg->syncPermissions($totalPermissions);
+        }
         
         // 5. 如果有改prev_id，重新計算、洗刷整棵樹的關係
             // 加上 ()->get()，強迫 Laravel 重新去資料庫拉出最新組織關聯！
@@ -257,7 +266,15 @@ class CampOrgController extends BackendController
     {
         $formData = $request->toArray();
         $campDst = Camp::find($camp_id);
-        $campSrc = Camp::find($formData['camp2copy']);
+        $campSrc = Camp::find($formData['camp2copy'] ?? null);
+
+        // 來源營隊的組織也必須是自己看得到的；複製權限需要目的營隊的「指派」權限
+        if (!$this->campAccess()->allows($campSrc, 'org', 'read')) {
+            \Session::flash('error', "您沒有來源營隊的組織權限，無法複製。"); return back();
+        }
+        if (($formData['do_copy_permissions'] ?? false) && !$this->campAccess()->allows($campDst, 'org', 'assign')) {
+            \Session::flash('error', "您沒有指派權限的權限，請改選「只複製組織架構」。"); return back();
+        }
 
         if ($campDst->batches->count() != $campSrc->batches->count()) {
             \Session::flash('error', "梯次數量不同，無法複製"); return back();
@@ -273,7 +290,18 @@ class CampOrgController extends BackendController
         }
 
         DB::transaction(function () use ($campSrc, $camp_id, $batchIdMatchList, $campDst, $formData) {
+            // 來源 org id => 目的 org id，用來把 prev_id 換成新營隊的 id
+            $orgIdMatchList = [];
+            $orgsDst = [];
+
+            // 目的營隊若已有根節點（例如進入新增職務頁時自動建立的「大會」），沿用它，避免出現兩個根
+            $rootDst = CampOrg::where('camp_id', $camp_id)->roots()->first();
+
             foreach ($campSrc->organizations as $org) {
+                if ($rootDst && $org->isRoot()) {
+                    $orgIdMatchList[$org->id] = $rootDst->id;
+                    continue;
+                }
                 $orgDst = $org->replicate();
                 $orgDst->camp_id = $camp_id;
                 if ($orgDst->batch_id) {
@@ -281,9 +309,19 @@ class CampOrgController extends BackendController
                 }
                 $orgDst->created_at = Carbon::now();
                 $orgDst->save();
-                
+                $orgIdMatchList[$org->id] = $orgDst->id;
+                $orgsDst[$org->id] = $orgDst;
+
                 if($formData['do_copy_permissions'] ?? false) {
                     $this->campOrgService->copyPermissions($campDst, $campSrc, $orgDst, $org, $batchIdMatchList);
+                }
+            }
+
+            // 全部建立完才能對應 id（來源的順序不保證父節點先於子節點）
+            foreach ($orgsDst as $orgDst) {
+                if ((int) $orgDst->prev_id !== 0) {
+                    $orgDst->prev_id = $orgIdMatchList[$orgDst->prev_id] ?? null;
+                    $orgDst->save();
                 }
             }
             $this->campOrgService->rebuildTree(CampOrg::where('camp_id', $camp_id)->get());
@@ -305,5 +343,181 @@ class CampOrgController extends BackendController
         
         \Session::flash('message', "職務刪除成功。");
         return back();
+    }
+
+    private function campAccess(): CampManageAccessService
+    {
+        return app(CampManageAccessService::class);
+    }
+
+    /**
+     * 直接指定使用者職務：僅限 superuser
+     */
+    private function ensureCanAssignOrgs(): void
+    {
+        if (!auth()->user()?->canAssignOrgsDirectly()) {
+            abort(403, '您沒有直接指定職務的權限。');
+        }
+    }
+
+    public function showAssignUsers(Request $request, $camp_id)
+    {
+        $this->ensureCanAssignOrgs();
+
+        $camp = Camp::findOrFail($camp_id);
+        $orgs = $camp->orgs()
+            ->with('batch')
+            ->orderBy('depth')
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get();
+
+        $assignments = DB::table('org_user')
+            ->join('users', 'users.id', '=', 'org_user.user_id')
+            ->whereIn('org_user.org_id', $orgs->pluck('id'))
+            ->select('org_user.org_id', 'users.id as user_id', 'users.name', 'users.email')
+            ->orderBy('users.name')
+            ->get();
+
+        $keyword = trim((string) $request->input('q'));
+        $searchResults = collect();
+        if ($keyword !== '') {
+            $searchResults = \App\Models\User::query()
+                ->where(function ($query) use ($keyword) {
+                    $query->where('name', 'like', "%{$keyword}%")
+                          ->orWhere('email', 'like', "%{$keyword}%");
+                    if (ctype_digit($keyword)) {
+                        $query->orWhere('id', (int) $keyword);
+                    }
+                })
+                ->orderBy('name')
+                ->limit(30)
+                ->get(['id', 'name', 'email']);
+        }
+
+        return view('backend.camp.assignOrgUsers', compact('camp', 'orgs', 'assignments', 'keyword', 'searchResults'));
+    }
+
+    public function assignUser(Request $request, $camp_id)
+    {
+        $this->ensureCanAssignOrgs();
+
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'org_ids' => 'required|array|min:1',
+            'org_ids.*' => 'integer',
+        ]);
+
+        // 只接受屬於本營隊的職務
+        $orgs = CampOrg::where('camp_id', $camp_id)->whereIn('id', $request->input('org_ids'))->get();
+        if ($orgs->count() != count(array_unique($request->input('org_ids')))) {
+            \Session::flash('error', "選擇的職務不屬於本營隊。");
+            return back();
+        }
+
+        $user = \App\Models\User::findOrFail($request->input('user_id'));
+        foreach ($orgs as $org) {
+            \App\Models\OrgUser::firstOrCreate([
+                'org_id' => $org->id,
+                'user_id' => $user->id,
+                'user_type' => 'App\Models\User',
+            ]);
+        }
+
+        \Session::flash('message', "已將 {$user->name} 指定為：" . $orgs->pluck('position')->implode('、'));
+        return back();
+    }
+
+    public function unassignUser(Request $request, $camp_id)
+    {
+        $this->ensureCanAssignOrgs();
+
+        $request->validate([
+            'user_id' => 'required|integer',
+            'org_id' => 'required|integer',
+        ]);
+
+        $org = CampOrg::where('camp_id', $camp_id)->find($request->input('org_id'));
+        if (!$org) { \Session::flash('error', "找不到該職務。"); return back(); }
+
+        $deleted = \App\Models\OrgUser::where('org_id', $org->id)
+            ->where('user_id', $request->input('user_id'))
+            ->delete();
+
+        \Session::flash($deleted ? 'message' : 'error', $deleted ? "已移除職務「{$org->position}」。" : "該使用者沒有這個職務。");
+        return back();
+    }
+
+    public function saveAsPermissionTemplate(Request $request, $camp_id, $org_id)
+    {
+        $org = CampOrg::where('camp_id', $camp_id)->find($org_id);
+        if (!$org) { \Session::flash('error', "找不到該職務。"); return back(); }
+
+        $request->validate([
+            'template_name' => 'required|string|max:255',
+            'template_description' => 'nullable|string|max:255',
+        ]);
+
+        if ($org->permissions->isEmpty()) {
+            \Session::flash('error', "此職務尚未設定任何權限，無法另存為範本。");
+            return back();
+        }
+
+        $campTable = $request->boolean('limit_camp_table') ? $org->camp->table : null;
+        $template = $this->campOrgService->saveAsTemplate(
+            $org,
+            $request->input('template_name'),
+            $request->input('template_description'),
+            $campTable,
+            auth()->id()
+        );
+
+        \Session::flash('message', "已將「{$org->position}」的權限另存為範本「{$template->name}」，共 {$template->items()->count()} 項。");
+        return back();
+    }
+
+    public function showCopyPermissions($camp_id, $org_id)
+    {
+        $camp = Camp::with(['batches', 'vcamp', 'vcamp.batches' ])->find($camp_id);
+        $org = CampOrg::find($org_id);
+        $availableResources = BackendService::getAvailableModels();
+        view()->share('availableResources', $availableResources);
+        $isCopyPermissions = true;
+        $camp_list = Camp::where('table', $camp->table)->get()
+            ->filter(fn ($item) => $this->campAccess()->allows($item, 'org', 'read'))->values();
+        $models = $this->backendService->getAvailableModels();
+        return view('backend.camp.modifyOrg', compact("camp", "org", "isCopyPermissions", "camp_list", "models"))->with('complete_permissions', $org->permissions);
+    }
+
+    public function copyPermissions(Request $request, $camp_id, $org_id)
+    {
+        $orgIdSrc = $request->input('org2copy');
+        $orgDst = CampOrg::find($org_id);
+        $orgSrc = CampOrg::find($orgIdSrc);
+        
+        if (!$orgDst || !$orgSrc) {
+            \Session::flash('error', "找不到來源或目標職務。");
+            return back();
+        }
+        $campDst = $orgDst->camp;
+        $campSrc = $orgSrc->camp;
+        if (!$this->campAccess()->allows($campSrc, 'org', 'read')) {
+            \Session::flash('error', "您沒有來源營隊的組織權限，無法複製。");
+            return back();
+        }
+
+        $batchIdMatchList = array("0" => 0);
+        foreach($campSrc->batches as $batchSrc) {
+            $batchDst = $campDst->batches->where('name', $batchSrc->name)->first();
+            $batchIdMatchList[$batchSrc->id] = $batchDst?->id ?? null;
+            if ($batchSrc->vbatch) {
+                $batchIdMatchList[$batchSrc->vbatch->id] = $batchDst?->vbatch?->id ?? null;
+            }
+        }
+
+        $this->campOrgService->copyPermissions($campDst, $campSrc, $orgDst, $orgSrc, $batchIdMatchList);
+
+        \Session::flash('message', "職務權限複製成功。");
+        return redirect()->route('showModifyOrg', [$camp_id, $org_id]);
     }
 }

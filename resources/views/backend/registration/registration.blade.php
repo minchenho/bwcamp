@@ -22,7 +22,11 @@
                         @csrf
                         <input type="hidden" name="isBackend" value="目前為後台報名狀態。">
                         <p><a>{{ $batch->name }}，{{ $batch->batch_start }} ~ {{ $batch->batch_end }}：</a>
-                        <button class="btn btn-primary">前往</button></p>
+                        <button class="btn btn-primary">前往</button>
+                        @if(View::exists('backend.registration.batchRegistration.' . $campFullData->table))
+                            <a href="{{ route('showBatchRegistration', [$campFullData->id, 'target_batch_id' => $batch->id]) }}" class="btn btn-outline-primary" target="_blank">批次報名</a>
+                        @endif
+                        </p>
                     </form>
                 </li>
             @endif

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Camp;
 use App\Models\CampOrg;
+use App\Models\Permission;
+use App\Models\PermissionTemplate;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -149,6 +151,55 @@ class CampOrgService
             }
 
             $orgDst->syncPermissions($permissionsDst);
+        });
+    }
+
+    /**
+     * 依職務的 camp_id / batch_id 取得或建立權限
+     * 欄位組合與 BackendService::permissionTableProcessor 一致，確保同條件的權限只有一筆
+     */
+    public function findOrCreatePermission(CampOrg $org, string $resource, string $action, string $range): Permission
+    {
+        $camp = $org->camp;
+        $resourceName = class_exists($resource) ? ((new $resource)->resourceNameInMandarin ?? '') : '';
+
+        return Permission::firstOrCreate([
+            'name' => $resource . '.' . $action,
+            'display_name' => $camp->abbreviation . '-' . $action . ' ' . $resourceName,
+            'description' => $camp->abbreviation . '-' . $action . ' ' . $resourceName,
+            'resource' => $resource,
+            'action' => $action,
+            'range' => $range,
+            'camp_id' => $org->camp_id,
+            'batch_id' => $org->batch_id,
+        ]);
+    }
+
+    /**
+     * 將職務目前的權限另存為範本（只保留 resource / action / range）
+     */
+    public function saveAsTemplate(CampOrg $org, string $name, ?string $description, ?string $campTable, ?int $userId): PermissionTemplate
+    {
+        return DB::transaction(function () use ($org, $name, $description, $campTable, $userId) {
+            $template = PermissionTemplate::create([
+                'name' => $name,
+                'description' => $description,
+                'camp_table' => $campTable,
+                'created_by' => $userId,
+            ]);
+
+            $items = $org->permissions
+                ->filter(fn ($permission) => $permission->resource && $permission->action && $permission->range)
+                ->unique(fn ($permission) => $permission->resource . '.' . $permission->action)
+                ->map(fn ($permission) => [
+                    'resource' => $permission->resource,
+                    'action' => $permission->action,
+                    'range' => $permission->range,
+                ]);
+
+            $template->items()->createMany($items->values()->all());
+
+            return $template;
         });
     }
 }
