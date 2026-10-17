@@ -147,6 +147,12 @@
             item.is_attend = item.is_attend_chn || item.is_attend;
             item.batch = !item.batch ? "沒有梯次資料" : (item.batch.name || item.batch);
             
+            // 職務：由連結帳號在本營隊的 roles 組成
+            if (item.user?.roles) {
+                item.roles = item.user.roles.map(r => r.section).join('<br>');
+                item.position = item.user.roles.map(r => r.position).join('<br>');
+            }
+
             if (item.group_relation) {
                 item.group = item.group_relation.alias;
             }
