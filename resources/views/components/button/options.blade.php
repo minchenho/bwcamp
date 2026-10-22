@@ -44,7 +44,7 @@
             @if($currentUser->canAccessResource(new \App\Models\ApplicantsGroup, 'create', $campFullData, target: $campFullData->vcamp) || $currentUser->canAccessResource(new \App\Models\ApplicantsGroup, 'assign', $campFullData, target: $campFullData->vcamp))
                 <a href="?isSetting=1&batch_id={{ $currentBatch?->id ?? "" }}" class="btn btn-danger mb-3">設定組別</a>
             @endif     &nbsp;&nbsp;
-            @if($user->canAccessResource(new \App\Models\CarerApplicantXref, "create", $campFullData, target: $campFullData->vcamp) || $user->canAccessResource(new \App\Models\CarerApplicantXref, "assign", $campFullData, target: $campFullData->vcamp))
+            @if($currentUser->canAccessResource(new \App\Models\CarerApplicantXref, "create", $campFullData, target: $campFullData->vcamp) || $currentUser->canAccessResource(new \App\Models\CarerApplicantXref, "assign", $campFullData, target: $campFullData->vcamp))
                 <a href="?isSettingCarer=1&batch_id={{ request()->batch_id }}" class="btn btn-danger mb-3">設定關懷員</a>
             @endif
         @endif
