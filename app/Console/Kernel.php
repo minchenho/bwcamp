@@ -30,7 +30,6 @@ class Kernel extends ConsoleKernel
     {
         // 每日固定排程任務
         $this->scheduleAccountingChecks($schedule);
-        $this->scheduleMaintenanceTasks($schedule);
         $this->scheduleCampExports($schedule);
 
         // 動態報到匯出排程
@@ -43,14 +42,6 @@ class Kernel extends ConsoleKernel
     private function scheduleAccountingChecks(Schedule $schedule)
     {
         $schedule->command('check:Accounting ycamp')->dailyAt("16:30");
-    }
-
-    /**
-     * 排程系統維護任務
-     */
-    private function scheduleMaintenanceTasks(Schedule $schedule)
-    {
-        $schedule->command('media-library:delete-old-temporary-uploads')->daily();
     }
 
     /**
