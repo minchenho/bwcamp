@@ -27,7 +27,6 @@
     <script src="{{ asset('js/popper_1.14.0.min.js') }}"></script>
     <!-- Bootstrap JS -->
     <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ asset('vendor/livewire/livewire.js') }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script
     src="https://js.sentry-cdn.com/f6b44d1c46934ae4876d372cf7b5863d.min.js"

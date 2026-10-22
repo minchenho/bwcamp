@@ -12,10 +12,6 @@
         "barryvdh/laravel-dompdf": "^2.0",
         "doctrine/dbal": "^3.5",
         "dompdf/dompdf": "^2.0",
-        "ellaisys/aws-cognito": "^1.2",
-        "fideloper/proxy": "^4.2",
-        "fruitcake/laravel-cors": "^3.0",
-        "genealabs/laravel-model-caching": "^0.12.5",
         "guzzlehttp/guzzle": "^7.5",
         "intervention/image": "^2.7",
         "laravel/framework": "^9.42",
@@ -24,7 +20,6 @@
         "laravel/ui": "^4.0",
         "league/flysystem-aws-s3-v3": "^3.0",
         "league/flysystem-ftp": "^3.0",
-        "livewire/livewire": "^2.12",
         "maatwebsite/excel": "^3.1",
         "milon/barcode": "^9.0",
         "predis/predis": "^2.2",
@@ -32,9 +27,7 @@
         "revolution/laravel-google-sheets": "^6.2",
         "santigarcor/laratrust": "^7.1",
         "sentry/sentry-laravel": "^3.0",
-        "spatie/async": "*",
-        "spatie/laravel-medialibrary": "^10.0.0",
-        "spatie/laravel-medialibrary-pro": "^2.0.0"
+        "spatie/async": "*"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.8",
@@ -53,11 +46,8 @@
             "type": "vcs",
             "url": "https://github.com/vladislavtkachenko/dompdf.git",
             "canonical": false
-        },
-        {
-            "type": "composer",
-            "url": "https://satis.spatie.be"
         }
+
     ],
     "config": {
         "optimize-autoloader": true,
@@ -107,8 +97,7 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi",
-            "@php artisan vendor:publish --force --tag=livewire:assets --ansi"
+            "@php artisan package:discover --ansi"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
