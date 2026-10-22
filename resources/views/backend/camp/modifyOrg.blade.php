@@ -156,14 +156,7 @@
                 </div>
             </div>
 
-            @if(!$isCopyPermissions && !($canAssignPermissions ?? false))
-                <div class='row form-group mt-4'>
-                    <label class='col-md-2 control-label'>後台權限設定</label>
-                    <div class='col-md-6'>
-                        <small class="form-text text-muted">您沒有「指派」權限，無法修改此職務的權限；其他欄位仍可修改。</small>
-                    </div>
-                </div>
-            @elseif(!$isCopyPermissions)
+            @if(!$isCopyPermissions)
                 {{-- ✨ 6. 新增：Laratrust 權限矩陣開關按鈕 --}}
                 <div class='row form-group mt-4'>
                     <label class='col-md-2 control-label'>後台權限設定</label>

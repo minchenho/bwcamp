@@ -45,7 +45,7 @@
     </div>
 
     {{-- 當完全沒有組織時，顯示複製與初始化區塊 --}}
-    @if ($orgs->isEmpty() && $campAccess->allows($camp, 'org', 'create'))
+    @if ($orgs->isEmpty())
         <div class="card p-4 mt-3">
             <div class="mb-3">
                 <a href="{{ route('showAddOrgs', [$camp->id, 0]) }}" class="btn btn-success">✨ 初始化大會組織</a>

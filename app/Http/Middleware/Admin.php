@@ -27,40 +27,16 @@ class Admin
     /**
      * superuser，或有營隊類型範圍的 event_admin
      */
-    private const CAMP_CREATORS = ['showAddCamp', 'addCamp'];
+    private const EVENT_ADMINS = ['campManagement', 'showAddCamp', 'addCamp'];
 
     /**
-     * 登入即可進入（內容由 Controller 依權限過濾）
+     * 針對單一營隊的管理：superuser，或該營隊類型在範圍內的 event_admin
      */
-    private const ANY_USER = ['campManagement'];
-
-    /**
-     * 路由 => [資源, 動作]，依權限表判斷
-     */
-    private const RESOURCE_RULES = [
-        'showModifyCamp' => ['camp', 'update'],
-        'modifyCamp' => ['camp', 'update'],
-
-        'showBatch' => ['batch', 'read'],
-        'showModifyBatch' => ['batch', 'read'],
-        'showAddBatch' => ['batch', 'create'],
-        'addBatch' => ['batch', 'create'],
-        'copyBatch' => ['batch', 'create'],
-        'modifyBatches' => ['batch', 'update'],
-        'removeBatch' => ['batch', 'delete'],
-
-        'showOrgs' => ['org', 'read'],
-        'showModifyOrg' => ['org', 'read'],
-        'showAddOrgs' => ['org', 'create'],
-        'addOrgs' => ['org', 'create'],
-        'copyOrgs' => ['org', 'create'],
-        'duplicateOrg' => ['org', 'create'],
-        'modifyOrg' => ['org', 'update'],
-        'saveAsPermissionTemplate' => ['org', 'update'],
-        'removeOrg' => ['org', 'delete'],
-        // 會改變職務的權限，需要「指派」
-        'showCopyPermissions' => ['org', 'assign'],
-        'copyPermissions' => ['org', 'assign'],
+    private const CAMP_MANAGERS = [
+        'showModifyCamp', 'modifyCamp',
+        'showBatch', 'showModifyBatch', 'showAddBatch', 'addBatch', 'copyBatch', 'modifyBatches', 'removeBatch',
+        'showOrgs', 'showModifyOrg', 'showAddOrgs', 'addOrgs', 'copyOrgs', 'duplicateOrg', 'modifyOrg',
+        'saveAsPermissionTemplate', 'removeOrg', 'showCopyPermissions', 'copyPermissions',
     ];
 
     public function __construct(private CampManageAccessService $access)
@@ -81,19 +57,18 @@ class Admin
         if ($routeName === 'switchUserBack') {
             return $request->session()->has('original_user') ? $next($request) : abort(403);
         }
-        if ($this->access->isSuperuser($user) || in_array($routeName, self::ANY_USER, true)) {
+        if ($this->access->isSuperuser($user)) {
             return $next($request);
         }
-        if (in_array($routeName, self::CAMP_CREATORS, true)) {
-            return $this->access->canCreateCamp($user) ? $next($request) : abort(403, '您沒有建立營隊的權限。');
+        if (in_array($routeName, self::EVENT_ADMINS, true)) {
+            return $this->access->canCreateCamp($user) ? $next($request) : abort(403, '您沒有營隊管理的權限。');
         }
-        if (isset(self::RESOURCE_RULES[$routeName])) {
-            [$resource, $action] = self::RESOURCE_RULES[$routeName];
+        if (in_array($routeName, self::CAMP_MANAGERS, true)) {
             $camp = $this->resolveCamp($request);
             if (!$camp) {
                 abort(404);
             }
-            return $this->access->can($user, $camp, $resource, $action) ? $next($request) : abort(403, '您沒有此營隊的相關權限。');
+            return $this->access->canManage($user, $camp) ? $next($request) : abort(403, '您沒有此營隊的管理權限。');
         }
 
         // 未列入規則的路由一律只限 superuser

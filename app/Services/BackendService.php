@@ -375,6 +375,10 @@ class BackendService
                 if ($model->resourceNameInMandarin == "") {
                     $name = "";
                 }
+                // 營隊管理屬於特殊權限，不開放給職務
+                if (in_array(ltrim($class, '\\'), \App\Services\CampManageAccessService::RESERVED_RESOURCES, true)) {
+                    $name = "";
+                }
                 return collect([
                     'class' => $class,
                     'name' => $name ?? $model->resourceNameInMandarin,
@@ -671,6 +675,10 @@ class BackendService
                 }
             }
             foreach ($request->resources as $resource => $actions) {
+                // 營隊管理屬於特殊權限，不開放給職務
+                if (in_array(ltrim($resource, '\\'), \App\Services\CampManageAccessService::RESERVED_RESOURCES, true)) {
+                    continue;
+                }
                 foreach ($actions as $key => $action) {
                     $role = $rolesModel::findOrFail($roleID);
                     if (!isset($request->range[$resource])) {

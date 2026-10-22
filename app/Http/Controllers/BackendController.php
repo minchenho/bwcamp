@@ -2308,11 +2308,12 @@ private function getCarersData($user, Request $request): array
         // 💡 降維打擊：直接把 accessibleBy 注入到 Query 鏈的最開端！
         
         $query = Applicant::accessibleBy($user, $this->camp_info) // ✨ 1. 在這裡攔截！只准撈有權限的人
-            ->with('batch', 'groupRelation', 'numberRelation', 'carers', 'contactlog')
+            ->with('camp', 'batch', 'groupRelation', 'numberRelation', 'carers', 'contactlog')
             ->select(
-                "applicants.*", 
-                "{$this->camp_table}.*", 
-                "applicants.id as applicant_id", 
+                "applicants.*",
+                "{$this->camp_table}.*",
+                "applicants.id",    // 營隊資料表也有 id，須放在其後，避免蓋掉學員 id（含預載關聯）
+                "applicants.id as applicant_id",
                 "applicants.created_at as applied_at"
             )
             ->join($this->camp_table, "{$this->camp_table}.applicant_id" , '=', 'applicants.id')
@@ -2334,6 +2335,8 @@ private function getCarersData($user, Request $request): array
         // 使用 paginate(100) 取代 get()
         //$applicants = $query->paginate(100);
         $applicants = $query->get();
+        // camp 只供 camp_table 屬性使用，不輸出到 JSON
+        $applicants->makeHidden('camp');
         //dd($applicants);
         
         // 修正主鍵對應
@@ -2407,12 +2410,13 @@ private function getCarersData($user, Request $request): array
         }
         $batches = Batch::where("camp_id", $vcamp->id)->get();
         $query = Applicant::with([
-                'groupRelation', 'groupOrgRelation', 'batch', 'contactlog',
+                'camp', 'groupRelation', 'groupOrgRelation', 'batch', 'contactlog',
                 'user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id), // applicant-list 顯示職務用
             ])
-            ->select("applicants.*", 
-                $vcamp->table . ".*", 
-                "batches.name as bName", 
+            ->select("applicants.*",
+                $vcamp->table . ".*",
+                "applicants.id",    // 營隊資料表也有 id，須放在其後，避免蓋掉學員 id（含預載關聯）
+                "batches.name as bName",
                 "applicants.id as sn", 
                 "applicants.created_at as applied_at"
             )
@@ -2435,6 +2439,8 @@ private function getCarersData($user, Request $request): array
         }
         $applicants = $query->get();
         $applicants = $applicants->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
+        // camp 只供 camp_table 屬性使用，不輸出到 JSON
+        $applicants->makeHidden('camp');
 
         if ($this->usePermissionOptimization) {
             $accessResults = $this->user->batchCanAccessResources($applicants, 'read', $this->camp_info, 'vcamp');

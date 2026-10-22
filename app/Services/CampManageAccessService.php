@@ -10,18 +10,24 @@ use Illuminate\Support\Facades\DB;
 /**
  * 營隊管理（營隊 / 梯次 / 組織）的存取判斷
  *
+ * 營隊管理屬於特殊權限，不透過職務權限開放：
  * - superuser：全部放行
  * - event_admin：在 user_camp_table_scopes 指定的營隊類型（含對應的義工營）內全部放行
- * - 其他人：依權限表，所屬職務需有該營隊的「資源 + 動作」權限（不看範圍 range）
+ * - 其他人：一律不可
  *
  * 以 singleton 註冊，同一個 request 內的查詢結果會快取
  */
 class CampManageAccessService
 {
-    public const RESOURCES = [
-        'camp' => \App\Models\Camp::class,
-        'batch' => \App\Models\Batch::class,
-        'org' => \App\Models\CampOrg::class,
+    /**
+     * 營隊管理相關的資源，不列入職務的權限矩陣
+     */
+    public const RESERVED_RESOURCES = [
+        \App\Models\Camp::class,
+        \App\Models\Vcamp::class,
+        \App\Models\Batch::class,
+        \App\Models\Vbatch::class,
+        \App\Models\CampOrg::class,
     ];
 
     /**
@@ -30,7 +36,6 @@ class CampManageAccessService
     public const EXPORT_RANGES = ['all', 'na'];
 
     private array $tablesCache = [];
-    private array $permissionsCache = [];
 
     public function isSuperuser($user): bool
     {
@@ -89,26 +94,11 @@ class CampManageAccessService
     }
 
     /**
-     * @param string $resource self::RESOURCES 的 key（camp / batch / org）或完整類別名稱
-     * @param string $action assign / read / create / update / delete
+     * 可否管理此營隊（含其梯次與組織）
      */
-    public function can($user, ?Camp $camp, string $resource, string $action): bool
+    public function canManage($user, ?Camp $camp): bool
     {
-        if (!$user || !$camp) {
-            return false;
-        }
-        if ($this->isSuperuser($user) || $this->canManageCampTable($user, $camp->table)) {
-            return true;
-        }
-
-        // 職務與權限都掛在學員營隊上，義工營改用其學員營隊判斷
-        $permissionCampId = $camp->isVcamp ? $camp->mainCamp?->id : $camp->id;
-        if (!$permissionCampId) {
-            return false;
-        }
-
-        $class = '\\' . ltrim(self::RESOURCES[$resource] ?? $resource, '\\');
-        return $this->userPermissions($user)->contains("{$permissionCampId}|{$class}|{$action}");
+        return $user && $camp && $this->canManageCampTable($user, $camp->table);
     }
 
     /**
@@ -147,9 +137,9 @@ class CampManageAccessService
     /**
      * 給 Blade 使用：以目前登入者判斷
      */
-    public function allows(?Camp $camp, string $resource, string $action): bool
+    public function allows(?Camp $camp): bool
     {
-        return $this->can(auth()->user(), $camp, $resource, $action);
+        return $this->canManage(auth()->user(), $camp);
     }
 
     /**
@@ -157,43 +147,13 @@ class CampManageAccessService
      */
     public function accessibleCamps($user): Collection
     {
-        if (!$user) {
+        $tables = $this->manageableCampTables($user);
+        if ($tables === []) {
             return collect();
         }
-        $query = Camp::query()->orderBy('id', 'desc');
-        if ($this->isSuperuser($user)) {
-            return $query->get();
-        }
-
-        $campIds = $this->userPermissions($user)
-            ->filter(fn ($key) => collect(self::RESOURCES)->contains(fn ($class) => str_contains($key, '|\\' . $class . '|')))
-            ->map(fn ($key) => (int) explode('|', $key)[0])
-            ->unique();
-        // 學員營隊有權限時，一併列出其義工營
-        $vcampIds = DB::table('camp_vcamp')->whereIn('camp_id', $campIds)->pluck('vcamp_id');
-
-        $tables = $this->manageableCampTables($user);
-        return $query->where(function ($query) use ($campIds, $vcampIds, $tables) {
-            $query->whereIn('id', $campIds->merge($vcampIds)->all());
-            if ($tables) {
-                $query->orWhereIn('table', $tables);
-            }
-        })->get();
-    }
-
-    /**
-     * 使用者所屬職務的所有權限，格式 "camp_id|resource|action"
-     */
-    private function userPermissions($user): Collection
-    {
-        return $this->permissionsCache[$user->id] ??= DB::table('org_user')
-            ->join('org_permission', 'org_permission.org_id', '=', 'org_user.org_id')
-            ->join('permissions', 'permissions.id', '=', 'org_permission.permission_id')
-            ->where('org_user.user_id', $user->id)
-            ->whereNotNull('permissions.camp_id')
-            ->select('permissions.camp_id', 'permissions.resource', 'permissions.action')
-            ->distinct()
-            ->get()
-            ->map(fn ($row) => "{$row->camp_id}|{$row->resource}|{$row->action}");
+        return Camp::query()
+            ->when(!is_null($tables), fn ($query) => $query->whereIn('table', $tables))
+            ->orderBy('id', 'desc')
+            ->get();
     }
 }
