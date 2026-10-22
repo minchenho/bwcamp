@@ -2211,7 +2211,7 @@ private function getCarersData($user, Request $request): array
         }
 
         if ($request->isMethod("post") && !empty($queryStr)) {
-            $query->whereRaw(\DB::raw($queryStr));
+            $query->whereRaw($queryStr);
             $request->flash();
         }
 

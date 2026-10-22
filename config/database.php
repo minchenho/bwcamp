@@ -59,7 +59,8 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // PHP 8.5 起 PDO::MYSQL_ATTR_SSL_CA 已棄用，8.4 以上改用 Pdo\Mysql
+                (PHP_VERSION_ID >= 80400 ? \Pdo\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
             'modes' => [
                 //'ONLY_FULL_GROUP_BY', // Disable this to allow grouping by one column

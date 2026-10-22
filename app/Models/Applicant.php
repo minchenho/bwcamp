@@ -522,7 +522,7 @@ class Applicant extends Model
 
             // 使用 Carbon 內建的 diffInYears 方法計算到今天為止的差距
             // Carbon::diffInYears() 會自動處理今天是否過了生日的問題
-            return $date->diffInYears(now());
+            return (int) $date->diffInYears(now());
         });
     }
 

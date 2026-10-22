@@ -3,8 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Laratrust\Models\LaratrustRole;
-use Laratrust\Traits\LaratrustRoleTrait;
+use Laratrust\Models\Role as LaratrustRole;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,8 +13,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 class CampOrg extends LaratrustRole
 {
-    use LaratrustRoleTrait;
-
     protected $table = 'camp_orgs';
 
     public $resourceNameInMandarin = '營隊組織 / 義工職務組別';

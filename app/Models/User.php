@@ -5,16 +5,17 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Cache;
-use Laratrust\Traits\LaratrustUserTrait;
+use Laratrust\Contracts\LaratrustUser;
+use Laratrust\Traits\HasRolesAndPermissions;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Traits\EmailConfiguration;
 
-class User extends Authenticatable
+class User extends Authenticatable implements LaratrustUser
 {
     use Notifiable;
     use EmailConfiguration;
-    use LaratrustUserTrait;
+    use HasRolesAndPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -70,7 +71,7 @@ class User extends Authenticatable
     }
     
     // roles() 這裡沒有定義
-    // 要看 use Laratrust\Traits\LaratrustUserTrait;
+    // 要看 use Laratrust\Traits\HasRolesAndPermissions;
     // 以及 config/laratrust.php 裡面定義的 table
     // 其實就是去抓出 camp_orgs
     

@@ -458,7 +458,7 @@ class StatController extends BackendController
             ->groupBy('county')
             // 2. 使用 orderByRaw 進行自定義排序
             // FIELD(欄位名稱, '值1', '值2', ...) 如果不在清單內的會排在最前面或最後面
-            ->orderByRaw(\DB::raw("FIELD(county, $orderString) = 0, FIELD(county, $orderString)")) ->get();
+            ->orderByRaw("FIELD(county, $orderString) = 0, FIELD(county, $orderString)") ->get();
 
         // 後續處理...
         $total = 0;

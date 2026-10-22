@@ -33,8 +33,5 @@ trait EmailConfiguration
             ]);
         }
         app()->register('Illuminate\Mail\MailServiceProvider');
-        if (app()->isLocal()) {
-            app()->register(\App\Overrides\HeloLaravelServiceProvider::class);
-        }
     }
 }

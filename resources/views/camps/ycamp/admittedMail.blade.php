@@ -1,6 +1,6 @@
 @php
     $today = \Carbon\Carbon::now()->midDay();
-    $days = $applicant->batch->batch_start->diffInDays($applicant->batch->batch_end) + 1;
+    $days = (int) $applicant->batch->batch_start->diffInDays($applicant->batch->batch_end) + 1;
     $traffic_confirming_date = $camp_info->admission_confirming_end->subDays(14); 
 @endphp
 

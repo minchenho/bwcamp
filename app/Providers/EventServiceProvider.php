@@ -23,6 +23,10 @@ class EventServiceProvider extends ServiceProvider
         'Illuminate\Auth\Events\Login' => [
             'App\Listeners\LogSuccessfulLogin',
         ],
+        // 佇列寄信前切換營隊的寄件設定
+        'Illuminate\Queue\Events\JobProcessing' => [
+            'App\Listeners\SetQueuedMailConfiguration',
+        ],
     ];
 
     protected $observers = [
