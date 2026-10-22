@@ -11,6 +11,8 @@ use App\Services\CampDataService;
 use App\Services\ApplicantService;
 use App\Services\BackendService;
 use App\Services\GSheetService;
+use App\Services\LodgingService;
+use App\Services\TrafficService;
 
 class LaratrustPermissionsController extends BackendController
 {
@@ -25,7 +27,9 @@ class LaratrustPermissionsController extends BackendController
         ApplicantService $applicantService,
         BackendService $backendService,
         protected GSheetService $gSheetService,
-        Request $request
+        Request $request,
+        LodgingService $lodgingService,
+        TrafficService $trafficService
     )
     {
         $this->backendService = $backendService;
@@ -36,7 +40,9 @@ class LaratrustPermissionsController extends BackendController
             $applicantService,
             $backendService,
             $gSheetService,
-            $request
+            $request,
+            $lodgingService,
+            $trafficService
         );
         $this->permissionModel = Config::get('laratrust.models.permission');
         $this->checkPermission($request);

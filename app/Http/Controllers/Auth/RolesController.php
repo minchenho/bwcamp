@@ -13,6 +13,8 @@ use App\Services\CampDataService;
 use App\Services\ApplicantService;
 use App\Services\BackendService;
 use App\Services\GSheetService;
+use App\Services\LodgingService;
+use App\Services\TrafficService;
 use Termwind\Components\Dd;
 
 class RolesController extends BackendController
@@ -28,7 +30,9 @@ class RolesController extends BackendController
                                 ApplicantService $applicantService,
                                 BackendService $backendService,
                                 protected GSheetService $gSheetService,
-                                Request $request
+                                Request $request,
+                                LodgingService $lodgingService,
+                                TrafficService $trafficService
     )
     {
         $this->backendService = $backendService;
@@ -39,7 +43,9 @@ class RolesController extends BackendController
             $applicantService,
             $backendService,
             $gSheetService,
-            $request
+            $request,
+            $lodgingService,
+            $trafficService
         );
         $this->rolesModel = Config::get('laratrust.models.role');
         $this->permissionModel = Config::get('laratrust.models.permission');
