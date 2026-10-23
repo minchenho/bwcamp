@@ -32,7 +32,6 @@ class CustomMail extends Mailable
      * @return $this
      */
     public function build() {
-        logger( \Config::get('mail'));        
         if(!str_contains(config('mail.mailers.smtp.host'),"amazon")) {
             sleep(10);
         }

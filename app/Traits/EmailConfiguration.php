@@ -32,6 +32,11 @@ trait EmailConfiguration
                 'mail.from.name' => env('MAIL_FROM_NAME'),
             ]);
         }
+        // 已建立的 mailer 不會因 config 改變而更新（佇列 worker 會連續處理不同營隊的信），清掉讓它依新設定重建
+        if (app()->resolved('mail.manager')) {
+            app('mail.manager')->purge('smtp');
+            app()->forgetInstance('mailer');
+        }
         app()->register('Illuminate\Mail\MailServiceProvider');
         if (app()->isLocal()) {
             app()->register(\App\Overrides\HeloLaravelServiceProvider::class);
