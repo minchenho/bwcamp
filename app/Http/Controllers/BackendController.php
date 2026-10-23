@@ -2546,7 +2546,7 @@ private function getCarersData($user, Request $request): array
             }
         }
         $batches = Batch::where("camp_id", $this->camp_info->vcamp->id)->get();
-        $query = Applicant::select("applicants.*", $this->camp_info->vcamp->table . ".*", $this->camp_info->vcamp->table . ".id as ''", "batches.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
+        $query = Applicant::select("applicants.*", $this->camp_info->vcamp->table . ".*", "batches.name as   bName", "applicants.id as sn", "applicants.created_at as applied_at")
             ->join('batches', 'batches.id', '=', 'applicants.batch_id')
             ->join('camps', 'camps.id', '=', 'batches.camp_id')
             ->join($this->camp_info->vcamp->table, 'applicants.id', '=', $this->camp_info->vcamp->table . '.applicant_id')
