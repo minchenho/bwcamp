@@ -51,7 +51,7 @@
     @if($canCreateCamp)
         <a href="{{ route('showAddCamp') }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">建立營隊</a>
     @endif
-    @if(auth()->user()->permission === 'superuser')
+    @if($campAccess->isSuperuser(auth()->user()))
         <a href="{{ route('showEventAdmins') }}" class="btn btn-outline-secondary d-inline-block" style="margin-bottom: 10px">event_admin 管理</a>
     @endif
 
@@ -122,13 +122,9 @@
                         <td class="col-modify">{{ $camp->modifying_deadline ?? '' }}</td>
                         <td class="col-cancel">{{ $camp->cancellation_deadline ?? '' }}</td>
                         <td class="text-nowrap col-actions">
-                            @if($campAccess->allows($camp, 'camp', 'update'))
-                                <a href="{{ route('showModifyCamp', $camp->id) }}" class="btn btn-primary btn-sm">編輯營隊</a><br>
-                            @endif
-                            @if($campAccess->allows($camp, 'batch', 'read'))
-                                <a href="{{ route('showBatch', $camp->id) }}" class="btn btn-success btn-sm" target="_blank">梯次列表</a><br>
-                            @endif
-                            @if(!str_contains($camp->table, 'vcamp') && $campAccess->allows($camp, 'org', 'read'))
+                            <a href="{{ route('showModifyCamp', $camp->id) }}" class="btn btn-primary btn-sm">編輯營隊</a><br>
+                            <a href="{{ route('showBatch', $camp->id) }}" class="btn btn-success btn-sm" target="_blank">梯次列表</a><br>
+                            @if(!str_contains($camp->table, 'vcamp'))
                                 <a href="{{ route('showOrgs', $camp->id) }}" class="btn btn-secondary btn-sm">組織列表</a>
                             @endif
                         </td>

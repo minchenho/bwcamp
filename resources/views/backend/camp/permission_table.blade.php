@@ -9,7 +9,7 @@
         <tr>
             <th rowspan="2" class="align-middle">義工可以操作的東西</th>
             <th rowspan="2" class="align-middle col-3">這些東西包含什麼</th>
-            <th colspan="5">他可以做什麼動作</th>
+            <th colspan="6">他可以做什麼動作</th>
             <th colspan="5">這個動作的影響範圍</th>
         </tr>
         <tr>
@@ -18,6 +18,7 @@
             <th>新增</th>
             <th>修改</th>
             <th>刪除</th>
+            <th>匯出</th>
 
             <th>不指定</th>
             <th>限學員小組</th>
@@ -32,7 +33,7 @@
                 <tr>
                     <th rowspan="2" class="align-middle">義工可以操作的東西</th>
                     <th rowspan="2" class="align-middle">這些東西包含什麼</th>
-                    <th colspan="5">他可以做什麼動作</th>
+                    <th colspan="6">他可以做什麼動作</th>
                     <th colspan="5">這個動作的影響範圍</th>
                 </tr>
                 <tr>
@@ -41,6 +42,7 @@
                     <th>新增</th>
                     <th>修改</th>
                     <th>刪除</th>
+                    <th>匯出</th>
 
                     <th>不指定</th>
                     <th>限學員小組</th>
@@ -61,6 +63,12 @@
                             <input type="checkbox" name="resources[{{ $resource["class"] }}][]" value="{{ $action }}" class="checkbox" @checked($complete_permissions->where('resource', $resource["class"])->where('action', $action)->count())>
                         </td>
                     @endforeach
+                    {{-- 匯出只適用於學員 / 義工名單，且範圍須為「全部」或「不指定」 --}}
+                    <td>
+                        @if(in_array($resource["class"], ['\App\Models\Applicant', '\App\Models\Volunteer']))
+                            <input type="checkbox" name="resources[{{ $resource["class"] }}][]" value="export" class="checkbox" title="範圍須為「全部」或「不指定」" @checked($complete_permissions->where('resource', $resource["class"])->where('action', 'export')->count())>
+                        @endif
+                    </td>
                     @foreach(["na", "learner_group", "volunteer_large_group", "person", "all"] as $range)
                         <td>
                             <input type="radio" name="range[{{ $resource["class"] }}]" class="radio" value="{{ $range }}" @checked(old('range' . "[{$resource["class"]}]") == $range || $complete_permissions->where('resource', $resource["class"])->where('range', $range)->count())>

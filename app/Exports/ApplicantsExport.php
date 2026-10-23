@@ -5,7 +5,6 @@ namespace App\Exports;
 use App\Models\Applicant;
 use App\Models\Batch;
 use App\Models\Camp;
-use App\Models\CampOrg;
 use App\Models\CarerApplicantXref;
 use App\Models\CheckIn;
 use App\Models\ContactLog;
@@ -262,36 +261,11 @@ class ApplicantsExport implements WithHeadings, WithMapping, WithDrawings, FromV
                         unset($this->columns[$key]);
                         continue;
                     }
-                } elseif ($key == "role_section") {
-                    if ($this->allData || $this->user->canAccessResource(new CampOrg(), 'read', $this->camp, context: str_contains($this->camp->table, "vcamp") ? "vcampExport" : null, target: $applicant)) {
-                        $roles = "";
-                        $aRoles = $applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get() ?? [];
-                        foreach ($aRoles as $k => $role) {
-                            $roles .= $role->section;
-                            if ($k != count($aRoles) - 1) {
-                                $roles .= "\n";
-                            }
-                        }
-                        $applicant->$key = $roles;
-                    } else {
-                        unset($this->columns[$key]);
-                        continue;
-                    }
-                } elseif ($key == "role_position") {
-                    if ($this->allData || $this->user->canAccessResource(new CampOrg(), 'read', $this->camp, context: str_contains($this->camp->table, "vcamp") ? "vcampExport" : null, target: $applicant)) {
-                        $roles = "";
-                        $aRoles = $applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get() ?? [];
-                        foreach ($aRoles as $k => $role) {
-                            $roles .= $role->position;
-                            if ($k != count($aRoles) - 1) {
-                                $roles .= "\n";
-                            }
-                        }
-                        $applicant->$key = $roles;
-                    } else {
-                        unset($this->columns[$key]);
-                        continue;
-                    }
+                } elseif ($key == "role_section" || $key == "role_position") {
+                    // 能匯出的人即可看到職務（匯出本身已由 CampManageAccessService::canExport 把關）
+                    $field = $key == "role_section" ? "section" : "position";
+                    $aRoles = $applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get() ?? collect();
+                    $applicant->$key = $aRoles->pluck($field)->implode("\n");
                 }
             }
         }

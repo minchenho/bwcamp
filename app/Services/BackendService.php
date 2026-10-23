@@ -375,6 +375,10 @@ class BackendService
                 if ($model->resourceNameInMandarin == "") {
                     $name = "";
                 }
+                // 營隊管理屬於特殊權限，不開放給職務
+                if (in_array(ltrim($class, '\\'), \App\Services\CampManageAccessService::RESERVED_RESOURCES, true)) {
+                    $name = "";
+                }
                 return collect([
                     'class' => $class,
                     'name' => $name ?? $model->resourceNameInMandarin,
@@ -664,7 +668,17 @@ class BackendService
 
     public function permissionTableProcessor($request, $roleID, $camp, $totalPermissions = [], $rolesModel = "\App\Models\CampOrg", $permissionModel = "\App\Models\Permission") {
         if ($request->resources && $request->range) {
+            // 匯出一律是整營匯出，範圍必須是「全部 / 不指定」
             foreach ($request->resources as $resource => $actions) {
+                if (in_array('export', $actions) && !in_array($request->range[$resource] ?? null, \App\Services\CampManageAccessService::EXPORT_RANGES)) {
+                    return back()->withErrors(['range' => ($request->resources_name[$resource] ?? $resource) . '：匯出權限的範圍只能是「全部」或「不指定」。']);
+                }
+            }
+            foreach ($request->resources as $resource => $actions) {
+                // 營隊管理屬於特殊權限，不開放給職務
+                if (in_array(ltrim($resource, '\\'), \App\Services\CampManageAccessService::RESERVED_RESOURCES, true)) {
+                    continue;
+                }
                 foreach ($actions as $key => $action) {
                     $role = $rolesModel::findOrFail($roleID);
                     if (!isset($request->range[$resource])) {
