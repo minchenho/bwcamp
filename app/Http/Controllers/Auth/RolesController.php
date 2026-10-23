@@ -13,6 +13,8 @@ use App\Services\CampDataService;
 use App\Services\ApplicantService;
 use App\Services\BackendService;
 use App\Services\GSheetService;
+use App\Services\LodgingService;
+use App\Services\TrafficService;
 use Termwind\Components\Dd;
 
 class RolesController extends BackendController
@@ -28,7 +30,9 @@ class RolesController extends BackendController
                                 ApplicantService $applicantService,
                                 BackendService $backendService,
                                 protected GSheetService $gSheetService,
-                                Request $request
+                                Request $request,
+                                LodgingService $lodgingService,
+                                TrafficService $trafficService
     )
     {
         $this->backendService = $backendService;
@@ -39,7 +43,9 @@ class RolesController extends BackendController
             $applicantService,
             $backendService,
             $gSheetService,
-            $request
+            $request,
+            $lodgingService,
+            $trafficService
         );
         $this->rolesModel = Config::get('laratrust.models.role');
         $this->permissionModel = Config::get('laratrust.models.permission');
@@ -53,7 +59,7 @@ class RolesController extends BackendController
         $this->middleware(function ($request, $next) use (&$that) {
             $that->user = \App\Models\User::with("roles.permissions")->find(auth()->user()->id);
             $canDoPermissions = $that->user->roles->pluck("permissions")->flatten()
-                                ->where('camp_id', $this->campFullData->id)
+                                ->where('camp_id', $this->camp_info->id)
                                 ->filter(function ($item) {
                                     return (str_contains($item->resource, "Permission") &&
                                         str_contains($item->action, "assign")) ||
@@ -61,7 +67,7 @@ class RolesController extends BackendController
                                             str_contains($item->action, "create"));
                                 })->count();
             $canDoRoles = $that->user->roles->pluck("permissions")->flatten()
-                                ->where('camp_id', $this->campFullData->id)
+                                ->where('camp_id', $this->camp_info->id)
                                 ->filter(function ($item) {
                                     return (str_contains($item->resource, "CampOrg") &&
                                         str_contains($item->action, "assign")) ||
@@ -79,7 +85,7 @@ class RolesController extends BackendController
     {
         return view('vendor.laratrust.panel.roles.index', [
             'roles' => $this->rolesModel::where('camp_id', $camp_id)->withCount('permissions')
-                ->orderBy('section')->orderBy('position')->simplePaginate(10),
+                ->orderBy('depth')->orderBy('order')->orderBy('id')->simplePaginate(10),
         ]);
     }
 
@@ -153,7 +159,7 @@ class RolesController extends BackendController
     {
         $totalPermissions = [];
         $role = $this->rolesModel::findOrFail($id);
-        $totalPermissions = $this->backendService->permissionTableProcessor($request, $id, $this->campFullData, $totalPermissions, $this->rolesModel, $this->permissionModel);
+        $totalPermissions = $this->backendService->permissionTableProcessor($request, $id, $this->camp_info, $totalPermissions, $this->rolesModel, $this->permissionModel);
         if (!is_array($totalPermissions)) {
             return $totalPermissions;
         }

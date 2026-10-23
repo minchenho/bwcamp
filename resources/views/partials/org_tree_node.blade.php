@@ -45,24 +45,18 @@
             @endif
         </div>
         <div class="text-right">
-            @if($campAccess->allows($camp, 'org', 'create'))
-                <a href="{{ route('showAddOrgs', [$camp->id, $node->id]) }}" class="btn btn-sm btn-success py-0">＋新增子職務</a>
-            @endif
+            <a href="{{ route('showAddOrgs', [$camp->id, $node->id]) }}" class="btn btn-sm btn-success py-0">＋新增子職務</a>
             {{-- 新增：載入或複製權限按鈕 --}}
-            @if($campAccess->allows($camp, 'org', 'assign'))
-                <a href="{{ route('showCopyPermissions', [$camp->id, $node->id]) }}" class="btn btn-sm btn-info py-0">載入或複製權限</a>
-            @endif
+            <a href="{{ route('showCopyPermissions', [$camp->id, $node->id]) }}" class="btn btn-sm btn-info py-0">載入或複製權限</a>
             @if($node->depth > 0)
                 <a href="{{ route('showModifyOrg', [$camp->id, $node->id]) }}" class="btn btn-sm btn-primary py-0">修改</a>
-                @if($campAccess->allows($camp, 'org', 'create'))
-                    <form action="{{ route('duplicateOrg', [$camp->id, $node->id]) }}" method="post" class="d-inline">
-                        @csrf
-                        <button class="btn btn-sm btn-warning py-0">複製</button>
-                    </form>
-                @endif
+                <form action="{{ route('duplicateOrg', [$camp->id, $node->id]) }}" method="post" class="d-inline">
+                    @csrf
+                    <button class="btn btn-sm btn-warning py-0">複製</button>
+                </form>
             @endif
 
-            @if(!($node->users_count ?? $num_users[$node->id] ?? 0) && $childNodes->isEmpty() && $node->depth > 0 && $campAccess->allows($camp, 'org', 'delete'))
+            @if(!($node->users_count ?? $num_users[$node->id] ?? 0) && $childNodes->isEmpty() && $node->depth > 0)
                 <form action="{{ route('removeOrg') }}" method="post" class="d-inline">
                     @csrf
                     <input type="hidden" name="org_id" value="{{ $node->id }}">

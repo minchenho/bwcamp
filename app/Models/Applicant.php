@@ -677,18 +677,25 @@ class Applicant extends Model
                             //學員營隊沒有這個選項，什麼都不給看
                             return $subQuery->whereRaw('1 = 0');
                         }
-                        $sectionIds = $user->getAccessibleSections($camp)->pluck('id')->toArray();
-                        
+                        $sectionIds = $user->getAccessibleSections($camp)->pluck('id');
+                        // 大組本身及其底下所有職務
+                        $orgIds = CampOrg::where('camp_id', $camp->id)->get()
+                            ->filter(fn ($org) => $sectionIds->contains($org->closest_section?->id))
+                            ->pluck('id');
+                        // 擔任上述職務的義工
+                        return $subQuery->whereIn('applicants.id', UserApplicantXref::select('applicant_id')
+                            ->whereIn('user_id', OrgUser::select('user_id')->whereIn('org_id', $orgIds)));
+
                     // 👥 case 2: 小組 (learner_group) -> 只能看同一個 group_id 的學員
                     case 2:
                         $myGroupIds = $user->getCampRoles($camp)->pluck('group_id')->filter();
-                        return $subQuery->whereIn('group_id', $myGroupIds);
+                        return $subQuery->whereIn('applicants.group_id', $myGroupIds);
 
                     // 📄 case 3: 個人 (person) -> 只能看自己負責直接關懷的學員
                     case 3:
                         // 假設你的 User 關聯 caresLearners 撈出來的是學員的 ID 清單
                         $myCaredLearnerIds = $user->caresLearners()->pluck('applicants.id');
-                        return $subQuery->whereIn('id', $myCaredLearnerIds);
+                        return $subQuery->whereIn('applicants.id', $myCaredLearnerIds);
 
                     // 🛑 安全降落：不認得的範圍就什麼都不給看
                     default:

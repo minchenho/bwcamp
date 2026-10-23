@@ -166,7 +166,7 @@ class AdminController extends BackendController {
     }
 
     public function campManagement(CampManageAccessService $access){
-        // superuser：全部；event_admin：範圍內的類型；其他人：有營隊 / 梯次 / 組織權限的營隊
+        // superuser：全部；event_admin：範圍內的類型
         $camps = $access->accessibleCamps(auth()->user());
         $canCreateCamp = $access->canCreateCamp(auth()->user());
         return view('backend.camp.list', compact('camps', 'canCreateCamp'));
