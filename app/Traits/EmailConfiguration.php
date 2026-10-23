@@ -10,9 +10,15 @@ trait EmailConfiguration
             $campTable = $variantTable;
         }
 
+        // 記下原本的 smtp host，不走 SES 的營隊要改回來（否則會沿用前一個營隊的 SES host）
+        if (!config()->has('mail.default_smtp_host')) {
+            config(['mail.default_smtp_host' => config('mail.mailers.smtp.host')]);
+        }
+
         $config = \Config::get('mail.ses_' . $campTable);    //get mail.ses_$campTable version
         if (!$config || !$config['username']) {
             $config = \Config::get('mail.' . $campTable);    //if null, get mail.$campTable version
+            config(['mail.mailers.smtp.host' => config('mail.default_smtp_host')]);
         } else {
             config(['mail.mailers.smtp.host' => $config['host']]);  //mail.ses_$campTable uses AWS SES
         }
