@@ -13,6 +13,7 @@
             color: red;
         }
     </style>
+    @include('backend.camp._toolboxNav', ['toolTitle' => isset($camp) ? '營隊設定' : '建立營隊'])
     <h2>{{ $action }}營隊</h2>
     <form action="{{ $actionURL }}" method="POST">
         @csrf

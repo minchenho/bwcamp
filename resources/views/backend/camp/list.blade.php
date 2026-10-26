@@ -103,7 +103,7 @@
                     <th scope="col" class="text-nowrap col-final-end">後台<br>報名<br>結束日</th>
                     <th scope="col" class="text-nowrap col-modify">報名資料<br>修改<br>截止日</th>
                     <th scope="col" class="text-nowrap col-cancel">取消<br>截止日</th>
-                    <th scope="col" class="text-nowrap col-actions" style="min-width: 280px;">編輯營隊<br>梯次與組織</th>
+                    <th scope="col" class="text-nowrap col-actions">管理</th>
                 </tr>
             </thead>
             <tbody>
@@ -122,11 +122,7 @@
                         <td class="col-modify">{{ $camp->modifying_deadline ?? '' }}</td>
                         <td class="col-cancel">{{ $camp->cancellation_deadline ?? '' }}</td>
                         <td class="text-nowrap col-actions">
-                            <a href="{{ route('showModifyCamp', $camp->id) }}" class="btn btn-primary btn-sm">編輯營隊</a><br>
-                            <a href="{{ route('showBatch', $camp->id) }}" class="btn btn-success btn-sm" target="_blank">梯次列表</a><br>
-                            @if(!str_contains($camp->table, 'vcamp'))
-                                <a href="{{ route('showOrgs', $camp->id) }}" class="btn btn-secondary btn-sm">組織列表</a>
-                            @endif
+                            <a href="{{ route('showCampToolbox', $camp->id) }}" class="btn btn-primary btn-sm">管理</a>
                         </td>
                     </tr>
                 @endforeach

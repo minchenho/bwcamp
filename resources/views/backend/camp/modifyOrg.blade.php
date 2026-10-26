@@ -15,6 +15,7 @@
         }
     </style>
     
+    @include('backend.camp._toolboxNav', ['toolTitle' => '組織職務・修改'])
     <h2>{{ $camp->abbreviation }} 修改組織職務</h2>
     @if(\Session::has('message'))
         <div class='alert alert-success' role='alert'>{{ \Session::get('message') }}</div>

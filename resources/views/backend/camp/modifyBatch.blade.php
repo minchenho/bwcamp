@@ -13,6 +13,7 @@
             color: red;
         }
     </style>
+    @include('backend.camp._toolboxNav', ['toolTitle' => '梯次・修改'])
     <h2>{{ $camp->abbreviation }} 修改梯次 - {{ $batch->name }}</h2>
     <form action='{{ route("modifyBatches", [$camp->id, $batch->id]) }}' method="POST">
         @csrf

@@ -13,6 +13,7 @@
             color: red;
         }
     </style>
+    @include('backend.camp._toolboxNav', ['toolTitle' => '梯次・新增'])
     <h2>{{ $camp->abbreviation }} 批次新增梯次</h2>
     <form action="{{ route("addBatch", $camp->id) }}" method="POST">
         @csrf

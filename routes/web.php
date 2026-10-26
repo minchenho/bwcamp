@@ -129,6 +129,7 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
         Route::get("/", [AdminController::class, "campManagement"])->name("campManagement");
         Route::get("/add", [AdminController::class, "showAddCamp"])->name("showAddCamp");
         Route::post("/add", [AdminController::class, "addCamp"])->name("addCamp");
+        Route::get("/{camp_id}/toolbox", [AdminController::class, "showCampToolbox"])->name("showCampToolbox");
         Route::get("/modify/{camp_id}", [AdminController::class, "showModifyCamp"])->name("showModifyCamp");
         Route::post("/modify/{camp_id}", [AdminController::class, "modifyCamp"])->name("modifyCamp");
     });

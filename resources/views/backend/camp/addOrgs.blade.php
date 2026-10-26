@@ -14,6 +14,7 @@
         }
     </style>
 
+    @include('backend.camp._toolboxNav', ['toolTitle' => '組織職務・新增'])
     <h2>{{ $camp->abbreviation }} 新增組織職務</h2>    
     
     {{-- 頂部目前組織提示區 --}}

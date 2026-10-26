@@ -11,6 +11,7 @@
         details details { border-left: 2px dashed #ddd; margin-left: 10px; }
     </style>
 
+    @include('backend.camp._toolboxNav', ['toolTitle' => '組織職務'])
     <h2 class="d-inline-block">{{ $camp->abbreviation }} 組織職務樹狀架構清單</h2>
     @if(auth()->user()?->canAssignOrgsDirectly() && $orgs->isNotEmpty())
         <a href="{{ route('showAssignUsers', $camp->id) }}" class="btn btn-outline-primary btn-sm ml-3 align-top">👤 直接指定使用者職務</a>
