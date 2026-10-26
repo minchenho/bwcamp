@@ -37,6 +37,7 @@ class Admin
         'showBatch', 'showModifyBatch', 'showAddBatch', 'addBatch', 'copyBatch', 'modifyBatches', 'removeBatch',
         'showOrgs', 'showModifyOrg', 'showAddOrgs', 'addOrgs', 'copyOrgs', 'duplicateOrg', 'modifyOrg',
         'saveAsPermissionTemplate', 'removeOrg', 'showCopyPermissions', 'copyPermissions',
+        'showGroups', 'generateGroups', 'updateGroups', 'removeGroup',
     ];
 
     public function __construct(private CampManageAccessService $access)

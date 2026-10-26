@@ -30,7 +30,7 @@
         ];
         if (!$camp->isVcamp) {
             $tools[] = ['title' => '組織職務', 'desc' => $counts['orgs'] . ' 個職務，權限設定與複製', 'route' => route('showOrgs', $camp->id)];
-            $tools[] = ['title' => '組別編排', 'desc' => $counts['groups'] . ' 個學員組別（建置中）', 'route' => null];
+            $tools[] = ['title' => '組別編製', 'desc' => $counts['groups'] . ' 個學員組別，各梯次分開編製', 'route' => route('showGroups', $camp->id)];
             if (auth()->user()->canAssignOrgsDirectly()) {
                 $tools[] = ['title' => '直接指定職務', 'desc' => '不經報名流程，直接指定使用者職務（限 superuser）', 'route' => route('showAssignUsers', $camp->id)];
             }

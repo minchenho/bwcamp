@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CampController;
+use App\Http\Controllers\ApplicantsGroupController;
 use App\Http\Controllers\CampOrgController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\StatController;
@@ -161,6 +162,14 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
         Route::get( "/{camp_id}/{org_id}/modify", [CampOrgController::class, "showModifyOrg"])->name("showModifyOrg");
         Route::post("/{camp_id}/{org_id}/modify", [CampOrgController::class, "modifyOrg"])->name("modifyOrg");
         Route::post("/remove", [CampOrgController::class, "removeOrg"])->name("removeOrg");
+    });
+
+    // 組別編製
+    Route::group(['prefix' => 'groupList'], function () {
+        Route::get( "/{camp_id}/{batch_id?}", [ApplicantsGroupController::class, "showGroups"])->name("showGroups");
+        Route::post("/{camp_id}/{batch_id}/generate", [ApplicantsGroupController::class, "generateGroups"])->name("generateGroups");
+        Route::post("/{camp_id}/{batch_id}/update", [ApplicantsGroupController::class, "updateGroups"])->name("updateGroups");
+        Route::post("/{camp_id}/{batch_id}/remove", [ApplicantsGroupController::class, "removeGroup"])->name("removeGroup");
     });
 });
 
