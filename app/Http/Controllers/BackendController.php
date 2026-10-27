@@ -3048,30 +3048,26 @@ private function getCarersData($user, Request $request): array
         return redirect()->route("showAttendeeInfoGET", ["camp_id" => $request->camp_id, "snORadmittedSN" => $applicant->id]);
     }
 
+    // 權限由 admin middleware 檢查（僅限 superuser）
     public function switchToUser($id)
     {
-        if (auth()->user()->email != "lzong.tw@gmail.com" && auth()->user()->email != "minchen.ho@blisswisdom.org") {
-            return abort(500);
+        $user = User::find($id);
+        if (!$user) {
+            abort(response()->view('errors.404', ['message' => "找不到 id 為 {$id} 的使用者，無法切換。"], 404));
         }
-        try {
-            $user = User::find($id);
-            \Session::put('original_user', \Auth::id());
-            \Auth::login($user);
-        } catch (\Exception $e) {
-            throw new \Exception("Error logging in as user", 1);
-        }
-        return back();
+        \Session::put('original_user', \Auth::id());
+        \Auth::login($user);
+        // 不用 back()：上一頁可能是切換後的身分沒有權限的頁面，會顯示 403
+        return redirect()->route('backendIndex');
     }
 
     public function switchUserBack()
     {
-        try {
-            $original = \Session::pull('original_user');
-            $user = User::find($original);
-            \Auth::login($user);
-        } catch (\Exception $e) {
-            throw new \Exception("Error returning to your user", 1);
+        $user = User::find(\Session::pull('original_user'));
+        if (!$user) {
+            abort(response()->view('errors.404', ['message' => "找不到原本的使用者，無法切換回去。"], 404));
         }
-        return back();
+        \Auth::login($user);
+        return redirect()->route('backendIndex');
     }
 }

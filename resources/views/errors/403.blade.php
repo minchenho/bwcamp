@@ -54,7 +54,7 @@
                 403            </div>
 
             <div class="message" style="padding: 10px;">
-                拒絕存取</div>
+                {{ ($exception ?? null)?->getMessage() ?: '拒絕存取' }}</div>
         </div>
         @if($response ?? false)
             <div class="flex-center position-ref full-height">
