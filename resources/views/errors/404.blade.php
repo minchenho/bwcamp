@@ -54,7 +54,7 @@
                 404            </div>
 
             <div class="message" style="padding: 10px;">
-                查無此頁，請檢查是否進入了錯誤的連結</div>
+                {{ $message ?? '查無此頁，請檢查是否進入了錯誤的連結' }}</div>
         </div>
     </body>
 </html>

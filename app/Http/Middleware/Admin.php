@@ -56,7 +56,7 @@ class Admin
 
         // 從「切換使用者」切回原本身分
         if ($routeName === 'switchUserBack') {
-            return $request->session()->has('original_user') ? $next($request) : abort(403);
+            return $request->session()->has('original_user') ? $next($request) : abort(403, '目前不是切換使用者的狀態，無法切換回去。');
         }
         if ($this->access->isSuperuser($user)) {
             return $next($request);
@@ -73,7 +73,7 @@ class Admin
         }
 
         // 未列入規則的路由一律只限 superuser
-        abort(403);
+        abort(403, '此頁面僅限 superuser。');
     }
 
     /**
