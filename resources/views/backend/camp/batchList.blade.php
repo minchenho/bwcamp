@@ -8,6 +8,7 @@
             color: #33B2FF!important;
         }
     </style>
+    @include('backend.camp._toolboxNav', ['toolTitle' => '梯次'])
     <h2 class="d-inline-block">{{ $camp->abbreviation }} 梯次列表</h2>
     <a href="{{ route("showAddBatch", $camp->id) }}" class="btn btn-success d-inline-block" style="margin-bottom: 10px">建立梯次</a>
     @if(\Session::has('message'))

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CampController;
+use App\Http\Controllers\ApplicantsGroupController;
 use App\Http\Controllers\CampOrgController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\StatController;
@@ -129,6 +130,7 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
         Route::get("/", [AdminController::class, "campManagement"])->name("campManagement");
         Route::get("/add", [AdminController::class, "showAddCamp"])->name("showAddCamp");
         Route::post("/add", [AdminController::class, "addCamp"])->name("addCamp");
+        Route::get("/{camp_id}/toolbox", [AdminController::class, "showCampToolbox"])->name("showCampToolbox");
         Route::get("/modify/{camp_id}", [AdminController::class, "showModifyCamp"])->name("showModifyCamp");
         Route::post("/modify/{camp_id}", [AdminController::class, "modifyCamp"])->name("modifyCamp");
     });
@@ -160,6 +162,14 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
         Route::get( "/{camp_id}/{org_id}/modify", [CampOrgController::class, "showModifyOrg"])->name("showModifyOrg");
         Route::post("/{camp_id}/{org_id}/modify", [CampOrgController::class, "modifyOrg"])->name("modifyOrg");
         Route::post("/remove", [CampOrgController::class, "removeOrg"])->name("removeOrg");
+    });
+
+    // 組別編製
+    Route::group(['prefix' => 'groupList'], function () {
+        Route::get( "/{camp_id}/{batch_id?}", [ApplicantsGroupController::class, "showGroups"])->name("showGroups");
+        Route::post("/{camp_id}/{batch_id}/generate", [ApplicantsGroupController::class, "generateGroups"])->name("generateGroups");
+        Route::post("/{camp_id}/{batch_id}/update", [ApplicantsGroupController::class, "updateGroups"])->name("updateGroups");
+        Route::post("/{camp_id}/{batch_id}/remove", [ApplicantsGroupController::class, "removeGroup"])->name("removeGroup");
     });
 });
 

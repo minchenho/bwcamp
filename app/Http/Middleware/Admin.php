@@ -33,10 +33,11 @@ class Admin
      * 針對單一營隊的管理：superuser，或該營隊類型在範圍內的 event_admin
      */
     private const CAMP_MANAGERS = [
-        'showModifyCamp', 'modifyCamp',
+        'showCampToolbox', 'showModifyCamp', 'modifyCamp',
         'showBatch', 'showModifyBatch', 'showAddBatch', 'addBatch', 'copyBatch', 'modifyBatches', 'removeBatch',
         'showOrgs', 'showModifyOrg', 'showAddOrgs', 'addOrgs', 'copyOrgs', 'duplicateOrg', 'modifyOrg',
         'saveAsPermissionTemplate', 'removeOrg', 'showCopyPermissions', 'copyPermissions',
+        'showGroups', 'generateGroups', 'updateGroups', 'removeGroup',
     ];
 
     public function __construct(private CampManageAccessService $access)

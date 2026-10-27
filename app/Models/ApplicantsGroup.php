@@ -12,6 +12,7 @@ class ApplicantsGroup extends Model
     protected $fillable = [
         'batch_id',
         'alias',
+        'category',
     ];
 
     public $resourceNameInMandarin = '學員組別';

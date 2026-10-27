@@ -200,7 +200,7 @@ class AdminController extends BackendController {
             \Session::flash('error', "您不能將營隊改成此類型。");
             return back()->withInput();
         }
-        if ($request->vcamp_id && !$access->can(auth()->user(), Camp::find($request->vcamp_id), 'camp', 'update')) {
+        if ($request->vcamp_id && !$access->canManage(auth()->user(), Camp::find($request->vcamp_id))) {
             \Session::flash('error', "您沒有連結此義工營隊的權限。");
             return back()->withInput();
         }
@@ -214,14 +214,32 @@ class AdminController extends BackendController {
             CampVcampXref::updateOrCreate(["camp_id" => $camp_id], ["vcamp_id" => $request->vcamp_id]);
         }
         \Session::flash('message', $campName . " 修改成功。");
-        return redirect()->route("campManagement");
+        return redirect()->route("showCampToolbox", $camp_id);
+    }
+
+    /**
+     * 營隊管理首頁：集中該營隊的各項管理工具
+     */
+    public function showCampToolbox($camp_id, CampManageAccessService $access){
+        $camp = Camp::findOrFail($camp_id);
+        // vcamp() / mainCamp() 有 withDefault()，沒有對應營隊時為空的 Camp
+        $relatedCamp = $camp->isVcamp ? $camp->mainCamp : $camp->vcamp;
+        if (!$relatedCamp->exists || !$access->canManage(auth()->user(), $relatedCamp)) {
+            $relatedCamp = null;
+        }
+        $counts = [
+            'batches' => $camp->batches()->count(),
+            'orgs' => $camp->isVcamp ? 0 : $camp->orgs()->count(),
+            'groups' => $camp->isVcamp ? 0 : $camp->groups()->count(),
+        ];
+        return view('backend.camp.toolbox', compact('camp', 'relatedCamp', 'counts'));
     }
 
     public function showModifyCamp($camp_id, CampManageAccessService $access){
         $camp = Camp::find($camp_id);
         $camp_orgs = $camp->orgs;
         $vcamps = Camp::where('registration_end', '>', now()->year . "-01-01")->where('table', 'like', '%vcamp%')->get()
-            ->filter(fn ($vcamp) => $access->can(auth()->user(), $vcamp, 'camp', 'update'))->values();
+            ->filter(fn ($vcamp) => $access->canManage(auth()->user(), $vcamp))->values();
         // 一般使用者不能更改營隊類型，只保留目前的類型
         $allowedTables = $access->manageableCampTables(auth()->user());
         if (is_array($allowedTables) && !in_array($camp->table, $allowedTables, true)) {

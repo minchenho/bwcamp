@@ -3,16 +3,10 @@
 namespace App\Observers;
 
 use App\Models\Batch;
-use App\Services\BackendService;
 
 class BatchObserver
 {
     public $afterCommit = true;
-
-    public function __construct(public BackendService $backendService)
-    {
-        //
-    }
 
     public function boot()
     {
@@ -27,8 +21,7 @@ class BatchObserver
      */
     public function created(Batch $batch)
     {
-        //
-        $this->doGroupCreation($batch);
+        // 組別改由「組別編製」頁建立，梯次存檔時不再依 num_groups 自動建組
     }
 
     /**
@@ -39,13 +32,7 @@ class BatchObserver
      */
     public function updated(Batch $batch)
     {
-        //
-        $this->doGroupCreation($batch);
-    }
-
-    private function doGroupCreation($batch)
-    {
-        $this->backendService->groupsCreation($batch);
+        // 同 created()
     }
 
     /**

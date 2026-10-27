@@ -8,6 +8,7 @@
         $orgsById = $orgs->keyBy('id');
     @endphp
 
+    @include('backend.camp._toolboxNav', ['toolTitle' => '直接指定職務'])
     <h2 class="d-inline-block">{{ $camp->abbreviation }} 直接指定使用者職務</h2>
     <a href="{{ route('showOrgs', $camp->id) }}" class="btn btn-outline-secondary btn-sm ml-3 align-top">回組織架構</a>
     <p class="text-muted">此功能僅限 superuser 使用，可不經義工報名流程，直接將使用者指定到本營隊的職務。</p>
