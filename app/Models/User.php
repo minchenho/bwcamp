@@ -640,12 +640,17 @@ class User extends Authenticatable
                     return true;
                 }
 
+                // 義工的組別：在本營隊綁定具體組別（group_id > 0）的職務；跨組職務（0）不屬於任何一組
+                $volunteerGroupIds = fn ($user) => $user
+                    ? $user->roles()->where('camp_id', $camp->id)->where('group_id', '>', 0)->pluck('group_id')
+                    : collect();
+
                 if (str_contains($class, "Applicant") && !str_contains($class, "Group") && $target) {
                     return $matchesGroup($target->group_id);
                 } elseif (str_contains($class, "Volunteer") && $target) {
-                    return $matchesGroup($target->user?->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id);
+                    return $volunteerGroupIds($target->user)->contains($matchesGroup);
                 } elseif (str_contains($class, "User")) {
-                    return $matchesGroup($target->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id);
+                    return $volunteerGroupIds($target)->contains($matchesGroup);
                 }
 
                 if ($class == "App\Models\ContactLog") {
