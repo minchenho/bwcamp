@@ -22,7 +22,19 @@
     <form action="{{ route("addContactLog", $camp_id) }}" method="POST">
         @csrf
         <br>
-        <textarea class=form-control rows=5 required name='notes' id=""></textarea>
+        <textarea class=form-control rows=5 required name='notes' id="">{{ old('notes', $contactlog->notes ?? '') }}</textarea>
+        @php $checkedTagIds = old('tag_ids', isset($contactlog) ? $contactlog->tags->pluck('id')->all() : []); @endphp
+        @if($tags->isNotEmpty())
+            <div class="mt-3">
+                <b>標籤</b><small class="text-muted">（可複選）</small><br>
+                @foreach($tags as $tag)
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="tag_ids[]" id="tag-{{ $tag->id }}" value="{{ $tag->id }}" @checked(in_array($tag->id, $checkedTagIds))>
+                        <label class="form-check-label" for="tag-{{ $tag->id }}" @if($tag->notes) title="{{ $tag->notes }}" @endif>{{ $tag->tag }}</label>
+                    </div>
+                @endforeach
+            </div>
+        @endif
         <br>
         <input type="hidden" name="applicant_id" value="{{ $applicant->id }}">
         @if($todo == "add")
@@ -37,17 +49,4 @@
         @endif
     </form>
 
-    <script>
-        @if($todo == "modify")
-            {{-- 回填關懷記錄 --}}
-            (function() {
-                let contactlog_data = JSON.parse('{!! $contactlog !!}');
-                let textareas = document.getElementsByTagName('textarea');
-                //console.log(textareas);
-                //console.log(contactlog_data);
-                textareas[0].value = contactlog_data["notes"]; 
-                //textareas[0].value = "回填回填"; 
-            })();
-        @endif
-    </script>
 @endsection

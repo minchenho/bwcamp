@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ContactLog extends Model
 {
@@ -28,16 +30,8 @@ class ContactLog extends Model
         return $this->belongsTo('App\Models\User');
     }
 
-    public function tags(): HasManyThrough
+    public function tags(): BelongsToMany
     {
-        return $this->hasManyThrough(
-            //App\Models\ContactLog, id (local)
-            'App\Models\ContactLogTag', //id (foreign)
-            'App\Models\ContactLogTagXref', //id, tag_id (local), log_id (foregin)
-            'log_id',
-            'id', 
-            'id',
-            'tag_id'
-        );
+        return $this->belongsToMany(ContactLogTag::class, 'contact_log_tag_xref', 'log_id', 'tag_id')->withTimestamps();
     }
 }

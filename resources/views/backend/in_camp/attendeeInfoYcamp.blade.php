@@ -279,7 +279,8 @@
                     <b>最新一筆關懷記錄</b><br>
                     @if(isset($contactlog))
                     {{ $contactlog->updated_at }} 由 {{ $contactlog->takenby_name }} 記錄：<br>
-                    {{ $contactlog->notes }}<br><br>
+                    {{ $contactlog->notes }}<br>
+                    @include('backend.in_camp.partials.contactLogTags')<br><br>
                     @else
                     <b>無關懷記錄</b>
                     @endif

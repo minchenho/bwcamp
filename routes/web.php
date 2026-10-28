@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CampController;
 use App\Http\Controllers\ApplicantsGroupController;
+use App\Http\Controllers\ContactLogTagController;
 use App\Http\Controllers\CampOrgController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\StatController;
@@ -172,6 +173,12 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
         Route::post("/{camp_id}/{batch_id}/remove", [ApplicantsGroupController::class, "removeGroup"])->name("removeGroup");
         Route::post("/{camp_id}/{batch_id}/carers", [ApplicantsGroupController::class, "generateCarerOrgs"])->name("generateCarerOrgs");
     });
+    Route::group(['prefix' => 'contactLogTags'], function () {
+        Route::get( "/{camp_id}", [ContactLogTagController::class, "showContactLogTags"])->name("showContactLogTags");
+        Route::post("/{camp_id}/add", [ContactLogTagController::class, "addContactLogTag"])->name("addContactLogTag");
+        Route::post("/{camp_id}/update", [ContactLogTagController::class, "updateContactLogTags"])->name("updateContactLogTags");
+        Route::post("/{camp_id}/remove", [ContactLogTagController::class, "removeContactLogTag"])->name("removeContactLogTag");
+    });
 });
 
 Route::group(["prefix" => "backend/{camp_id}", ], function () {
@@ -275,6 +282,7 @@ Route::group(["prefix" => "backend/{camp_id}", ], function () {
     Route::post("/contactLog/modify", [BackendController::class, "modifyContactLog"])->name("modifyContactLog");
     Route::get("/contactLog/{log_id}/modify", [BackendController::class, "showModifyContactLog"])->name("showModifyContactLog");
     Route::post("/contactLog/remove", [BackendController::class, "removeContactLog"])->name("removeContactLog");
+    Route::get("/contactLogs", [BackendController::class, "showCampContactLogs"])->name("showCampContactLogs");
 
     Route::get("/registration/groupAttendList", "BackendController@showGroupAttendList")->name("showGroupAttendList");
     //----- Statistics -----

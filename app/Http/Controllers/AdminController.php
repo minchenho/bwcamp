@@ -231,6 +231,7 @@ class AdminController extends BackendController {
             'batches' => $camp->batches()->count(),
             'orgs' => $camp->isVcamp ? 0 : $camp->orgs()->count(),
             'groups' => $camp->isVcamp ? 0 : $camp->groups()->count(),
+            'contactLogTags' => \App\Models\ContactLogTag::where('camp_table', $camp->table)->count(),
         ];
         return view('backend.camp.toolbox', compact('camp', 'relatedCamp', 'counts'));
     }

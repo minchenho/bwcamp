@@ -38,6 +38,7 @@ class Admin
         'showOrgs', 'showModifyOrg', 'showAddOrgs', 'addOrgs', 'copyOrgs', 'duplicateOrg', 'modifyOrg',
         'saveAsPermissionTemplate', 'removeOrg', 'showCopyPermissions', 'copyPermissions',
         'showGroups', 'generateGroups', 'updateGroups', 'removeGroup', 'generateCarerOrgs',
+        'showContactLogTags', 'addContactLogTag', 'updateContactLogTags', 'removeContactLogTag',
     ];
 
     public function __construct(private CampManageAccessService $access)

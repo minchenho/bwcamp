@@ -2880,9 +2880,12 @@ private function getCarersData($user, Request $request): array
         $applicant = Applicant::find($applicant_id);
         if ($formData['todo'] == 'show') {
             //dd($applicant);
+            $this->authorizeContactLog('create', $applicant);
             $todo = 'add';
-            return view('backend.in_camp.addContactLog', compact("camp_id", "applicant", "todo"));
+            $tags = $this->contactLogTagsFor($applicant);
+            return view('backend.in_camp.addContactLog', compact("camp_id", "applicant", "todo", "tags"));
         } elseif ($formData['todo'] == 'add') {
+            $this->authorizeContactLog('create', $applicant);
             //dd($formData);
             //$applicant = Applicant::find($applicant_id);
             //$contactlog = $applicant->contactlog;
@@ -2890,7 +2893,8 @@ private function getCarersData($user, Request $request): array
             $newSet['notes'] = $formData['notes'];
             $newSet['user_id'] = auth()->user()->id;
 
-            ContactLog::create($newSet);
+            $contactlog = ContactLog::create($newSet);
+            $contactlog->tags()->sync($this->validContactLogTagIds($applicant, $request->input('tag_ids', [])));
             \Session::flash('message', "關懷記錄新增成功。");
             return redirect()->route("showContactLogs", [$camp_id, $applicant->id]);
         } else {
@@ -2901,9 +2905,46 @@ private function getCarersData($user, Request $request): array
             if (!$contactlog) {
                 return back()->withErrors(['找不到關懷記錄。']);
             }
-            $contactlog->update($formData);
+            // 學員以記錄本身為準，避免用 A 學員的權限改 B 學員的記錄
+            $applicant = $contactlog->applicant;
+            $this->authorizeContactLog('update', $applicant);
+            $contactlog->update(['notes' => $formData['notes']]);
+            $contactlog->tags()->sync($this->validContactLogTagIds($applicant, $request->input('tag_ids', [])));
             \Session::flash('message', "關懷記錄修改成功。");
             return redirect()->route("showContactLogs", [$camp_id, $applicant->id]);
+        }
+    }
+
+    /**
+     * 關懷記錄可用的標籤：學員所屬營隊類型的標籤
+     */
+    private function contactLogTagsFor(Applicant $applicant)
+    {
+        return \App\Models\ContactLogTag::forCampTable($applicant->camp->table)->get();
+    }
+
+    /**
+     * 只保留屬於學員營隊類型的標籤 id
+     */
+    private function validContactLogTagIds(Applicant $applicant, $tagIds): array
+    {
+        return $this->contactLogTagsFor($applicant)->pluck('id')->intersect(array_map('intval', (array) $tagIds))->values()->all();
+    }
+
+    /**
+     * 關懷記錄的後端權限檢查：學員須屬於本營隊，且對該學員有關懷記錄的 read / create / update / delete 權限
+     */
+    private function authorizeContactLog(string $action, ?Applicant $applicant): void
+    {
+        if (!$applicant || $applicant->camp_id != $this->camp_id) {
+            abort(404, '找不到此學員。');
+        }
+        if ($this->user->isSuperuser) {
+            return;
+        }
+        $labels = ['read' => '查看', 'create' => '新增', 'update' => '修改', 'delete' => '刪除'];
+        if (!$this->user->canAccessResource(new ContactLog(), $action, $this->camp_info, target: $applicant)) {
+            abort(403, '您沒有' . $labels[$action] . '此學員關懷記錄的權限。');
         }
     }
 
@@ -2911,21 +2952,25 @@ private function getCarersData($user, Request $request): array
     {
         //dd($applicant_id);
         $applicant = Applicant::find($applicant_id);
+        $this->authorizeContactLog('create', $applicant);
         //$contactlogs = $applicant->contactlog->sortByDesc('id');
         $todo = 'add';
-        return view('backend.in_camp.addContactLog', compact("camp_id", "applicant", "todo"));
+        $tags = $this->contactLogTagsFor($applicant);
+        return view('backend.in_camp.addContactLog', compact("camp_id", "applicant", "todo", "tags"));
     }
 
-    public function modifyContactLog(Request $request, $camp_id, $contactlog_id)
+    public function modifyContactLog(Request $request, $camp_id)
     {
         $formData = $request->toArray();
-        $contactlog_id = $formData['contactlog_id'];
+        $contactlog_id = $formData['contactlog_id'] ?? null;
         $contactlog = ContactLog::find($contactlog_id);
         if (!$contactlog) {
             return back()->withErrors(['找不到關懷記錄。']);
         }
         $applicant_id = $contactlog->applicant_id;
-        $contactlog->update($formData);
+        $this->authorizeContactLog('update', $contactlog->applicant);
+        $contactlog->update(['notes' => $formData['notes']]);
+        $contactlog->tags()->sync($this->validContactLogTagIds($contactlog->applicant, $request->input('tag_ids', [])));
         \Session::flash('message', "關懷記錄修改成功。");
         return redirect()->route("showContactLogs", [$camp_id, $applicant_id]);
     }
@@ -2934,13 +2979,14 @@ private function getCarersData($user, Request $request): array
     {
         //$applicant = Applicant::find($applicant_id);
         $contactlog = ContactLog::find($contactlog_id);
+        if (!$contactlog) {
+            abort(404, '找不到關懷記錄。');
+        }
         $applicant = Applicant::find($contactlog->applicant_id);
+        $this->authorizeContactLog('update', $applicant);
         $todo = 'modify';
-        //只有顯示在textarea中，換行符號才會出問題，所以好像只需在這裡改
-        $contactlog->notes = str_replace("\r", " ", $contactlog->notes);
-        $contactlog->notes = str_replace("\n", " ", $contactlog->notes);
-        $contactlog->notes = str_replace("\t", " ", $contactlog->notes);
-        return view('backend.in_camp.addContactLog', compact("camp_id", "applicant", "contactlog", "todo"));
+        $tags = $this->contactLogTagsFor($applicant);
+        return view('backend.in_camp.addContactLog', compact("camp_id", "applicant", "contactlog", "todo", "tags"));
         //return view('backend.in_camp.modifyContactLog', compact("applicant", "contactlog"));
     }
 
@@ -2949,7 +2995,8 @@ private function getCarersData($user, Request $request): array
         $formData = $request->toArray();
         //$applicant_id = $formData['applicant_id'];
         $applicant = Applicant::withTrashed()->find($applicant_id);
-        $contactlogs = $applicant->contactlog->sortByDesc('id');
+        $this->authorizeContactLog('read', $applicant);
+        $contactlogs = $applicant->contactlog()->with('tags')->get()->sortByDesc('id');
         //dd($contactlogs);
         if (isset($contactlogs)) {
             foreach ($contactlogs as &$contactlog) {
@@ -2959,9 +3006,55 @@ private function getCarersData($user, Request $request): array
         return view('backend.in_camp.contactLogList', compact('camp_id', 'applicant', 'contactlogs'));
     }
 
+    /**
+     * 全營關懷記錄：列出有權限看的學員的關懷記錄，可依標籤篩選（含任一所選標籤）
+     */
+    public function showCampContactLogs(Request $request, $camp_id)
+    {
+        $camp = Camp::findOrFail($camp_id);
+        if ($camp->isVcamp) {
+            return redirect()->route('showCampContactLogs', $camp->mainCamp->id);
+        }
+        $user = $this->user;
+        if (!$user->isSuperuser && !$user->hasCampPermission($camp, ContactLog::class, 'read')) {
+            abort(403, '您沒有查看關懷記錄的權限。');
+        }
+
+        $tags = \App\Models\ContactLogTag::forCampTable($camp->table)->get();
+        $tagIds = $tags->pluck('id')->intersect(array_map('intval', (array) $request->input('tag_ids', [])))->values();
+
+        $logs = ContactLog::with(['tags', 'applicant'])
+            ->whereHas('applicant', fn ($query) => $query->whereIn('batch_id', $camp->batches->pluck('id')))
+            ->when($tagIds->isNotEmpty(), fn ($query) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->whereIn('contact_log_tag.id', $tagIds)))
+            ->orderByDesc('id')->get();
+
+        if (!$user->isSuperuser) {
+            // 同一學員只檢查一次
+            $allowed = [];
+            $logs = $logs->filter(function ($log) use ($user, $camp, &$allowed) {
+                return $allowed[$log->applicant_id] ??= (bool) $user->canAccessResource(new ContactLog(), 'read', $camp, target: $log->applicant);
+            })->values();
+        }
+
+        $perPage = 50;
+        $page = max(1, (int) $request->input('page', 1));
+        $contactlogs = new \Illuminate\Pagination\LengthAwarePaginator(
+            $logs->forPage($page, $perPage)->map(fn ($log) => $this->backendService->setTakenByName($log)),
+            $logs->count(), $perPage, $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('backend.in_camp.campContactLogs', compact('camp', 'tags', 'tagIds', 'contactlogs'));
+    }
+
     public function removeContactLog(Request $request)
     {
-        $result = \App\Models\ContactLog::find($request->contactlog_id)->delete();
+        $contactlog = ContactLog::find($request->contactlog_id);
+        if (!$contactlog) {
+            abort(404, '找不到關懷記錄。');
+        }
+        $this->authorizeContactLog('delete', $contactlog->applicant);
+        $result = $contactlog->delete();
 
         if ($result) {
             \Session::flash('message', "記錄刪除成功。");

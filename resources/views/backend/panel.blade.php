@@ -32,6 +32,9 @@
                                     <a href="{{ route("showLearners", $campFullData->id) }}">學員名單</a>
                                 @endif
                             </li>
+                            @if(!str_contains($campFullData->table, "vcamp") && ($currentUser->isSuperuser || $currentUser->hasCampPermission($campFullData, \App\Models\ContactLog::class, 'read')))
+                                <li><a href="{{ route("showCampContactLogs", $campFullData->id) }}">全營關懷記錄</a></li>
+                            @endif
                         </ul>
                     </li>
                 @else
@@ -66,6 +69,9 @@
                                         <a href="{{ route("showVolunteers", $campFullData->id) }}">義工名單</a>
                                     @endif
                                 </li>
+                                @if(!str_contains($campFullData->table, "vcamp") && ($currentUser->isSuperuser || $currentUser->hasCampPermission($campFullData, \App\Models\ContactLog::class, 'read')))
+                                    <li><a href="{{ route("showCampContactLogs", $campFullData->id) }}">全營關懷記錄</a></li>
+                                @endif
                             </ul>
                         </li>
                     @endif

@@ -30,6 +30,7 @@
         <tr>
             <th>ID</th>
             <th>內容</th>
+            <th>標籤</th>
             <th>記錄者</th>
             <th>記錄時間</th>
             <th>修改時間</th>
@@ -40,6 +41,7 @@
             <tr>
                 <td>{{ $contactlog->id }}</td>
                 <td>{{ $contactlog->notes }}</td>
+                <td>@include('backend.in_camp.partials.contactLogTags')</td>
                 <td>{{ $contactlog->takenby_name }}</td>
                 <td>{{ $contactlog->created_at }}</td>
                 <td>{{ $contactlog->updated_at }}</td>
