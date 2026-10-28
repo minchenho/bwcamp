@@ -517,117 +517,27 @@ class User extends Authenticatable
             });
         };
 
-        $this->rolePermissions = $this->with(['roles' => $constraint, 'roles.permissions'])->whereHas('roles', $constraint)->where('id', $this->id)->get()->pluck('roles')->flatten()->pluck('permissions')->flatten()->unique('id')->values();
+        $roles = $this->with(['roles' => $constraint, 'roles.permissions'])->whereHas('roles', $constraint)->where('id', $this->id)->get()->pluck('roles')->flatten();
+        $this->rolePermissions = $roles->pluck('permissions')->flatten()->unique('id')->values();
         $permissions = $this->rolePermissions;
-        $forInspect = $permissions->where("resource", "\\" . $class)->where("action", $action)->first();
+        // 以職務為單位判斷：每個職務用自己的權限搭配自己的組別／大組，任一職務放行就放行
+        $candidates = $permissions->where("resource", "\\" . $class)->where("action", $action)->values();
 
-        if ($forInspect) {
+        if ($candidates->isNotEmpty()) {
+            foreach ($roles as $role) {
+                foreach ($role->permissions->where("resource", "\\" . $class)->where("action", $action) as $forInspect) {
+                    if ($probing) {
+                        dump($role->position, $forInspect);
+                    }
+                    if ($this->checkPermissionRange($forInspect, $role, $class, $resource, $action, $camp, $context, $target, $probing)) {
+                        return true;
+                    }
+                }
+            }
             if ($probing) {
-                dump($forInspect);
+                dd("all ranges failed", $candidates, $resource, $action, $camp, $context, $target);
             }
-            switch ($forInspect->range_parsed) {
-                // 0: na, all
-                case 0:
-                    // if (str_contains($class, "Applicant") && $context == "vcamp") {
-                    //     // 志工名單中不能看到「只有報名但未編組」的人
-                    //     return false;
-                    // }
-                    return true;
-                    // 1: volunteer_large_group
-                case 1:
-                    if ($class == "App\Models\Volunteer" && $resource->user?->roles) {
-                        return $resource->user->roles->whereIn("section", $this->roles()->where('camp_id', $camp->id)->pluck("section"))->count();
-                    }
-                    if ($class == "App\Models\Applicant" && $resource->user?->roles) {
-                        return $resource->user->roles->whereIn("section", $this->roles()->where('camp_id', $camp->id)->pluck("section"))->count();
-                    }
-                    if (($class == "App\Models\User" || $class == "App\User") && $resource->roles) {
-                        return $resource->roles->whereIn("section", $this->roles()->where('camp_id', $camp->id)->pluck("section"))->count();
-                    }
-                    if ($probing) {
-                        dd("first if, case 1", $forInspect, $resource, $action, $camp, $context, $target, $permissions);
-                    }
-                    return false;
-                    // 2: learner_group
-                    // ★：學員小組的意思除了是「同一個小組的學員」以外，還包含「護持同一個學員小組的義工」
-                case 2:
-                    $roles = $this->roles()->where('group_id', '<>', null)->where("camp_id", $camp->id);
-                    if (str_contains($class, "Applicant") && $context == "onlyCheckAvailability") {
-                        return $roles->first();
-                    }
-
-                    if (str_contains($class, "Applicant") && !str_contains($class, "Group") && $target) {
-                        return $roles->firstWhere('group_id', $target->group_id);
-                    } elseif (str_contains($class, "Volunteer") && $target) {
-                        return $roles->firstWhere(
-                            'group_id',
-                            $target->user?->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id
-                        )
-                        ||
-                        ($target->user?->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id &&
-                        $this->roles()->where("camp_id", $camp->id)->where(function ($query) {
-                            $query->where("position", "like", "%關懷小組%")
-                                ->orWhere("position", "like", "%關懷服務組%")
-                                ->orWhere("position", "like", "%關服組%");
-                        })->firstWhere('all_group', 1));
-                    } elseif (str_contains($class, "User")) {
-                        return $roles->firstWhere(
-                            'group_id',
-                            $target->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id
-                        )
-                            ||
-                            ($target->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id &&
-                                $this->roles()->where("camp_id", $camp->id)->where(function ($query) {
-                                    $query->where("position", "like", "%關懷小組%")
-                                        ->orWhere("position", "like", "%關懷服務組%")
-                                        ->orWhere("position", "like", "%關服組%");
-                                })->firstWhere('all_group', 1));
-                    }
-
-                    if ($class == "App\Models\ContactLog") {
-                        if ($probing) {
-                            dd("first if, case 2, ContactLog", $forInspect, $resource, $action, $camp, $context, $target, $permissions);
-                        }
-                        return $roles->firstWhere('group_id', $target->group_id);
-                    }
-                    if ($class == "App\Models\ApplicantsGroup") {
-                        if ($probing) {
-                            dd("first if, case 2, ApplicantsGroup", $forInspect, $resource, $action, $camp, $context, $target, $permissions);
-                        }
-                        return $roles->firstWhere('group_id', $target?->group_id ?? $resource->id);
-                    }
-                    if ($probing) {
-                        dd("first if, case 2", $forInspect, $resource, $action, $camp, $context, $target, $permissions);
-                    }
-                    return false;
-                    // 3: person
-                case 3:
-                    if (str_contains($class, "Applicant") && $context == "onlyCheckAvailability") {
-                        return $this->caresLearners->whereIn('batch_id', $camp->batches->pluck('id'))->first();
-                    }
-                    if ($class == "App\Models\ApplicantGroup") {
-                        return $this->caresLearners->where('group_id', '<>', null)->where("group_id", $resource->id)->first();
-                    }
-                    // 沒這回事
-                    if ($class == "App\Models\CampOrg") {
-                        return false;
-                    }
-                    if ($class == "App\Models\Applicant") {
-                        return $this->caresLearners->where('group_id', '<>', null)->where("id", $resource->id)->first();
-                    }
-                    if ($class == "App\Models\ContactLog") {
-                        return $this->caresLearners->where('group_id', '<>', null)->where("id", $target->id)->first();
-                    }
-                    if ($probing) {
-                        dd("first if, case 3", $forInspect, $resource, $action, $camp, $context, $target, $permissions);
-                    }
-                    return false;
-                default:
-                    if ($probing) {
-                        dd("first if, case default", $forInspect, $resource, $action, $camp, $context, $target, $permissions);
-                    }
-                    return false;
-            }
+            return false;
         } elseif ($target && ((str_contains($class, "Applicant") || str_contains($class, "Volunteer")) && $action == "read")) {
             // $roles = $this->roles()->where('group_id', '<>', null)->where("camp_id", $camp->id);
             if ($probing) {
@@ -675,6 +585,121 @@ class User extends Authenticatable
             }
             return false;
         }
+    }
+
+    /**
+     * 依單一權限的範圍判斷能否存取；組別、大組只看擁有這筆權限的職務（$role）
+     */
+    private function checkPermissionRange($forInspect, $role, $class, $resource, $action, $camp, $context, $target, $probing)
+    {
+        // range 空白或無法辨識：不放行（避免 false == 0 被當成「不指定」）
+        if ($forInspect->range_parsed === false) {
+            return false;
+        }
+        switch ($forInspect->range_parsed) {
+            // 0: na, 4: all
+            case 0:
+            case 4:
+                // if (str_contains($class, "Applicant") && $context == "vcamp") {
+                //     // 志工名單中不能看到「只有報名但未編組」的人
+                //     return false;
+                // }
+                return true;
+                // 1: volunteer_large_group
+            case 1:
+                // 大組 = 職務往上找到的 depth 1 節點（closest_section）
+                $mySectionIds = $this->sectionIdsOf([$role]);
+                if ($context == "onlyCheckAvailability") {
+                    return $mySectionIds->isNotEmpty();
+                }
+                $targetRoles = null;
+                if (($class == "App\Models\Volunteer" || $class == "App\Models\Applicant") && $resource->user?->roles) {
+                    $targetRoles = $resource->user->roles;
+                } elseif (($class == "App\Models\User" || $class == "App\User") && $resource->roles) {
+                    $targetRoles = $resource->roles;
+                }
+                if ($targetRoles) {
+                    return $this->sectionIdsOf($targetRoles->where('camp_id', $camp->id))
+                        ->intersect($mySectionIds)->isNotEmpty();
+                }
+                if ($probing) {
+                    dump("first if, case 1", $forInspect, $resource, $action, $camp, $context, $target);
+                }
+                return false;
+                // 2: learner_group
+                // ★：學員小組的意思除了是「同一個小組的學員」以外，還包含「護持同一個學員小組的義工」
+            case 2:
+                // 職務沒有綁組別：沒有「我的組」可比
+                if (is_null($role->group_id)) {
+                    return false;
+                }
+                // group_id = 0（全部學員組別）：對方只要有編組就符合
+                $matchesGroup = fn ($groupId) => $role->group_id === 0 ? !empty($groupId) : $groupId == $role->group_id;
+
+                if (str_contains($class, "Applicant") && $context == "onlyCheckAvailability") {
+                    return true;
+                }
+
+                if (str_contains($class, "Applicant") && !str_contains($class, "Group") && $target) {
+                    return $matchesGroup($target->group_id);
+                } elseif (str_contains($class, "Volunteer") && $target) {
+                    return $matchesGroup($target->user?->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id);
+                } elseif (str_contains($class, "User")) {
+                    return $matchesGroup($target->roles()->where("position", "like", "%關懷小組%")->firstWhere('camp_id', $camp->id)?->group_id);
+                }
+
+                if ($class == "App\Models\ContactLog") {
+                    if ($probing) {
+                        dump("first if, case 2, ContactLog", $forInspect, $resource, $action, $camp, $context, $target);
+                    }
+                    return $matchesGroup($target->group_id);
+                }
+                if ($class == "App\Models\ApplicantsGroup") {
+                    if ($probing) {
+                        dump("first if, case 2, ApplicantsGroup", $forInspect, $resource, $action, $camp, $context, $target);
+                    }
+                    return $matchesGroup($target?->group_id ?? $resource->id);
+                }
+                if ($probing) {
+                    dump("first if, case 2", $forInspect, $resource, $action, $camp, $context, $target);
+                }
+                return false;
+                // 3: person
+            case 3:
+                if (str_contains($class, "Applicant") && $context == "onlyCheckAvailability") {
+                    return $this->caresLearners->whereIn('batch_id', $camp->batches->pluck('id'))->first();
+                }
+                if ($class == "App\Models\ApplicantGroup") {
+                    return $this->caresLearners->where('group_id', '<>', null)->where("group_id", $resource->id)->first();
+                }
+                // 沒這回事
+                if ($class == "App\Models\CampOrg") {
+                    return false;
+                }
+                if ($class == "App\Models\Applicant") {
+                    return $this->caresLearners->where('group_id', '<>', null)->where("id", $resource->id)->first();
+                }
+                if ($class == "App\Models\ContactLog") {
+                    return $this->caresLearners->where('group_id', '<>', null)->where("id", $target->id)->first();
+                }
+                if ($probing) {
+                    dump("first if, case 3", $forInspect, $resource, $action, $camp, $context, $target);
+                }
+                return false;
+            default:
+                if ($probing) {
+                    dump("first if, case default", $forInspect, $resource, $action, $camp, $context, $target);
+                }
+                return false;
+        }
+    }
+
+    /**
+     * 職務所屬大組（depth 1 節點）的 id
+     */
+    private function sectionIdsOf($roles)
+    {
+        return collect($roles)->map(fn ($role) => $role->closest_section?->id)->filter()->unique()->values();
     }
 
     public function dynamic_stats(): MorphMany
