@@ -1,5 +1,6 @@
 @extends('backend.master')
 @section('content')
+    @include('backend.in_camp.partials.breadcrumb', ['crumbCamp' => $applicant->camp, 'crumbApplicant' => $applicant, 'crumbLevel' => $todo == 'add' ? 'add' : 'modify', 'crumbFrom' => request('from')])
     <style>
         .card-link{
             color: #3F86FB!important;
@@ -37,15 +38,18 @@
         @endif
         <br>
         <input type="hidden" name="applicant_id" value="{{ $applicant->id }}">
+        @if(request('from'))
+            <input type="hidden" name="from" value="{{ request('from') }}">
+        @endif
         @if($todo == "add")
         <input type="hidden" name="todo" value="add">
         <input type="submit" class="btn btn-success" value="確認送出">
-        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id]) }}" class="btn btn-danger">取消新增</a>
+        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id, 'from' => request('from')]) }}" class="btn btn-danger">取消新增</a>
         @else
         <input type="hidden" name="todo" value="modify">
         <input type="hidden" name="contactlog_id" value="{{ $contactlog->id }}">
         <input type="submit" class="btn btn-success" value="確認送出">
-        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id]) }}" class="btn btn-danger">取消修改</a>
+        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id, 'from' => request('from')]) }}" class="btn btn-danger">取消修改</a>
         @endif
     </form>
 

@@ -1,5 +1,6 @@
 @extends('backend.ioiMaster')
 @section('content')
+@include('backend.in_camp.partials.breadcrumb', ['crumbCamp' => $isShowVolunteers ? \App\Models\Camp::find($campFullData->id)->vcamp : $campFullData, 'crumbLevel' => 'list'])
 @include('..partials.counties_areas_script')
 <style>
     .card-link{

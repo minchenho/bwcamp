@@ -1,5 +1,6 @@
 @extends('backend.master')
 @section('content')
+    @include('backend.in_camp.partials.breadcrumb', ['crumbCamp' => $camp, 'crumbLevel' => 'campLogs'])
     <h4>全營關懷記錄</h4>
     <p class="text-muted">{{ $camp->abbreviation }}・只列出您有權限查看的學員的記錄</p>
 
@@ -33,7 +34,7 @@
         @forelse($contactlogs as $contactlog)
             <tr>
                 <td class="text-nowrap">
-                    <a href="{{ route('showContactLogs', [$camp->id, $contactlog->applicant_id]) }}">{{ $contactlog->applicant?->name }}</a>
+                    <a href="{{ route('showContactLogs', [$camp->id, $contactlog->applicant_id]) }}?from={{ \App\Services\InCampBreadcrumb::FROM_CAMP_LOGS }}">{{ $contactlog->applicant?->name }}</a>
                     @if($contactlog->applicant?->group)
                         <br><small class="text-muted">{{ $contactlog->applicant->group }}</small>
                     @endif

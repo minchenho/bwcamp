@@ -2277,7 +2277,8 @@ private function getCarersData($user, Request $request): array
             ->filter()
             ->flatten();
 
-        // 3. 處理 POST 篩選條件
+        // 3. 處理 POST 篩選條件（從麵包屑回來時還原上次的條件）
+        $this->rememberListFilters($request, 'learner');
         $queryStr = null;
         if ($request->isMethod("post")) {
             $payload = collect($request->all())->filter(fn($val) => is_array($val))->toArray();
@@ -2367,6 +2368,20 @@ private function getCarersData($user, Request $request): array
             ->header('Pragma', 'no-cache');
     }
 
+    /**
+     * 名單篩選條件：POST 套用時存進 session；GET 帶 restore=1（麵包屑）時還原成上次的 POST 條件
+     */
+    private function rememberListFilters(Request $request, string $list): void
+    {
+        $key = "list_filters.{$this->camp_id}.{$list}";
+        if ($request->isMethod('post')) {
+            session([$key => $request->except('_token')]);
+        } elseif ($request->boolean('restore') && session($key)) {
+            $request->merge(session($key));
+            $request->setMethod('POST');
+        }
+    }
+
     public function showVolunteers(Request $request)
     {
         ini_set('max_execution_time', -1);
@@ -2380,6 +2395,7 @@ private function getCarersData($user, Request $request): array
             return "<h1>尚未設定對應之義工營。</h1>";
         }
 
+        $this->rememberListFilters($request, 'volunteer');
         if ($request->isMethod("post")) {
             $payload = $request->all();
             if (count($payload) == 1) {
@@ -2896,7 +2912,7 @@ private function getCarersData($user, Request $request): array
             $contactlog = ContactLog::create($newSet);
             $contactlog->tags()->sync($this->validContactLogTagIds($applicant, $request->input('tag_ids', [])));
             \Session::flash('message', "關懷記錄新增成功。");
-            return redirect()->route("showContactLogs", [$camp_id, $applicant->id]);
+            return redirect()->route("showContactLogs", [$camp_id, $applicant->id, 'from' => $request->input('from')]);
         } else {
             //modify
             //dd($formData);
@@ -2911,7 +2927,7 @@ private function getCarersData($user, Request $request): array
             $contactlog->update(['notes' => $formData['notes']]);
             $contactlog->tags()->sync($this->validContactLogTagIds($applicant, $request->input('tag_ids', [])));
             \Session::flash('message', "關懷記錄修改成功。");
-            return redirect()->route("showContactLogs", [$camp_id, $applicant->id]);
+            return redirect()->route("showContactLogs", [$camp_id, $applicant->id, 'from' => $request->input('from')]);
         }
     }
 
@@ -2972,7 +2988,7 @@ private function getCarersData($user, Request $request): array
         $contactlog->update(['notes' => $formData['notes']]);
         $contactlog->tags()->sync($this->validContactLogTagIds($contactlog->applicant, $request->input('tag_ids', [])));
         \Session::flash('message', "關懷記錄修改成功。");
-        return redirect()->route("showContactLogs", [$camp_id, $applicant_id]);
+        return redirect()->route("showContactLogs", [$camp_id, $applicant_id, 'from' => $request->input('from')]);
     }
 
     public function showModifyContactLog($camp_id, $contactlog_id)

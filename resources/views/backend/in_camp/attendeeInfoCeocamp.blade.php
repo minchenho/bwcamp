@@ -1,5 +1,6 @@
 @extends('backend.master')
 @section('content')
+    @include('backend.in_camp.partials.breadcrumb', ['crumbCamp' => $camp, 'crumbApplicant' => $applicant, 'crumbLevel' => 'info'])
 @include('..partials.counties_areas_script')
 <style>
     .card-link{
