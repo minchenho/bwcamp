@@ -165,6 +165,81 @@
                 </form>
             </div>
         </div>
+
+        @if($groups->isNotEmpty())
+            @php
+                $defaultParent = old('parent_id', $defaultParentId);
+                $titleRows = collect($carerTitles)->map(fn ($name) => ['name' => $name, 'fixed' => true])
+                    ->concat(array_fill(0, 3, ['name' => '', 'fixed' => false]));
+            @endphp
+            <div class="card mb-4">
+                <div class="card-header"><strong>產生關懷員職務</strong></div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        替「{{ $batch->name }}」的 {{ $groups->count() }} 個組別，各建立勾選的職務，名稱為「組名＋職稱」（例：{{ $groups->first()->alias }}小組長），並綁定該組。
+                        同一組已有同名職務時會跳過。
+                    </p>
+                    <form id="carer-form" action="{{ route('generateCarerOrgs', [$camp->id, $batch->id]) }}" method="POST">
+                        @csrf
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label" for="parent_id">掛在</label>
+                            <div class="col-sm-6">
+                                <select class="form-control" id="parent_id" name="parent_id" required>
+                                    <option value="">- 請選擇上層節點 -</option>
+                                    @foreach($orgOptions as $option)
+                                        <option value="{{ $option['id'] }}" @selected($defaultParent == $option['id'])>{{ $option['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <table class="table table-bordered table-sm">
+                            <tr>
+                                <th class="text-nowrap">建立</th>
+                                <th>職稱</th>
+                                <th>套用權限範本</th>
+                            </tr>
+                            @foreach($titleRows as $i => $row)
+                                <tr>
+                                    <td class="text-center">
+                                        @if($row['fixed'])
+                                            <input type="checkbox" class="carer-enabled" name="titles[{{ $i }}][enabled]" value="1" @checked(old("titles.$i.enabled", old('_token') ? null : 1))>
+                                        @else
+                                            <input type="hidden" name="titles[{{ $i }}][enabled]" value="1">
+                                            <span class="text-muted small">自訂</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($row['fixed'])
+                                            {{ $row['name'] }}<input type="hidden" class="carer-name" name="titles[{{ $i }}][name]" value="{{ $row['name'] }}">
+                                        @else
+                                            <input type="text" class="form-control form-control-sm carer-name" name="titles[{{ $i }}][name]" maxlength="50" value="{{ old("titles.$i.name") }}" placeholder="自訂職稱，例：文書">
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <select class="form-control form-control-sm" name="titles[{{ $i }}][template_id]">
+                                            <option value="">不套用（之後再設定權限）</option>
+                                            @foreach($templates as $template)
+                                                <option value="{{ $template->id }}" @selected(old("titles.$i.template_id") == $template->id)>
+                                                    {{ $template->name }}（{{ $template->items_count }} 項{{ $template->camp_table ? '' : '，通用' }}）
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </table>
+                        @if($templates->isEmpty())
+                            <h6 class="text-info">＊目前沒有可用的權限範本。可在「修改職務」頁把現有職務的權限「另存為範本」。</h6>
+                        @endif
+                        <div class="form-group row">
+                            <div class="col-sm-2 col-form-label">預覽</div>
+                            <div class="col-sm-10 col-form-label" id="carer-preview"></div>
+                        </div>
+                        <button type="submit" class="btn btn-success">產生關懷員職務</button>
+                    </form>
+                </div>
+            </div>
+        @endif
     @endif
 
     <script>
@@ -175,6 +250,42 @@
                 form.submit();
             }
         }
+
+        (function () {
+            const form = document.getElementById('carer-form');
+            if (!form) {
+                return;
+            }
+            const aliases = @json($groups->pluck('alias'));
+
+            function titles() {
+                return [...form.querySelectorAll('tr')].map((row) => {
+                    const name = row.querySelector('.carer-name');
+                    const enabled = row.querySelector('.carer-enabled');
+                    return name && (!enabled || enabled.checked) ? name.value.trim() : '';
+                }).filter((name, i, list) => name && list.indexOf(name) === i);
+            }
+
+            function render() {
+                const list = titles();
+                const total = aliases.length * list.length;
+                const sample = list.map((name) => aliases[0] + name);
+                document.getElementById('carer-preview').textContent = total
+                    ? sample.join('、') + ' …（' + aliases.length + ' 組 × ' + list.length + ' 種職稱，共 ' + total + ' 個）'
+                    : '（無）';
+            }
+
+            form.addEventListener('input', render);
+            form.addEventListener('change', render);
+            form.addEventListener('submit', function (event) {
+                const total = aliases.length * titles().length;
+                const parent = form.parent_id.options[form.parent_id.selectedIndex].text;
+                if (!confirm('將在「' + parent + '」下建立 ' + total + ' 個職務（已存在的會跳過），確定嗎？')) {
+                    event.preventDefault();
+                }
+            });
+            render();
+        })();
 
         (function () {
             const form = document.getElementById('generate-form');

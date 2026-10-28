@@ -157,8 +157,9 @@ class BackendController extends Controller
         $this->middleware(function ($request, $next) use ($that, $args) {
             $that->user = \App\Models\User::find(auth()->user()->id);
             $that->isVcamp = $args["camp"]->isVcamp;
+            // 只有一個職務且是關懷員（有綁學員組別）：使用簡化面板
             if ($that->user->roles()->where("camp_id", $this->camp_id)->count() == 1 &&
-               $that->user->roles()->where("camp_id", $this->camp_id)->where("position", "like", "%關懷小組%")->count()) {
+               $that->user->roles()->where("camp_id", $this->camp_id)->whereNotNull("group_id")->count()) {
                 $that->user->no_panel = true;
             }
             View::share('currentUser', $that->user);
@@ -2065,29 +2066,15 @@ private function getCarersData($user, Request $request): array
 
     $myRoles = collect($user->getCampRoles($this->camp));
 
-    // 🎯 一槍斃命：乾淨、不會閃退的純 Collection 操作
-    $target_group_ids = $myRoles
-        ->filter(function ($role) {
-            // 💡 用 str_contains 代替資料庫的 like '%...%'
-            // 只要職務名稱 (position) 裡面包含「關懷小組第」，就留下來！
-            return str_contains($role->position, '關懷小組第');
-        })
-        ->pluck('group_id') // 抓出這批職務的 group_id
-        ->filter()          // 防禦防火牆：剔除掉可能是 null 或 0 的無效 ID
-        ->unique()          // 聯集去重：如果他同時兼任多個組別，只留唯一的 ID
-        ->values();         // 重新整理索引 [0 => id1, 1 => id2]
+    // 關懷員 = 有綁學員組別的職務：group_id > 0 負責該組，group_id = 0 負責全部組別
+    $allCampGroupIds = fn () => $this->camp_info->orgs()
+        ->where('camp_orgs.camp_id', $this->camp_id)
+        ->where('camp_orgs.group_id', '>', 0)
+        ->pluck('group_id')->unique()->values();
 
-    // 🧠 備用變數（優化排毒版）：找出隸屬關懷大組且具有「全組通吃（group_id = 0）」特權的職務
-    $all_groups = $myRoles->filter(function ($role) {
-        // 🎯 1. 叫職務自己去跑你寫好的 getPathString()，看看祖先鏈有沒有包含「關懷大組」
-        $isInCareSection = str_contains($role->getPathString(), '關懷大組');
-
-        // 🎯 2. 檢查是否為全組通吃特權
-        // 💡 提示：因為你新版 DDL 移除了 all_group 欄位，改用你寫好的 $role->isAllGroup() 判定！
-        $isAllGroup = $role->isAllGroup(); 
-
-        return $isInCareSection && $isAllGroup;
-    })->values(); // 重新整理索引，回傳乾淨的 CampOrg 集合
+    $target_group_ids = $myRoles->contains(fn ($role) => $role->isAllGroup())
+        ? $allCampGroupIds()
+        : $myRoles->filter(fn ($role) => $role->isSpecificGroup())->pluck('group_id')->unique()->values();
 
     $carers = collect([]);
 
@@ -2101,12 +2088,8 @@ private function getCarersData($user, Request $request): array
             static fn ($permission) => $permission->name == '\App\Models\CarerApplicantXref.create' || $permission->name == '\App\Models\CarerApplicantXref.assign'
         );
 
-        // 重新拉出整個營隊所有的關懷小組組別 ID
-        $target_group_ids = $this->camp_info->orgs()
-            ->where('camp_orgs.camp_id', $this->camp_id)
-            ->where('camp_orgs.position', 'like', '%關懷小組第%')
-            ->get()
-            ->pluck('group_id');
+        // 重新拉出整個營隊所有關懷員負責的組別 ID
+        $target_group_ids = $allCampGroupIds();
 
         foreach ($permissions as $permission) {
             if ($permission->range == 'na' || $permission->range == 'all') {
@@ -2570,7 +2553,7 @@ private function getCarersData($user, Request $request): array
         $applicants = $applicants->each(fn ($applicant) => $applicant->id = $applicant->applicant_id);
 
         $registeredUsers = \App\Models\User::with('roles')->whereHas('roles', function ($query) {
-            $query->where('camp_id', $this->camp_id)->where('position', 'like', '%關懷小組%');
+            $query->where('camp_id', $this->camp_id)->whereNotNull('group_id');
         })->get();
         if ($request->isSetting == 1) {
             $isSetting = 1;

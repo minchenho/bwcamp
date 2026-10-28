@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ApplicantsGroup;
 use App\Models\Batch;
 use App\Models\Camp;
+use App\Models\CampOrg;
+use App\Models\PermissionTemplate;
+use App\Services\CampOrgService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,6 +17,13 @@ use Illuminate\Support\Facades\DB;
 class ApplicantsGroupController extends Controller
 {
     private const MAX_GROUPS = 200;
+
+    // 產生關懷員職務時預設提供的職稱
+    public const CARER_TITLES = ['小組長', '副小組長', '關懷員'];
+
+    public function __construct(private CampOrgService $campOrgService)
+    {
+    }
 
     public function showGroups($camp_id, $batch_id = null)
     {
@@ -28,7 +38,18 @@ class ApplicantsGroupController extends Controller
             : collect();
         $groupCounts = ApplicantsGroup::whereIn('batch_id', $batches->pluck('id'))
             ->selectRaw('batch_id, count(*) as n')->groupBy('batch_id')->pluck('n', 'batch_id');
-        return view('backend.camp.groupList', compact('camp', 'batches', 'batch', 'groups', 'groupCounts'));
+        // 產生關懷員職務：可選的上層節點與權限範本
+        $orgs = $camp->orgs()->get();
+        $orgOptions = $orgs
+            ->map(fn ($org) => ['id' => $org->id, 'label' => $org->isRoot() ? $org->position : $org->getPathString() . ' > ' . $org->position])
+            ->sortBy('label')->values();
+        // 預設上層：沒有綁組別、名稱含「關懷」、層級最淺的節點
+        $defaultParentId = $orgs->filter(fn ($org) => is_null($org->group_id) && str_contains($org->position, '關懷'))
+            ->sortBy('depth')->first()?->id;
+        $templates = PermissionTemplate::where(fn ($query) => $query->whereNull('camp_table')->orWhere('camp_table', $camp->table))
+            ->withCount('items')->orderBy('name')->get();
+        $carerTitles = self::CARER_TITLES;
+        return view('backend.camp.groupList', compact('camp', 'batches', 'batch', 'groups', 'groupCounts', 'orgOptions', 'defaultParentId', 'templates', 'carerTitles'));
     }
 
     /**
@@ -130,6 +151,85 @@ class ApplicantsGroupController extends Controller
             $this->syncNumGroups($batch);
         });
         \Session::flash('message', "已刪除「{$group->alias}」。");
+        return redirect()->route('showGroups', [$camp_id, $batch->id]);
+    }
+
+    /**
+     * 替梯次的每個組別建立關懷員職務：名稱為「組名＋職稱」，掛在指定的上層節點下，可各自套用權限範本
+     * 同一組已有名稱以「組名＋職稱」結尾的職務則跳過
+     */
+    public function generateCarerOrgs(Request $request, $camp_id, $batch_id)
+    {
+        $camp = Camp::findOrFail($camp_id);
+        $batch = $this->findBatch($camp_id, $batch_id);
+        $data = $request->validate([
+            'parent_id' => 'required|integer',
+            'titles' => 'required|array',
+            'titles.*.enabled' => 'nullable|boolean',
+            'titles.*.name' => 'nullable|string|max:50',
+            'titles.*.template_id' => 'nullable|integer',
+        ], [], ['parent_id' => '上層節點', 'titles.*.name' => '職稱']);
+
+        $parent = $camp->orgs()->find($data['parent_id']);
+        if (!$parent) {
+            return back()->withInput()->with('error', '找不到所選的上層節點。');
+        }
+        $titles = collect($data['titles'])
+            ->filter(fn ($title) => !empty($title['enabled']) && trim($title['name'] ?? '') !== '')
+            ->map(fn ($title) => ['name' => trim($title['name']), 'template_id' => $title['template_id'] ?? null])
+            ->unique('name')->values();
+        if ($titles->isEmpty()) {
+            return back()->withInput()->with('error', '請至少勾選或填寫一個職稱。');
+        }
+        $templates = PermissionTemplate::with('items')
+            ->where(fn ($query) => $query->whereNull('camp_table')->orWhere('camp_table', $camp->table))
+            ->whereIn('id', $titles->pluck('template_id')->filter())->get()->keyBy('id');
+        $groups = $batch->groups()->orderBy('id')->get();
+        if ($groups->isEmpty()) {
+            return back()->withInput()->with('error', '此梯次還沒有組別。');
+        }
+
+        $created = 0;
+        $skipped = [];
+        DB::transaction(function () use ($camp, $batch, $parent, $titles, $templates, $groups, &$created, &$skipped) {
+            // 同一範本在同一梯次轉出的權限都相同，只轉一次
+            $permissionIds = $titles->mapWithKeys(fn ($title) => [
+                $title['name'] => ($template = $templates->get($title['template_id']))
+                    ? $this->campOrgService->templatePermissionIds($template, $camp, $batch->id) : [],
+            ]);
+            $order = (int) CampOrg::where('prev_id', $parent->id)->max('order');
+            // 同一組、名稱以「組名＋職稱」結尾即視為已存在（含舊格式「關懷小組第1組小組長」）
+            $existing = CampOrg::where('camp_id', $camp->id)->whereIn('group_id', $groups->pluck('id'))
+                ->get(['group_id', 'position'])->groupBy('group_id');
+
+            foreach ($groups as $group) {
+                foreach ($titles as $title) {
+                    $position = $group->alias . $title['name'];
+                    if (($existing[$group->id] ?? collect())->contains(fn ($org) => str_ends_with($org->position, $position))) {
+                        $skipped[] = $position;
+                        continue;
+                    }
+                    $org = CampOrg::create([
+                        'camp_id' => $camp->id,
+                        'batch_id' => $batch->id,
+                        'region_id' => null,
+                        'group_id' => $group->id,
+                        'prev_id' => $parent->id,
+                        'depth' => $parent->depth + 1,
+                        'order' => ++$order,
+                        'position' => $position,
+                    ]);
+                    $org->permissions()->sync($permissionIds[$title['name']]);
+                    $created++;
+                }
+            }
+        });
+
+        $message = "{$batch->name}：已建立 {$created} 個關懷員職務，掛在「{$parent->position}」下。";
+        if ($skipped) {
+            $message .= ' 已存在而跳過 ' . count($skipped) . ' 個：' . implode('、', array_slice($skipped, 0, 20)) . (count($skipped) > 20 ? '…' : '');
+        }
+        \Session::flash($created ? 'message' : 'error', $message);
         return redirect()->route('showGroups', [$camp_id, $batch->id]);
     }
 

@@ -9,12 +9,9 @@
             @php
                 $userOnlyCarer = false;
                 if (isset($campFullData)) {
-                    $onlyOneRole = $currentUser->roles()->where("camp_id", $campFullData->id)->where(
-                        function ($query) {
-                            $query->where("position", "like", "%關懷小組%")
-                                ->orWhereNotNull("position");
-                        })->get();
-                    $userOnlyCarer = $onlyOneRole->count() == 1 && str_contains($onlyOneRole->first()->position, '關懷小組');
+                    // 只有一個職務且是關懷員（有綁學員組別）
+                    $onlyOneRole = $currentUser->roles()->where("camp_id", $campFullData->id)->get();
+                    $userOnlyCarer = $onlyOneRole->count() == 1 && !is_null($onlyOneRole->first()->group_id);
                     // Pre-fetch vcamp counterpart if camp data exists
                     $vcamp_counterpart = \App\Models\Vcamp::find($campFullData->id);
                 }
