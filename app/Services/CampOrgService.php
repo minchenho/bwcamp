@@ -202,4 +202,30 @@ class CampOrgService
             return $template;
         });
     }
+
+    /**
+     * 將權限範本轉成指定營隊／梯次的實際權限，回傳 permission id
+     * 建立方式與 BackendService::permissionTableProcessor() 相同；營隊管理的保留資源會略過
+     */
+    public function templatePermissionIds(PermissionTemplate $template, Camp $camp, ?int $batchId): array
+    {
+        $ids = [];
+        foreach ($template->items as $item) {
+            if (in_array(ltrim($item->resource, '\\'), CampManageAccessService::RESERVED_RESOURCES, true)) {
+                continue;
+            }
+            $resourceName = class_exists($item->resource) ? (new $item->resource)->resourceNameInMandarin : $item->resource;
+            $ids[] = Permission::firstOrCreate([
+                'name' => $item->resource . '.' . $item->action,
+                'display_name' => $camp->abbreviation . '-' . $item->action . ' ' . $resourceName,
+                'description' => $camp->abbreviation . '-' . $item->action . ' ' . $resourceName,
+                'resource' => $item->resource,
+                'action' => $item->action,
+                'range' => $item->range,
+                'camp_id' => $camp->id,
+                'batch_id' => $batchId,
+            ])->id;
+        }
+        return $ids;
+    }
 }

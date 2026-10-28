@@ -128,7 +128,7 @@ class SemiApiController extends Controller
             return $org->position != 'root' && $org->section == $target_org->section && $org->prev_id == $target_org->prev_id;
         });
         $orgs = $orgs->each(function ($org) {
-            if (str_contains($org->position, "關懷小組")) {
+            if (!is_null($org->group_id)) {
                 $org->batch_name = $org->batch?->name;
             }
         });

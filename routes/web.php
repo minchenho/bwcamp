@@ -170,6 +170,7 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
         Route::post("/{camp_id}/{batch_id}/generate", [ApplicantsGroupController::class, "generateGroups"])->name("generateGroups");
         Route::post("/{camp_id}/{batch_id}/update", [ApplicantsGroupController::class, "updateGroups"])->name("updateGroups");
         Route::post("/{camp_id}/{batch_id}/remove", [ApplicantsGroupController::class, "removeGroup"])->name("removeGroup");
+        Route::post("/{camp_id}/{batch_id}/carers", [ApplicantsGroupController::class, "generateCarerOrgs"])->name("generateCarerOrgs");
     });
 });
 
