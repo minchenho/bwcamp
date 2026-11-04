@@ -3,36 +3,33 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+/**
+ * 關懷記錄標籤：依營隊類型（camp_table）共用，由營隊管理者在營隊工具箱設定
+ */
 class ContactLogTag extends Model
 {
-    //
     protected $table = 'contact_log_tag';
 
-    public $resourceNameInMandarin = '關懷記錄標籤';
-
-    public $resourceDescriptionInMandarin = '針對「關懷記錄標籤」提供新增/查詢/修改/刪除的功能。';
+    // 標籤清單改由營隊工具箱管理，不列入權限矩陣（getAvailableModels 會略過名稱為空的 Model）
+    public $resourceNameInMandarin = '';
+    public $resourceDescriptionInMandarin = '';
 
     protected $fillable = [
-        'tag', 'notes'
+        'camp_table', 'tag', 'notes'
     ];
 
-    protected $casts = [
-        'tag' => 'varchar',
-        'notes' => 'varchar'
-    ];
-
-    public function logs(): HasManyThrough
+    public function logs(): BelongsToMany
     {
-        return $this->hasManyThrough(
-            //App\Models\ContactLogTag, //id (local)
-            'App\Models\ContactLog',    //id (foreign)
-            'App\Models\ContactLogTagXref', //id, log_id (local), tag_id (foregin)
-            'tag_id',
-            'id', 
-            'id',
-            'log_id'
-        );
+        return $this->belongsToMany(ContactLog::class, 'contact_log_tag_xref', 'tag_id', 'log_id')->withTimestamps();
     }
 
+    /**
+     * 某營隊類型可用的標籤
+     */
+    public function scopeForCampTable($query, string $campTable)
+    {
+        return $query->where('camp_table', $campTable)->orderBy('tag');
+    }
 }

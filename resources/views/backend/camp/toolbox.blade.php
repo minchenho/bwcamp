@@ -35,6 +35,7 @@
                 $tools[] = ['title' => '直接指定職務', 'desc' => '不經報名流程，直接指定使用者職務（限 superuser）', 'route' => route('showAssignUsers', $camp->id)];
             }
         }
+        $tools[] = ['title' => '關懷記錄標籤', 'desc' => $counts['contactLogTags'] . ' 個標籤，同類營隊（' . $camp->table . '）共用', 'route' => route('showContactLogTags', $camp->id)];
         $tools[] = ['title' => '營隊後台', 'desc' => '名單、錄取、報到等日常作業', 'route' => route('campIndex', $camp->id)];
         if ($relatedCamp) {
             $tools[] = ['title' => $camp->isVcamp ? '對應學員營隊' : '對應義工營隊', 'desc' => $relatedCamp->abbreviation . ' 的營隊管理', 'route' => route('showCampToolbox', $relatedCamp->id)];

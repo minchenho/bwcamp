@@ -199,9 +199,9 @@
             let finalUrl = baseRoute.replace('__CAMP_ID__', targetCampId);
 
             if (item.user) {
-                item.name = `<a href="${finalUrl}?snORadmittedSN=${item.id}&openExternalBrowser=1" target="_blank" class="text-primary">${item.name}</a>&nbsp;(報名序號：${item.id})<div class="text-success">連結之帳號：${item.user.name}(${item.user.email})</div>`;
+                item.name = `<a href="${finalUrl}?snORadmittedSN=${item.id}&openExternalBrowser=1" class="text-primary">${item.name}</a>&nbsp;(報名序號：${item.id})<div class="text-success">連結之帳號：${item.user.name}(${item.user.email})</div>`;
             } else {
-                item.name = `<a href="${finalUrl}?snORadmittedSN=${item.id}&openExternalBrowser=1" target="_blank" class="text-primary">${item.name}</a>&nbsp;(報名序號：${item.id})`;
+                item.name = `<a href="${finalUrl}?snORadmittedSN=${item.id}&openExternalBrowser=1" class="text-primary">${item.name}</a>&nbsp;(報名序號：${item.id})`;
             }
             
             item.contactlog = item.contactlogHTML || '';

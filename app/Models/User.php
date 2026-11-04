@@ -315,6 +315,16 @@ class User extends Authenticatable
         return $parsed;
     }
 
+    /**
+     * 在某營隊的任一職務上，是否有某資源＋動作的權限（不論範圍）
+     */
+    public function hasCampPermission($camp, string $resource, string $action): bool
+    {
+        return $this->roles()->where('camp_id', $camp->id)
+            ->whereHas('permissions', fn ($query) => $query->where('resource', '\\' . ltrim($resource, '\\'))->where('action', $action))
+            ->exists();
+    }
+
     public function canAccessResource($resource, $action, $camp, $context = null, $target = null, $probing = null)
     {
         if (!$resource) {

@@ -1,5 +1,6 @@
 @extends('backend.master')
 @section('content')
+    @include('backend.in_camp.partials.breadcrumb', ['crumbCamp' => $applicant->camp, 'crumbApplicant' => $applicant, 'crumbLevel' => $todo == 'add' ? 'add' : 'modify', 'crumbFrom' => request('from')])
     <style>
         .card-link{
             color: #3F86FB!important;
@@ -22,32 +23,34 @@
     <form action="{{ route("addContactLog", $camp_id) }}" method="POST">
         @csrf
         <br>
-        <textarea class=form-control rows=5 required name='notes' id=""></textarea>
+        <textarea class=form-control rows=5 required name='notes' id="">{{ old('notes', $contactlog->notes ?? '') }}</textarea>
+        @php $checkedTagIds = old('tag_ids', isset($contactlog) ? $contactlog->tags->pluck('id')->all() : []); @endphp
+        @if($tags->isNotEmpty())
+            <div class="mt-3">
+                <b>標籤</b><small class="text-muted">（可複選）</small><br>
+                @foreach($tags as $tag)
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="tag_ids[]" id="tag-{{ $tag->id }}" value="{{ $tag->id }}" @checked(in_array($tag->id, $checkedTagIds))>
+                        <label class="form-check-label" for="tag-{{ $tag->id }}" @if($tag->notes) title="{{ $tag->notes }}" @endif>{{ $tag->tag }}</label>
+                    </div>
+                @endforeach
+            </div>
+        @endif
         <br>
         <input type="hidden" name="applicant_id" value="{{ $applicant->id }}">
+        @if(request('from'))
+            <input type="hidden" name="from" value="{{ request('from') }}">
+        @endif
         @if($todo == "add")
         <input type="hidden" name="todo" value="add">
         <input type="submit" class="btn btn-success" value="確認送出">
-        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id]) }}" class="btn btn-danger">取消新增</a>
+        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id, 'from' => request('from')]) }}" class="btn btn-danger">取消新增</a>
         @else
         <input type="hidden" name="todo" value="modify">
         <input type="hidden" name="contactlog_id" value="{{ $contactlog->id }}">
         <input type="submit" class="btn btn-success" value="確認送出">
-        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id]) }}" class="btn btn-danger">取消修改</a>
+        <a href="{{ route('showContactLogs', [$camp_id, $applicant->id, 'from' => request('from')]) }}" class="btn btn-danger">取消修改</a>
         @endif
     </form>
 
-    <script>
-        @if($todo == "modify")
-            {{-- 回填關懷記錄 --}}
-            (function() {
-                let contactlog_data = JSON.parse('{!! $contactlog !!}');
-                let textareas = document.getElementsByTagName('textarea');
-                //console.log(textareas);
-                //console.log(contactlog_data);
-                textareas[0].value = contactlog_data["notes"]; 
-                //textareas[0].value = "回填回填"; 
-            })();
-        @endif
-    </script>
 @endsection
