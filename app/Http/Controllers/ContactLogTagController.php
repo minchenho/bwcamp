@@ -37,7 +37,7 @@ class ContactLogTagController extends Controller
         $existing = ContactLogTag::where('camp_table', $camp->table)->whereIn('tag', $names)->pluck('tag');
         $newNames = $names->diff($existing);
         foreach ($newNames as $name) {
-            ContactLogTag::create(['camp_table' => $camp->table, 'tag' => $name]);
+            ContactLogTag::create(['camp_table' => $camp->table, 'tag' => $name, 'color' => ContactLogTag::nextColorFor($camp->table)]);
         }
 
         $message = $newNames->isNotEmpty() ? '已新增標籤：' . $newNames->implode('、') . '。' : '';
@@ -58,7 +58,8 @@ class ContactLogTagController extends Controller
             'tags' => 'required|array',
             'tags.*.tag' => 'required|string|max:50',
             'tags.*.notes' => 'nullable|string|max:255',
-        ], [], ['tags.*.tag' => '標籤名稱', 'tags.*.notes' => '說明']);
+            'tags.*.color' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(ContactLogTag::COLORS))],
+        ], [], ['tags.*.tag' => '標籤名稱', 'tags.*.notes' => '說明', 'tags.*.color' => '顏色']);
 
         $tags = ContactLogTag::where('camp_table', $camp->table)->get()->keyBy('id');
         $names = $tags->map(fn ($tag) => trim($data['tags'][$tag->id]['tag'] ?? $tag->tag));
@@ -74,7 +75,7 @@ class ContactLogTagController extends Controller
                 if (!$tag) {
                     continue;
                 }
-                $tag->fill(['tag' => trim($fields['tag']), 'notes' => $fields['notes'] ?? null]);
+                $tag->fill(['tag' => trim($fields['tag']), 'notes' => $fields['notes'] ?? null, 'color' => $fields['color'] ?? $tag->color]);
                 if ($tag->isDirty()) {
                     $tag->save();
                     $changed++;

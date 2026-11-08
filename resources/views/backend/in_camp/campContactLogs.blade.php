@@ -10,7 +10,7 @@
             @foreach($tags as $tag)
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="checkbox" name="tag_ids[]" id="filter-tag-{{ $tag->id }}" value="{{ $tag->id }}" @checked($tagIds->contains($tag->id))>
-                    <label class="form-check-label" for="filter-tag-{{ $tag->id }}" @if($tag->notes) title="{{ $tag->notes }}" @endif>{{ $tag->tag }}</label>
+                    <label class="form-check-label" for="filter-tag-{{ $tag->id }}" @if($tag->notes) title="{{ $tag->notes }}" @endif><span class="badge" style="{{ $tag->badge_style }}">{{ $tag->tag }}</span></label>
                 </div>
             @endforeach
             <button type="submit" class="btn btn-primary btn-sm">篩選</button>
@@ -19,7 +19,7 @@
             @endif
         </form>
     @else
-        <div class="alert alert-info">此類營隊尚未設定關懷記錄標籤，可請營隊管理者在營隊工具箱的「關懷記錄標籤」設定。</div>
+        @include('backend.in_camp.partials.noContactLogTags', ['tagCamp' => $camp])
     @endif
 
     <p>共 {{ $contactlogs->total() }} 筆</p>
