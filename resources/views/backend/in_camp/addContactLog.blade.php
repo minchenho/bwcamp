@@ -31,10 +31,12 @@
                 @foreach($tags as $tag)
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" name="tag_ids[]" id="tag-{{ $tag->id }}" value="{{ $tag->id }}" @checked(in_array($tag->id, $checkedTagIds))>
-                        <label class="form-check-label" for="tag-{{ $tag->id }}" @if($tag->notes) title="{{ $tag->notes }}" @endif>{{ $tag->tag }}</label>
+                        <label class="form-check-label" for="tag-{{ $tag->id }}" @if($tag->notes) title="{{ $tag->notes }}" @endif><span class="badge" style="{{ $tag->badge_style }}">{{ $tag->tag }}</span></label>
                     </div>
                 @endforeach
             </div>
+        @else
+            @include('backend.in_camp.partials.noContactLogTags', ['tagCamp' => $applicant->camp, 'hintClass' => 'mt-3 mb-0'])
         @endif
         <br>
         <input type="hidden" name="applicant_id" value="{{ $applicant->id }}">
