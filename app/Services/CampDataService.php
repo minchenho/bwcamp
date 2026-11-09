@@ -313,6 +313,7 @@ class CampDataService
                 }
             }
         } elseif ($camp == ("tcamp") && isset($formData["unit_county"])) {
+            // 2026-11 起區域名稱：台北 → 北區、台中 → 中區、高雄 → 高區（分區規則不變）
             $region = "";
             $north = array("臺北市", "基隆市", "新北市", "宜蘭縣", "花蓮縣", "金門縣", "連江縣");
             $central = array("臺中市", "彰化縣", "南投縣");
@@ -322,13 +323,13 @@ class CampDataService
 
             foreach ($north as $ele) {
                 if (strpos($formData["unit_county"], $ele) !== false) {
-                    $region = "台北";
+                    $region = "北區";
                 }
             }
 
             for ($k = 0; $k < Count($central); $k++) {
                 if (strpos($formData["unit_county"], $central[$k]) !== false) {
-                    $region = "台中";
+                    $region = "中區";
                 }
             }
 
@@ -340,7 +341,7 @@ class CampDataService
 
             for ($m = 0; $m < Count($south); $m++) {
                 if (strpos($formData["unit_county"], $south[$m]) !== false) {
-                    $region = "高雄";
+                    $region = "高區";
                 }
             }
 
@@ -352,7 +353,7 @@ class CampDataService
                 })) {
                     $region = "新竹";
                 } else {
-                    $region = "台中";
+                    $region = "中區";
                 }
             }
 
@@ -581,10 +582,24 @@ class CampDataService
 
         // 在所有營隊邏輯之後，統一處理 region_id
         if (isset($formData["region"]) && (!isset($formData["region_id"]) || $formData["region_id"] == '')) {
-            $regionModel = Region::query()->where('name', $formData["region"])->first(); // 使用 $regionModel 避免變數衝突
-            $formData["region_id"] = $regionModel->id ?? null; // 如果找不到對應的 Region，設為 null
+            $formData["region_id"] = $this->resolveRegionId($formData["region"], $camp_id);
         }
 
         return $formData;
+    }
+
+    /**
+     * 區域名稱轉為 region_id
+     * - 營隊有設定區域（region_camp_xref）：只在其中找，找不到就歸「未分區」
+     * - 營隊沒有設定區域：沿用舊做法，從整個 regions 資料表找，找不到為 null
+     */
+    private function resolveRegionId(?string $regionName, $camp_id): ?int
+    {
+        $campRegions = $camp_id ? (Camp::find($camp_id)?->regions ?? collect()) : collect();
+        if ($campRegions->isEmpty()) {
+            return Region::query()->where('name', $regionName)->value('id');
+        }
+        return $campRegions->firstWhere('name', $regionName)?->id
+            ?? Region::query()->where('name', Region::UNASSIGNED)->value('id');
     }
 }
