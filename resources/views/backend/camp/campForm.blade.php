@@ -79,7 +79,8 @@
             </div>
         </div>
         @php
-            $regions = \App\Models\Region::all();
+            // 「未分區」是系統保底區域，不需勾選
+            $regions = \App\Models\Region::where('name', '!=', \App\Models\Region::UNASSIGNED)->northToSouth()->get();
         @endphp
         @if(isset($camp))
         <div class='row form-group required'>

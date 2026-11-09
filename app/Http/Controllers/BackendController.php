@@ -778,6 +778,9 @@ class BackendController extends Controller
                     $applicants = $query->whereNotIn('region', ['北苑', '北區', '基隆', '桃區', '竹區', '中區', '雲嘉', '台南', '高屏'])->get();
                 } elseif ($this->camp_table == 'ecamp') {
                     $applicants = $query->whereNotIn('region', ['台北', '桃園', '新竹', '中區', '雲嘉', '台南', '高區'])->get();
+                } elseif ($this->camp_table == 'tcamp') {
+                    // 2026-11 起改用北區／中區／高區；舊名一併排除，舊營隊的「其他」才不會混入
+                    $applicants = $query->whereNotIn('region', ['北區', '台北', '桃園', '新竹', '中區', '台中', '雲嘉', '台南', '高區', '高雄'])->get();
                 } else {
                     $applicants = $query->whereNotIn('region', ['台北', '桃園', '新竹', '台中', '雲嘉', '台南', '高雄'])->get();
                 }

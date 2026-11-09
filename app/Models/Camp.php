@@ -132,17 +132,13 @@ class Camp extends Model
         )->shouldCache();
     }
 
+    /**
+     * 營隊設定的區域，由北到南排序（順序見 Region::DISPLAY_ORDER）
+     */
     public function regions(): BelongsToMany
     {
-        $order = [
-            "北苑", "基隆", "台北", "桃園", "新竹", "台中", "雲嘉", "雲林", "嘉義", "台南", "高屏", "高雄", "屏東", "宜蘭", "花蓮", "金馬",
-            "北區", "桃區", "竹區", "中區", "南區", "高區",
-            "北部", "中部", "南部", "東部",
-            "海外", "其他"
-        ];
-        $placeholders = implode(',', array_fill(0, count($order), '?'));
         return $this->belongsToMany(Region::class, 'region_camp_xref', 'camp_id', 'region_id')
-                    ->orderByRaw("FIELD(name, $placeholders)", $order);
+                    ->northToSouth();
     }
 
     public function applicants(): HasManyThrough
