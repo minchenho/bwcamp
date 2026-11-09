@@ -81,11 +81,23 @@ class RolesController extends BackendController
         });
     }
 
+    /**
+     * 依樹狀順序（同一層級依 order）排列後再分頁；SQL 排不出樹狀順序，所以先全部取出
+     */
+    private function paginateInTreeOrder($roles, int $perPage)
+    {
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+        $roles = \App\Models\CampOrg::sortForDisplay($roles);
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $roles->forPage($page, $perPage)->values(), $roles->count(), $perPage, $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
+    }
+
     public function index($camp_id)
     {
         return view('vendor.laratrust.panel.roles.index', [
-            'roles' => $this->rolesModel::where('camp_id', $camp_id)->withCount('permissions')
-                ->orderBy('depth')->orderBy('order')->orderBy('id')->simplePaginate(10),
+            'roles' => $this->paginateInTreeOrder($this->rolesModel::where('camp_id', $camp_id)->withCount('permissions')->get(), 10),
         ]);
     }
 

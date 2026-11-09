@@ -118,8 +118,11 @@ class RolesAssignmentController extends BackendController
             ->with(['roles', 'permissions'])
             ->findOrFail($modelId);
 
+        // 依營隊，再依樹狀順序（同一層級依 order）
         $roles = $this->rolesModel::where('position', 'not like', '%root%')
-            ->orderBy('id')->get()
+            ->get()
+            ->sortBy(fn ($role) => sprintf('%010d', $role->camp_id) . '|' . $role->tree_sort_key)
+            ->values()
             ->map(function ($role) use ($user) {
                 $role->assigned = $user->roles
                 ->pluck('id')

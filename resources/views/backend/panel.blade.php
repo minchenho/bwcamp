@@ -294,7 +294,7 @@
                 <a href="{{ route("home") }}">{{ Auth::user()->name }}</a>
             </li>
             @if (isset($campFullData) && \App\Models\User::find(auth()->user()->id)->roles->where('camp_id', $campFullData->id)->first())
-                @foreach (\App\Models\User::find(auth()->user()->id)->roles->where('camp_id', $campFullData->id) as $role)
+                @foreach (\App\Models\CampOrg::sortForDisplay(\App\Models\User::find(auth()->user()->id)->roles->where('camp_id', $campFullData->id)) as $role)
                     <li>
                         <a href="">{{ $role->section }} {{ $role->position }}</a>
                     </li>

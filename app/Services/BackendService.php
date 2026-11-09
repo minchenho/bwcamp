@@ -519,7 +519,7 @@ class BackendService
                 }
                 if (!$queryRoles) {
                     $queryRoles = CampOrg::whereIn($column, $value)->get();
-                    $queryRoles = $queryRoles->filter(fn($role) => $role->camp_id == $camp->id);
+                    $queryRoles = CampOrg::sortForDisplay($queryRoles->filter(fn($role) => $role->camp_id == $camp->id));
                     $targetVolunteers = OrgUser::whereIn('org_id', $value)->get()->pluck('user_id');
                     $targetVolunteers = \App\Models\User::whereIn('id', $targetVolunteers)->get();
                     $targetVolunteers->load('applicants');

@@ -36,7 +36,7 @@
             {{-- 這裡我們寫一個遞迴的 Blade 巨集或乾淨的區塊來渲染 --}}
             @php
                 // 抓出所有根節點 (depth = 0)
-                $rootOrgs = $orgs->where('prev_id', 0);
+                $rootOrgs = $orgs->where('prev_id', 0)->sortBy(fn ($org) => $org->tree_sort_key);
             @endphp
 
             @foreach($rootOrgs as $root)

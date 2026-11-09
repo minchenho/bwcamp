@@ -81,7 +81,7 @@
                 @endforeach  
             </div>
             @php
-                $roles = $applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get();
+                $roles = \App\Models\CampOrg::sortForDisplay($applicant->user?->roles()->where('camp_id', $applicant->vcamp->mainCamp->id)->get());
                 if (!$roles) {
                     $roles = [];
                 }
