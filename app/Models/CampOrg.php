@@ -124,6 +124,68 @@ class CampOrg extends LaratrustRole
     }
 
     /* -------------------------------------------------------------------------- */
+    /* 顯示排序                                                                   */
+    /* -------------------------------------------------------------------------- */
+
+    /**
+     * 同一層級的排序鍵：依 order 由小到大，order 空白的排在最後，相同時依 id
+     */
+    public function siblingSortKey(): string
+    {
+        return sprintf('%d%020d%010d', is_null($this->order) ? 1 : 0, (int) $this->order, $this->id);
+    }
+
+    /**
+     * 顯示用排序鍵：$campOrg->tree_sort_key
+     * 由根到自己逐層串接 siblingSortKey，依此排序即為樹狀順序（上層在前、同層依 order）。
+     * 依賴全域預載的 ancestors，不會多查資料庫
+     */
+    protected function treeSortKey(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $keys = [];
+                $current = $this;
+                $safetyCounter = 0; // 髒資料死循環保險絲
+                while ($current && $safetyCounter < 20) {
+                    $keys[] = $current->siblingSortKey();
+                    if ((int) $current->prev_id === 0) {
+                        break;
+                    }
+                    $current = $current->relationLoaded('ancestors') ? $current->ancestors : $current->parent;
+                    $safetyCounter++;
+                }
+                return implode('/', array_reverse($keys));
+            }
+        );
+    }
+
+    /**
+     * 依樹狀順序排列職務（上層在前、同一層級依 order），回傳重新編號的 Collection
+     */
+    public static function sortForDisplay($orgs)
+    {
+        return collect($orgs)->sortBy(fn ($org) => $org->tree_sort_key)->values();
+    }
+
+    /**
+     * 查詢時依同一層級的 order 排序（order 空白的排在最後，相同時依 id）
+     */
+    public function scopeOrderedInLevel(Builder $query): Builder
+    {
+        $table = $this->getTable();
+        return $query->orderByRaw("`{$table}`.`order` IS NULL")->orderBy("{$table}.order")->orderBy("{$table}.id");
+    }
+
+    /**
+     * 個人職務清單等無法在 SQL 排出樹狀順序的地方：上層在前，同一層級依 order
+     */
+    public function scopeOrderedForDisplay(Builder $query): Builder
+    {
+        return $query->orderBy($this->getTable() . '.depth')->orderedInLevel();
+    }
+
+    /* -------------------------------------------------------------------------- */
     /* 商業邏輯與屬性改寫                           */
     /* -------------------------------------------------------------------------- */
 

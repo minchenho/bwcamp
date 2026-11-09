@@ -107,7 +107,9 @@ class SemiApiController extends Controller
                         $org->section = str_replace("root.", " - ", $org->section);
                         $org->section = "[" . $org->camp_name . "]" . $org->batch_name . "：" . $org->region_name . $org->section;
                     }
-                })->unique()->sortBy('order');
+                })->unique();
+        // 依樹狀順序（同一層級依 order）；values() 讓 JSON 輸出陣列，否則前端 Object.entries 會依 id 重排
+        $orgs = CampOrg::sortForDisplay($orgs);
         return response()->json($orgs);
     }
 
@@ -132,7 +134,7 @@ class SemiApiController extends Controller
                 $org->batch_name = $org->batch?->name;
             }
         });
-        return response()->json($orgs);
+        return response()->json(CampOrg::sortForDisplay($orgs));
     }
 
     public function getCampVolunteers(Request $request)
@@ -153,8 +155,7 @@ class SemiApiController extends Controller
         $campId = $request->input('camp_id_sel');
         $camp = Camp::findOrFail($campId);
         $orgs = $camp->organizations;
-        $orgs = $orgs->sortByDesc('section');
-        return response()->json($orgs);
+        return response()->json(CampOrg::sortForDisplay($orgs));
     }
     public function getPermissionSel(Request $request)
     {

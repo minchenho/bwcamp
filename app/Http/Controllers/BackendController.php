@@ -1229,7 +1229,7 @@ class BackendController extends Controller
             }
             
             // 取得子節點並依據設定的 order 排序，讓前台畫面排得整整齊齊
-            $orgs = $org_parent->children->sortBy('order');
+            $orgs = CampOrg::sortForDisplay($org_parent->children);
         }
 
         $camp_info = $this->camp_info;
@@ -2096,7 +2096,8 @@ private function getCarersData($user, Request $request): array
                 $carers = \App\Models\User::with([
                     'groupOrgRelation' => function ($query) use ($request) {
                         $query->where('camp_id', $this->camp_id)
-                            ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id));
+                            ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id))
+                            ->orderedForDisplay();
                     },
                     'groupOrgRelation.region',
                     'groupOrgRelation.batch'
@@ -2122,7 +2123,8 @@ private function getCarersData($user, Request $request): array
             'groupOrgRelation' => function ($query) use ($request, $target_group_ids) {
                 $query->where('camp_id', $this->camp_id)
                     ->whereIn('group_id', $target_group_ids)
-                    ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id));
+                    ->when($request->batch_id, fn($q) => $q->where('batch_id', $request->batch_id))
+                    ->orderedForDisplay();
             },
             'groupOrgRelation.region',
             'groupOrgRelation.batch'
@@ -2410,7 +2412,7 @@ private function getCarersData($user, Request $request): array
         $batches = Batch::where("camp_id", $vcamp->id)->get();
         $query = Applicant::with([
                 'camp', 'groupRelation', 'groupOrgRelation', 'batch', 'contactlog',
-                'user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id), // applicant-list 顯示職務用
+                'user.roles' => fn ($q) => $q->where('camp_id', $this->camp_id)->orderedForDisplay(), // applicant-list 顯示職務用
             ])
             ->select("applicants.*",
                 $vcamp->table . ".*",

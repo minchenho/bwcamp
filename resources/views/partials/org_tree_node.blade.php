@@ -1,6 +1,6 @@
 @php
     // 找出目前節點底下的直屬子層
-    $childNodes = $allOrgs->where('prev_id', $node->id)->sortBy('order');
+    $childNodes = $allOrgs->where('prev_id', $node->id)->sortBy(fn ($org) => $org->tree_sort_key);
 @endphp
 
 <details {{ $node->depth < 2 ? 'open' : '' }}>

@@ -407,7 +407,7 @@ class User extends Authenticatable
         // 批次預載入資源的相關資料
         if ($resourceClass === 'App\Models\Applicant' || $resourceClass === 'App\Models\Volunteer') {
             if ($resourceClass === 'App\Models\Volunteer') {
-                $resources->load('user.roles');
+                $resources->load(['user.roles' => fn ($query) => $query->orderedForDisplay()]);
             }
         }
 

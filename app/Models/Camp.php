@@ -179,7 +179,7 @@ class Camp extends Model
      */
     public function orgDepth1(): HasMany
     {
-        return $this->orgs()->where('depth', 1)->orderBy('order');
+        return $this->orgs()->where('depth', 1)->orderedInLevel();
     }
 
     /**
@@ -187,7 +187,7 @@ class Camp extends Model
      */
     public function orgsAtDepth($depth): HasMany
     {
-        return $this->orgs()->where('depth', $depth)->orderBy('order');
+        return $this->orgs()->where('depth', $depth)->orderedInLevel();
     }
 
     /**
@@ -206,7 +206,7 @@ class Camp extends Model
     public function organizations(): HasMany { return $this->orgs(); }
     public function org_root() { return $this->orgRoot(); }
     public function org_layer1() { return $this->orgDepth1(); }
-    public function org_layerx($prev_id) { return $this->orgs()->where('prev_id', $prev_id)->orderBy('order'); }
+    public function org_layerx($prev_id) { return $this->orgs()->where('prev_id', $prev_id)->orderedInLevel(); }
     public function layer1_sections() { return $this->orgDepth1(); }
     public function layer2_sections() 
     {

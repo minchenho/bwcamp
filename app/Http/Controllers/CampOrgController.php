@@ -49,12 +49,7 @@ class CampOrgController extends BackendController
         $regions = $camp->regions;
         
         // ✨ 新架構：依深度與自訂排序，全域預載ancestors寫在model裡面，避免N+1問題
-        $orgs = $camp->orgs()
-            ->with('permissions')
-            ->orderBy('depth')
-            ->orderBy('order')
-            ->orderBy('id')
-            ->get();
+        $orgs = CampOrg::sortForDisplay($camp->orgs()->with('permissions')->get());
 
         $num_users = array();
         foreach($orgs as $org) {
@@ -71,11 +66,7 @@ class CampOrgController extends BackendController
     public function showAddOrgs($camp_id, $org_id)
     {
         $camp = Camp::find($camp_id);
-        $orgs = $camp->orgs()
-            ->orderBy('depth')
-            ->orderBy('order')
-            ->orderBy('id')
-            ->get();
+        $orgs = CampOrg::sortForDisplay($camp->orgs()->get());
         $batches = $camp->batches;
         $regions = $camp->regions;
         $org_tg = null; $batch_tg = null; $region_tg = null;
@@ -89,7 +80,7 @@ class CampOrgController extends BackendController
                     'prev_id' => 0,
                     'order' => 0
                 ]);
-                $orgs = $camp->orgs;
+                $orgs = CampOrg::sortForDisplay($camp->orgs()->get());
             }
             $batch_tg = new Batch(['id' => 0, 'name' => '不限']);
             $region_tg = new Region(['id' => 0, 'name' => '不限']);
@@ -355,12 +346,7 @@ class CampOrgController extends BackendController
         $this->ensureCanAssignOrgs();
 
         $camp = Camp::findOrFail($camp_id);
-        $orgs = $camp->orgs()
-            ->with('batch')
-            ->orderBy('depth')
-            ->orderBy('order')
-            ->orderBy('id')
-            ->get();
+        $orgs = CampOrg::sortForDisplay($camp->orgs()->with('batch')->get());
 
         $assignments = DB::table('org_user')
             ->join('users', 'users.id', '=', 'org_user.user_id')
