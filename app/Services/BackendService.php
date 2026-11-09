@@ -89,9 +89,6 @@ class BackendService
                 'alias' => $group,
             ]);
         }
-        if (app()->bound('sentry')) {
-            \Sentry\captureMessage('組別處理發生異常狀況，營隊編號：' . $applicant->batch->camp_id . '，梯次編號：' . $applicant->batch_id . '，報名序號：' . $applicant->id . '，組別：' . $group . '，標記：' . $flag);
-        }
         logger('組別處理發生異常狀況，營隊編號：' . $applicant->batch->camp_id . '，梯次編號：' . $applicant->batch_id . '，報名序號：' . $applicant->id . '，組別：' . $group . '，標記：' . $flag);
         return '<h2>組別處理發生異常狀況，請聯絡系統管理員</h2>';
     }
@@ -158,7 +155,7 @@ class BackendService
                 $record = UserApplicantXref::where('applicant_id', $entity["id"])->first();
                 if ($record && $record->user_id != $user->id) {
                     $applicant = Applicant::find($entity["id"]);
-                    \Sentry::captureMessage($applicant->name . " 已有連結的使用者，無法再連結其他使用者。");
+                    \Log::warning('連結使用者：學員已有連結的使用者，無法再連結其他使用者。', ['applicant_id' => $applicant->id]);
                     return "<h1>" . $applicant->name . " 已有連結的使用者，無法再連結其他使用者。</h1>";
                 }
                 OrgUser::firstOrCreate([
@@ -201,7 +198,7 @@ class BackendService
                     ->orderByDesc('id')->first();
                 }
                 if ($user) {
-                    \Sentry::captureMessage("Email " . $applicant->email . " 已註冊。");
+                    \Log::warning('連結使用者：學員的 Email 已註冊。', ['applicant_id' => $applicant->id]);
                     //return "<h1>" . $applicant->name . "的 Email " . $applicant->email . " 已註冊。</h1>
                     //<h4>為什麼發生這個狀況？</h4>
                     //<h3>您可能一次開了多個分頁做同樣的操作，或是對同一位義工指派新職務後，又按下上一頁，才會遇到這個狀況。</h3>
@@ -214,7 +211,7 @@ class BackendService
                 $record = UserApplicantXref::where('applicant_id', $entity["id"])->first();
                 if ($record && $record->user_id != $user->id) {
                     $applicant = Applicant::find($entity["id"]);
-                    \Sentry::captureMessage($applicant->name . " 已有連結的使用者，無法再連結其他使用者。");
+                    \Log::warning('連結使用者：學員已有連結的使用者，無法再連結其他使用者。', ['applicant_id' => $applicant->id]);
                     return "<h1>" . $applicant->name . " 已有連結的使用者，無法再連結其他使用者。</h1>";
                 }
                 OrgUser::firstOrCreate([
@@ -235,7 +232,7 @@ class BackendService
             }
             elseif ($entity["uses_user_id"] == "generation_needed_custom") {
                 if (\App\Models\User::where('email', 'like', $entity["email"])->first()) {
-                    \Sentry::captureMessage("Email " . $entity["email"] . " 已註冊。");
+                    \Log::warning('連結使用者：自訂的 Email 已註冊。', ['applicant_id' => $entity['id'] ?? null]);
                     return "<h1>Email " . $entity["email"] . " 已註冊。</h1>";
                 }
                 $applicant = Applicant::findOrFail($entity["id"]);
@@ -251,7 +248,7 @@ class BackendService
                 $record = UserApplicantXref::where('applicant_id', $entity["id"])->first();
                 if ($record && $record->user_id != $user->id) {
                     $applicant = Applicant::find($entity["id"]);
-                    \Sentry::captureMessage($applicant->name . " 已有連結的使用者，無法再連結其他使用者。");
+                    \Log::warning('連結使用者：學員已有連結的使用者，無法再連結其他使用者。', ['applicant_id' => $applicant->id]);
                     return "<h1>" . $applicant->name . " 已有連結的使用者，無法再連結其他使用者。</h1>";
                 }
                 OrgUser::firstOrCreate([
@@ -273,7 +270,7 @@ class BackendService
                 ];
             }
             else {
-                \Sentry::captureMessage("異常，請回上一頁檢查輸入資料是否齊全。");
+                \Log::warning('連結使用者：輸入資料不齊全。');
                 return "<h1>異常，請回上一頁檢查輸入資料是否齊全。</h1>";
             }
         }

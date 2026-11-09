@@ -1927,7 +1927,7 @@ class BackendController extends Controller
                 }
             } catch (\Exception $e) {
                 $dynamic_stat_urls = "FAILED.";
-                \Sentry\captureException($e);
+                report($e);
             }
         }
 
@@ -2874,7 +2874,7 @@ private function getCarersData($user, Request $request): array
     {
         $formData = $request->toArray();
         if (!isset($formData['applicant_id'])) {
-            \Sentry\captureMessage("學員 / 義工註記沒報名序號。 Request 內容：" . $request);
+            \Log::warning('學員 / 義工註記沒報名序號。', ['camp_id' => $camp_id]);
             return "<h1>找不到報名序號</h1>";
         }
         $applicant_id = $formData['applicant_id'];

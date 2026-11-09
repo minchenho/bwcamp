@@ -355,12 +355,12 @@ class CampController extends Controller
                 );
             }
             if ($request->required_name || $request->required_filename) {
-                \Sentry::captureMessage('異常報名資料');
+                // 隱藏欄位被填寫：疑似機器人，假裝成功但不寫入
+                \Log::warning('異常報名資料（隱藏欄位有值）', ['camp_id' => $this->camp_id]);
                 return response()->json([
                     'status' => 'success'
                 ])->setStatusCode(200);
             } else {
-                \Sentry::captureMessage('Registration from camp ID: ' . $this->camp_id);
                 $request = $this->campDataService->checkBoxToArray($request);
                 $formData = $request->toArray();
                 $formData['batch_id'] = isset($formData["set_batch_id"]) ? $formData["set_batch_id"] : $this->batch_id;

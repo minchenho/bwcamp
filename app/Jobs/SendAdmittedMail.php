@@ -91,7 +91,7 @@ class SendAdmittedMail implements ShouldQueue, ShouldBeUnique
     public function middleware()
     {
         if (!$this->applicant) {
-            \Sentry\captureException(new \Exception('SendAdmittedMail: Applicant not found'));
+            \Log::warning('SendAdmittedMail: Applicant not found');
             return [];
         }
         return [new WithoutOverlapping($this->camp_info->id)];
