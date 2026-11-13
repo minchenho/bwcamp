@@ -59,7 +59,8 @@ Route::get("/home", "HomeController@index")->name("home");
 //    return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\TestExport($camp_id), 'test.xlsx');
 //});
 
-Route::group(["prefix" => "camp/{batch_id}", "middleware" => ["throttle:60,1"]], function () {
+// 過期的營隊只限 superuser（App\Http\Middleware\CampOpen）
+Route::group(["prefix" => "camp/{batch_id}", "middleware" => ["throttle:60,1", "camp.open"]], function () {
     // 這裡放原本所有的路由 (每分鐘 60 次，保護伺服器不被刷爆)
     Route::get("/", "CampController@campIndex");
     Route::match(["get", "post"], "/registration", "CampController@campRegistration")->name("registration");
@@ -120,7 +121,8 @@ Route::group(["prefix" => "checkin", ], function () {
     Route::get("/", [CheckInController::class, "index"]);
     // 2026-11-13：原本只靠 Permitted（永遠放行），任何登入者都能查整營名單、操作報到
     // 存取規則見 App\Http\Middleware\CampMember（camp_id 從查詢字串或表單欄位取得）
-    Route::middleware(["auth", "camp.member"])->group(function () {
+    // 過期的營隊只限 superuser（App\Http\Middleware\CampOpen）
+    Route::middleware(["auth", "camp.member", "camp.open"])->group(function () {
         Route::get("/query", [CheckInController::class, "query"])->name("checkInPage");
         Route::post("/checkin", [CheckInController::class, "checkIn"]);
         Route::post("/mass-checkin", [CheckInController::class, "massCheckIn"])->name("massCheckIn");
