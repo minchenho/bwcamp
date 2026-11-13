@@ -233,7 +233,7 @@ class CampController extends Controller
 
         // 修改資料
         if (isset($request->applicant_id) && !isset($request->useOldData2Register)) {
-            $this->authorizeApplicant($request->applicant_id);
+            $this->authorizeFullRegistration($request->applicant_id);
             $request = $this->campDataService->checkBoxToArray($request);
             $formData = $request->toArray();
             $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
@@ -411,6 +411,10 @@ class CampController extends Controller
                     return $applicant;
                 });
                 $this->rememberVerifiedApplicant($applicant->id);
+                // 剛在這個瀏覽器完成報名：查詢報名資料暫停期間，仍可從成功頁檢視自己的報名表
+                $just = session(self::JUST_REGISTERED_SESSION_KEY, []);
+                $just[] = (int) $applicant->id;
+                session([self::JUST_REGISTERED_SESSION_KEY => array_slice(array_values(array_unique($just)), -10)]);
                 // 寄送報名資料
                 try {
                     // Mail::to($applicant)->send(new ApplicantMail($applicant, $this->camp_info));
@@ -425,7 +429,7 @@ class CampController extends Controller
 
     public function campRegistrationFormCopy(Request $request)
     {
-        $this->authorizeApplicant($request->applicant_id_ori);
+        $this->authorizeFullRegistration($request->applicant_id_ori);
         //Ori：原本的
         //Copy：要複製去的
         $formData = $request->toArray();
@@ -542,6 +546,7 @@ class CampController extends Controller
             ],
             'sn' => 'required|integer',
         ]);
+        $this->authorizeFullRegistration($request->sn);
 
         $campTable = $this->camp_table;
         $formPath = "camps.{$campTable}" . (in_array($campTable, ['ecamp', 'ceocamp']) ? '.form_bak' : '.form');
@@ -636,6 +641,53 @@ class CampController extends Controller
     private const VERIFIED_APPLICANTS_SESSION_KEY = 'verified_applicant_ids';
 
     /**
+     * 前台「查詢報名資料」（完整報名表的檢視、修改、複製）是否對一般大眾開放
+     *
+     * 2026-11-13 暫停：約 70 個營隊的「姓名＋報名序號」已經外洩，只憑這兩項就能看到完整報名表。
+     * 暫停期間只有營隊工作人員（後台）與剛在這個瀏覽器完成報名的人可以使用；
+     * 錄取查詢（queryadmit）不受影響。要重新開放前，應先加上只有本人知道的查詢條件（例：生日）。
+     */
+    private const REGISTRATION_QUERY_OPEN = false;
+
+    private const JUST_REGISTERED_SESSION_KEY = 'just_registered_applicant_ids';
+
+    /**
+     * 可否檢視、修改完整報名表：查詢開放時看 canAccessApplicant()；
+     * 暫停期間只有剛在這個瀏覽器完成報名的人，或該營隊的工作人員
+     */
+    private function canViewFullRegistration($applicantId): bool
+    {
+        if (self::REGISTRATION_QUERY_OPEN) {
+            return $this->canAccessApplicant($applicantId);
+        }
+        if (!$applicantId || !is_numeric($applicantId)) {
+            return false;
+        }
+        return in_array((int) $applicantId, session(self::JUST_REGISTERED_SESSION_KEY, []), true)
+            || $this->isStaffForApplicant($applicantId);
+    }
+
+    private function authorizeFullRegistration($applicantId): void
+    {
+        if (!$this->canViewFullRegistration($applicantId)) {
+            abort(403, '查詢報名資料暫停開放，如需查詢或修改報名資料，請聯絡主辦單位。');
+        }
+    }
+
+    /**
+     * 登入者是否為該報名者所屬營隊的工作人員
+     */
+    private function isStaffForApplicant($applicantId): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        $applicant = Applicant::withTrashed()->with('batch.camp')->find($applicantId);
+        return app(\App\Services\CampManageAccessService::class)->isCampMember($user, $applicant?->batch?->camp);
+    }
+
+    /**
      * 記住這個瀏覽器已驗證過的報名者（姓名＋報名序號相符，或剛完成報名），
      * 之後的檢視、修改、下載等只帶報名序號的操作才會放行
      */
@@ -657,12 +709,7 @@ class CampController extends Controller
         if (in_array((int) $applicantId, session(self::VERIFIED_APPLICANTS_SESSION_KEY, []), true)) {
             return true;
         }
-        $user = auth()->user();
-        if (!$user) {
-            return false;
-        }
-        $applicant = Applicant::withTrashed()->with('batch.camp')->find($applicantId);
-        return app(\App\Services\CampManageAccessService::class)->isCampMember($user, $applicant?->batch?->camp);
+        return $this->isStaffForApplicant($applicantId);
     }
 
     /**
