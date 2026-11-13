@@ -200,6 +200,10 @@
         @endif
     })();
 
+    function semiApiError(error) {
+        alert(error.response?.data?.message || '儲存失敗，請重新整理後再試。');
+    }
+
     function setGroup() {
         if(document.getElementsByName('attendee_group')[0].value) {
             if(window.applicant_ids.length > 0) {
@@ -207,6 +211,7 @@
                     method: 'post',
                     url: '/semi-api/setGroup',
                     data: {
+                        camp_id: {{ request()->route('camp_id') }},
                         applicant_ids: window.applicant_ids,
                         group_id: document.getElementsByName('attendee_group')[0].value
                     },
@@ -219,33 +224,14 @@
                     else {
                         console.log(response.data);
                     }
-                });
+                })
+                .catch(semiApiError);
             } else {
                 alert('請勾選至少一位學員');
             }
         } else {
             alert('請選擇組別');
         }
-    }
-
-    function setGroupOrg() {
-        axios({
-            method: 'post',
-            url: '/semi-api/setGroupOrg',
-            data: {
-                applicant_ids: window.applicant_ids,
-                group_id: document.getElementsByName('volunteer_work')[0].value
-            },
-            responseType: 'json'
-        })
-        .then(function (response) {
-            if (response.data.status === 'success') {
-                window.location.reload();
-            }
-            else {
-                console.log(response.data);
-            }
-        });
     }
 
     function userConnection() {
@@ -310,6 +296,7 @@
                     method: 'post',
                     url: '/semi-api/setCarer',
                     data: {
+                        camp_id: {{ request()->route('camp_id') }},
                         applicant_ids: window.applicant_ids,
                         carer_id: document.getElementsByName('attendee_care')[0].value
                         {{--is_remove--}}
@@ -323,7 +310,8 @@
                         else {
                             console.log(response.data);
                         }
-                    });
+                    })
+                    .catch(semiApiError);
             } else {
                 alert('請勾選至少一位學員');
             }

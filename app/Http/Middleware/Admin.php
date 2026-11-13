@@ -39,6 +39,8 @@ class Admin
         'saveAsPermissionTemplate', 'removeOrg', 'showCopyPermissions', 'copyPermissions',
         'showGroups', 'generateGroups', 'updateGroups', 'removeGroup', 'generateCarerOrgs',
         'showContactLogTags', 'addContactLogTag', 'updateContactLogTags', 'removeContactLogTag',
+        // 營隊後台裡的 Google Sheets 匯入／匯出、動態統計連結（2026-11-14 前營隊工作人員都能使用）
+        'importGSApplicants', 'exportGSApplicants', 'addDSLink', 'queryDSLink', 'showAddDSLink', 'modifyDSLink',
     ];
 
     public function __construct(private CampManageAccessService $access)

@@ -11,8 +11,10 @@ class ApiController extends Controller
     //
     public function sendCampData(Request $request)
     {
-        // Key: AAAAC3NzaC1lZDI1NTE5AAAAIK0wmN/Cr3JXqmLW7u+g9pTh+wyqDHpSQEIQczXkVx9q
-        if($request->key != "AAAAC3NzaC1lZDI1NTE5AAAAIK0wmN/Cr3JXqmLW7u+g9pTh+wyqDHpSQEIQczXkVx9q") {
+        // 2026-11-14：key 原本寫死在程式裡（2022-03 起就在 git 中），視為已外洩，改由 .env 的 CAMP_DATA_API_KEY 設定；
+        // 沒有設定時此端點關閉。回傳整營報名者（含報到、簽到）資料，key 請只交給需要的系統
+        $key = config('services.camp_data_api.key');
+        if (!$key || !is_string($request->key) || !hash_equals($key, $request->key)) {
             return response()->json(['error' => '401'], 401);
         }
         $camp = $request->camp;

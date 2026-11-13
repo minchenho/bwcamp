@@ -277,12 +277,15 @@ Route::group(["prefix" => "backend/{camp_id}", "middleware" => ["auth", "camp.me
 
     //GSheet
     Route::get("/inCamp/gsFeedback/{applicant_id}/{day?}", "SheetController@showGSFeedback")->name("showGSFeedback");
-    Route::get("/gsImport", "SheetController@importGSApplicants")->name("importGSApplicants");
-    Route::get("/gsExport", "SheetController@exportGSApplicants")->name("exportGSApplicants");
-    Route::post("/addDSLink", "AdminController@addDSLink")->name("addDSLink");
-    Route::post("/queryDSLink", "AdminController@queryDSLink")->name("queryDSLink");
-    Route::get("/showAddDSLink", "AdminController@showAddDSLink")->name("showAddDSLink");
-    Route::post("/modifyDSLink", "AdminController@modifyDSLink")->name("modifyDSLink");
+    // 2026-11-14：原本營隊工作人員都能使用；改為只限可管理此營隊的人（Admin middleware 的 CAMP_MANAGERS）
+    Route::middleware("admin")->group(function () {
+        Route::get("/gsImport", "SheetController@importGSApplicants")->name("importGSApplicants");
+        Route::get("/gsExport", "SheetController@exportGSApplicants")->name("exportGSApplicants");
+        Route::post("/addDSLink", "AdminController@addDSLink")->name("addDSLink");
+        Route::post("/queryDSLink", "AdminController@queryDSLink")->name("queryDSLink");
+        Route::get("/showAddDSLink", "AdminController@showAddDSLink")->name("showAddDSLink");
+        Route::post("/modifyDSLink", "AdminController@modifyDSLink")->name("modifyDSLink");
+    });
 
     //Remark
     Route::post("/remark/edit", [BackendController::class, "editRemark"])->name("editRemark");
