@@ -2634,6 +2634,10 @@ private function getCarersData($user, Request $request): array
 
     public function showAccountingPage()
     {
+        // 銷帳資料含整營學員的姓名、手機與繳費紀錄，比照「匯出整營名單」的權限
+        if (!app(\App\Services\CampManageAccessService::class)->canExport($this->user, $this->camp_info)) {
+            abort(403, '您沒有查看銷帳資料的權限。');
+        }
         $constraints = function ($query) {
             $query->where('id', $this->camp_id);
         };

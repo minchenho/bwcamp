@@ -397,7 +397,7 @@ class Applicant extends Model
             self::$campCache = $applicant->camp;
         }
         $firstNote = $applicant->contactlog?->sortByDesc('id')->first()?->notes;
-        $str = \Str::limit($firstNote ?? "-", 50, '...') ?? "-";
+        $str = e(\Str::limit($firstNote ?? "-", 50, '...'));
         $str .= "<div>";
         $str .= '<a href="' . route("showAttendeeInfoGET", self::$campCache->id) . '?snORadmittedSN=' . $applicant->id . '&openExternalBrowser=1#new" class="text-primary">⊕新增關懷記錄</a>';
         if (count($applicant->contactlog)) {
@@ -414,7 +414,7 @@ class Applicant extends Model
             self::$campCache = $this->camp;
         }
         $firstNote = $this->contactlog?->sortByDesc('id')->first()?->notes;
-        $str = \Str::limit($firstNote ?? "-", 50, '...') ?? "-";
+        $str = e(\Str::limit($firstNote ?? "-", 50, '...'));
         $str .= "<div>";
         $str .= '<a href="' . route("showAttendeeInfoGET", self::$campCache->id) . '?snORadmittedSN=' . $this->id . '&openExternalBrowser=1#new" class="text-primary">⊕新增關懷記錄</a>';
         if (count($this->contactlog)) {
