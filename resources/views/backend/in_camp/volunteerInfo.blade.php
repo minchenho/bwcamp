@@ -91,7 +91,7 @@
                     @if ($key == "roles")
                         <b>{{$val}}</b>：
                         @forelse($roles as $role)
-                            {{ $role->batch?->name }}{{ $role->section }} - {{ $role->position }}@if($currentUser->canAccessResource(new \App\Models\OrgUser, 'delete', $applicant->vcamp->mainCamp))（<a href="{{ route('deleteUserRole', [$camp->id, "user_id" => $applicant->user->id, "role_id" => $role->id, "applicant_id" => $applicant->id]) }}" class="text-danger">刪除</a>）@endif @if(!$loop->last)、@endif
+                            {{ $role->batch?->name }}{{ $role->section }} - {{ $role->position }}@if($currentUser->canAccessResource(new \App\Models\OrgUser, 'delete', $applicant->vcamp->mainCamp))（<form action="{{ route('deleteUserRole', [$camp->id, "user_id" => $applicant->user->id, "role_id" => $role->id, "applicant_id" => $applicant->id]) }}" method="POST" class="d-inline">@csrf<button type="submit" class="btn btn-link text-danger p-0 border-0 align-baseline">刪除</button></form>）@endif @if(!$loop->last)、@endif
                         @empty
                             此義工尚未分配任何職務
                         @endforelse

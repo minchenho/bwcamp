@@ -262,9 +262,10 @@ Route::group(["prefix" => "backend/{camp_id}", "middleware" => ["auth", "camp.me
         Route::post("/revertCancellation", "BackendController@revertCancellation")->name("revertCancellation");
 
         // 刪除相關
-        Route::get("/deleteUserRole", "BackendController@deleteUserRole")->name("deleteUserRole");
-        Route::get("/deleteApplicantGroupAndNumber", "BackendController@deleteApplicantGroupAndNumber")->name("deleteApplicantGroupAndNumber");
-        Route::get("/deleteApplicantCarer", "BackendController@deleteApplicantCarer")->name("deleteApplicantCarer");
+        // 2026-11-14：原本是 GET，點一個偽造的連結就會刪資料（CSRF），改為 POST
+        Route::post("/deleteUserRole", "BackendController@deleteUserRole")->name("deleteUserRole");
+        Route::post("/deleteApplicantGroupAndNumber", "BackendController@deleteApplicantGroupAndNumber")->name("deleteApplicantGroupAndNumber");
+        Route::post("/deleteApplicantCarer", "BackendController@deleteApplicantCarer")->name("deleteApplicantCarer");
 
         // 其他功能
         Route::get("/volunteerPhoto", "BackendController@showVolunteerPhoto")->name("showVolunteerPhoto");
