@@ -102,6 +102,24 @@ class CampManageAccessService
     }
 
     /**
+     * 是否為此營隊的工作人員：superuser、範圍內的 event_admin，
+     * 或在此營隊、其義工營或其學員營有職務（職務可能掛在任一邊）
+     *
+     * 只是進入營隊後台的門檻，各頁面仍要依職務權限做細部檢查
+     */
+    public function isCampMember($user, ?Camp $camp): bool
+    {
+        if (!$user || !$camp) {
+            return false;
+        }
+        if ($this->isSuperuser($user) || $this->canManage($user, $camp)) {
+            return true;
+        }
+        $campIds = collect([$camp->id, $camp->vcamp?->id, $camp->mainCamp?->id])->filter()->unique();
+        return $user->roles()->whereIn('camp_id', $campIds)->exists();
+    }
+
+    /**
      * 匯出名單：superuser、範圍內的 event_admin，
      * 或所屬職務有該資源（學員 / 義工）的 export 權限且範圍為全部
      *

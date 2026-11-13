@@ -39,8 +39,9 @@ Route::post("login", "Auth\LoginController@login");
 Route::post("logout", "Auth\LoginController@logout")->name("logout");
 
 // Registration Routes...
-Route::get("register", "Auth\RegisterController@showRegistrationForm")->name("register");
-Route::post("register", "Auth\RegisterController@register");
+// 2026-11-13 暫停開放註冊：曾有人以自行註冊的帳號存取後台。保留路由名稱，view 裡的 route('register') 才不會出錯
+Route::get("register", fn () => abort(403, '目前暫停開放註冊，如需帳號請聯絡營隊管理員。'))->name("register");
+Route::post("register", fn () => abort(403, '目前暫停開放註冊，如需帳號請聯絡營隊管理員。'));
 
 // Password Reset Routes...
 Route::get("password/reset", "Auth\ForgotPasswordController@showLinkRequestForm")->name("password.request");
@@ -92,9 +93,10 @@ Route::group(["prefix" => "camp/{batch_id}", "middleware" => ["throttle:60,1"]],
 });
 
 Route::get("/backend", "BackendController@masterIndex")->name("backendIndex");
-Route::get("/jobs/{camp_id?}", [AdminController::class, "showJobs"])->name("jobs");
-Route::get("/failedJobsClear", [AdminController::class, "failedJobsClear"])->name("failedJobsClear");
 Route::middleware(["auth", "admin"])->group(function () {
+    // 任務佇列含有寄信對象等資料，只限 superuser（原本登入即可看、可清空）
+    Route::get("/jobs/{camp_id?}", [AdminController::class, "showJobs"])->name("jobs");
+    Route::get("/failedJobsClear", [AdminController::class, "failedJobsClear"])->name("failedJobsClear");
     Route::get('switchToUser/{id}', [BackendController::class, "switchToUser"])->name("switchToUser");
     Route::get('switch-back', [BackendController::class, "switchUserBack"])->name("switchUserBack");
     Route::get("/userlist/{camp_id?}", [AdminController::class, "userlist"])->name("userlist");
@@ -181,7 +183,8 @@ Route::group(["prefix" => "backend/campManage", "middleware" => ["auth", "admin"
     });
 });
 
-Route::group(["prefix" => "backend/{camp_id}", ], function () {
+// 存取規則見 App\Http\Middleware\CampMember（沒有職務的帳號不能進入營隊後台）
+Route::group(["prefix" => "backend/{camp_id}", "middleware" => ["auth", "camp.member"]], function () {
     Route::group(["prefix" => "IOI"], function () {
         Route::get("/learner", [BackendController::class, "showLearners"])->name("showLearners");
         Route::post("/learner", [BackendController::class, "showLearners"])->name("showLearnersPOST");
@@ -203,7 +206,8 @@ Route::group(["prefix" => "backend/{camp_id}", ], function () {
     Route::get("/avatar/{id}", "BackendController@getAvatar")->name("getAvatar");
     Route::get("/file/media/{file}", "BackendController@getFile")->name("getFile");
     Route::get("/image/media/{path}", "BackendController@getMediaImage")->name("getMediaImage");
-    Route::get("/logs", "\Rap2hpoutre\LaravelLogViewer\LogViewerController@index")->middleware("permitted")->name("logs");
+    // log 可能含有個資或帳密，只限 superuser（Admin middleware：未列入規則的路由只限 superuser）
+    Route::get("/logs", "\Rap2hpoutre\LaravelLogViewer\LogViewerController@index")->middleware("admin")->name("logs");
     Route::group(['prefix' => 'registration'], function () {
         // 報名與審核
         Route::group(['prefix' => 'admission'], function () {

@@ -111,6 +111,30 @@
         return { css: { color: '' } };
     }
 
+    // bootstrap-table 會把每一格當成 HTML 輸出，報名者填的內容必須先跳脫，避免 XSS
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // 遞迴跳脫物件／陣列裡的所有字串（含 user、roles、carers、batch 等關聯資料）
+    function escapeDeep(value) {
+        if (typeof value === 'string') {
+            return escapeHtml(value);
+        }
+        if (Array.isArray(value)) {
+            return value.map(escapeDeep);
+        }
+        if (value && typeof value === 'object') {
+            Object.keys(value).forEach(key => { value[key] = escapeDeep(value[key]); });
+        }
+        return value;
+    }
+
     function sleep (time) {
         return new Promise((resolve) => setTimeout(resolve, time));
     }
@@ -142,6 +166,12 @@
         }
 
         result.forEach(function(item) {
+            // 先跳脫所有資料，之後組出的 HTML 只會包含安全的值
+            // contactlogHTML 是伺服器組好的 HTML（內容已在伺服器端跳脫），先保留
+            const contactlogHTML = item.contactlogHTML;
+            escapeDeep(item);
+            item.contactlogHTML = contactlogHTML;
+
             // 💡 修正：如果沒有 _chn 屬性，則保留原值，避免 JS 報錯崩潰
             item.gender = item.gender_chn || item.gender;
             item.is_attend = item.is_attend_chn || item.is_attend;

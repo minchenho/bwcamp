@@ -843,6 +843,13 @@ class CampController extends Controller
     public function toggleAttendBackend(Request $request)
     {
         $applicant = Applicant::find($request->id);
+        // 後台功能：必須登入，且是該報名者所屬營隊的工作人員（原本不需登入即可修改任何人的參加意願）
+        if (!$applicant) {
+            abort(404);
+        }
+        if (!app(\App\Services\CampManageAccessService::class)->isCampMember(auth()->user(), $applicant->batch?->camp)) {
+            abort(403, '您沒有修改此報名者參加意願的權限。');
+        }
         $applicant->is_attend = $request->is_attend;
         $applicant->save();
         $applicant = $this->applicantService->checkPaymentStatus($applicant);
