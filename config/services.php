@@ -30,4 +30,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // 外部系統讀取營隊資料（ApiController::sendCampData）；沒有設定時端點關閉
+    'camp_data_api' => [
+        'key' => env('CAMP_DATA_API_KEY'),
+    ],
+
 ];
