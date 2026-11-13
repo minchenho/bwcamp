@@ -68,6 +68,7 @@ class Kernel extends HttpKernel
         'permitted' => \App\Http\Middleware\Permitted::class,
         'admin' => \App\Http\Middleware\Admin::class,
         'camp.member' => \App\Http\Middleware\CampMember::class,
+        'camp.open' => \App\Http\Middleware\CampOpen::class,
         'checkOrigin' => \App\Http\Middleware\RestrictLocal::class,
     ];
 }

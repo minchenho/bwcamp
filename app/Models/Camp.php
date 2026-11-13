@@ -221,6 +221,21 @@ class Camp extends Model
         return str_contains($this->attributes['table'] ?? '', 'vcamp');
     }
 
+    /**
+     * 營隊是否已過期：所有梯次都已結束（batch_end 早於今天），或 access_end 已過
+     * （access_end 的判斷與後台「權限已關閉」相同）
+     *
+     * 2026-11-13：過期營隊的前台（查詢、錄取查詢、繳費單等）與報到一律關閉
+     */
+    public function isExpired(): bool
+    {
+        $accessEnd = $this->attributes['access_end'] ?? null;
+        if ($accessEnd && Carbon::now()->gt(Carbon::parse($accessEnd))) {
+            return true;
+        }
+        return !$this->batches()->whereDate('batch_end', '>=', Carbon::today())->exists();
+    }
+
     public function allSignAvailabilities(): HasManyThrough
     {
         return $this->hasManyThrough(BatchSignInAvailibility::class, Batch::class);

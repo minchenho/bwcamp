@@ -233,6 +233,7 @@ class CampController extends Controller
 
         // 修改資料
         if (isset($request->applicant_id) && !isset($request->useOldData2Register)) {
+            $this->authorizeFullRegistration($request->applicant_id);
             $request = $this->campDataService->checkBoxToArray($request);
             $formData = $request->toArray();
             $formData = $this->campDataService->handleRegion($formData, $this->camp_table, $this->camp_id);
@@ -409,6 +410,11 @@ class CampController extends Controller
                     }
                     return $applicant;
                 });
+                $this->rememberVerifiedApplicant($applicant->id);
+                // 剛在這個瀏覽器完成報名：查詢報名資料暫停期間，仍可從成功頁檢視自己的報名表
+                $just = session(self::JUST_REGISTERED_SESSION_KEY, []);
+                $just[] = (int) $applicant->id;
+                session([self::JUST_REGISTERED_SESSION_KEY => array_slice(array_values(array_unique($just)), -10)]);
                 // 寄送報名資料
                 try {
                     // Mail::to($applicant)->send(new ApplicantMail($applicant, $this->camp_info));
@@ -423,6 +429,7 @@ class CampController extends Controller
 
     public function campRegistrationFormCopy(Request $request)
     {
+        $this->authorizeFullRegistration($request->applicant_id_ori);
         //Ori：原本的
         //Copy：要複製去的
         $formData = $request->toArray();
@@ -539,6 +546,7 @@ class CampController extends Controller
             ],
             'sn' => 'required|integer',
         ]);
+        $this->authorizeFullRegistration($request->sn);
 
         $campTable = $this->camp_table;
         $formPath = "camps.{$campTable}" . (in_array($campTable, ['ecamp', 'ceocamp']) ? '.form_bak' : '.form');
@@ -609,20 +617,110 @@ class CampController extends Controller
     }
 
     /**
-     * 輔助方法：根據請求來源判定查詢方式
+     * 輔助方法：查詢報名資料
+     *
+     * 姓名＋報名序號相符才能查詢；只帶報名序號時，必須是這個瀏覽器已驗證過的報名者，
+     * 或是該營隊的工作人員（後台）。
+     * 2026-11-13：原本只要 Referer 含 submit／queryupdate／queryview 就只憑報名序號查詢，Referer 可以偽造。
      */
     private function getApplicantByRequest($request, $campTable)
     {
-        $referer = request()->headers->get('referer');
-        $isSafeSource = Str::contains($referer, ['submit', 'queryupdate', 'queryview']);
-
         if ($request->name && $request->sn) {
-            return $this->applicantService->getApplicantData($request->sn, $campTable, $request->name);
-        } elseif ($isSafeSource && $request->sn) {
+            $result = $this->applicantService->getApplicantData($request->sn, $campTable, $request->name);
+            if ($result[0] ?? null) {
+                $this->rememberVerifiedApplicant($result[0]->id);
+            }
+            return $result;
+        } elseif ($request->sn && $this->canAccessApplicant($request->sn)) {
             return $this->applicantService->getApplicantData($request->sn, $campTable);
         }
 
         throw new ModelNotFoundException();
+    }
+
+    private const VERIFIED_APPLICANTS_SESSION_KEY = 'verified_applicant_ids';
+
+    /**
+     * 前台「查詢報名資料」（完整報名表的檢視、修改、複製）是否對一般大眾開放
+     *
+     * 2026-11-13 暫停：約 70 個營隊的「姓名＋報名序號」已經外洩，只憑這兩項就能看到完整報名表。
+     * 暫停期間只有營隊工作人員（後台）與剛在這個瀏覽器完成報名的人可以使用；
+     * 錄取查詢（queryadmit）不受影響。要重新開放前，應先加上只有本人知道的查詢條件（例：生日）。
+     */
+    private const REGISTRATION_QUERY_OPEN = false;
+
+    private const JUST_REGISTERED_SESSION_KEY = 'just_registered_applicant_ids';
+
+    /**
+     * 可否檢視、修改完整報名表：查詢開放時看 canAccessApplicant()；
+     * 暫停期間只有剛在這個瀏覽器完成報名的人，或該營隊的工作人員
+     */
+    private function canViewFullRegistration($applicantId): bool
+    {
+        if (self::REGISTRATION_QUERY_OPEN) {
+            return $this->canAccessApplicant($applicantId);
+        }
+        if (!$applicantId || !is_numeric($applicantId)) {
+            return false;
+        }
+        return in_array((int) $applicantId, session(self::JUST_REGISTERED_SESSION_KEY, []), true)
+            || $this->isStaffForApplicant($applicantId);
+    }
+
+    private function authorizeFullRegistration($applicantId): void
+    {
+        if (!$this->canViewFullRegistration($applicantId)) {
+            abort(403, '查詢報名資料暫停開放，如需查詢或修改報名資料，請聯絡主辦單位。');
+        }
+    }
+
+    /**
+     * 登入者是否為該報名者所屬營隊的工作人員
+     */
+    private function isStaffForApplicant($applicantId): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        $applicant = Applicant::withTrashed()->with('batch.camp')->find($applicantId);
+        return app(\App\Services\CampManageAccessService::class)->isCampMember($user, $applicant?->batch?->camp);
+    }
+
+    /**
+     * 記住這個瀏覽器已驗證過的報名者（姓名＋報名序號相符，或剛完成報名），
+     * 之後的檢視、修改、下載等只帶報名序號的操作才會放行
+     */
+    private function rememberVerifiedApplicant($applicantId): void
+    {
+        $ids = session(self::VERIFIED_APPLICANTS_SESSION_KEY, []);
+        $ids[] = (int) $applicantId;
+        session([self::VERIFIED_APPLICANTS_SESSION_KEY => array_slice(array_values(array_unique($ids)), -50)]);
+    }
+
+    /**
+     * 可否只憑報名序號操作此報名者：這個瀏覽器已驗證過，或登入者是該營隊的工作人員
+     */
+    private function canAccessApplicant($applicantId): bool
+    {
+        if (!$applicantId || !is_numeric($applicantId)) {
+            return false;
+        }
+        if (in_array((int) $applicantId, session(self::VERIFIED_APPLICANTS_SESSION_KEY, []), true)) {
+            return true;
+        }
+        return $this->isStaffForApplicant($applicantId);
+    }
+
+    /**
+     * 前台以報名序號操作報名資料前的檢查
+     * 2026-11-13：原本不需登入、不需驗證，只要帶報名序號就能查看、修改、取消任何人的報名
+     */
+    private function authorizeApplicant($applicantId): void
+    {
+        if (!$this->canAccessApplicant($applicantId)) {
+            abort(403, '請先以姓名與報名序號查詢報名資料後再操作。');
+        }
     }
 
     public function campGetApplicantSN(Request $request)
@@ -677,6 +775,8 @@ class CampController extends Controller
                         ->withTrashed()
                         ->first();
         if ($applicant) {
+            // 姓名＋報名序號＋身分證號相符：確認頁上的取消／恢復報名才會放行
+            $this->rememberVerifiedApplicant($applicant->id);
             return view('camps.' . $this->camp_table . '.confirm_cancel', compact('applicant'));
         } else {
             return back()->withInput()->withErrors(["找不到報名資料，請確認是否已成功報名，或是輸入了錯誤的查詢資料。"]);
@@ -685,6 +785,7 @@ class CampController extends Controller
 
     public function campCancellation(Request $request)
     {
+        $this->authorizeApplicant($request->sn);
         try {
             if (Applicant::find($request->sn)->delete()) {
                 return view('camps.' . $this->camp_table . '.cancel_successful');
@@ -697,6 +798,7 @@ class CampController extends Controller
 
     public function restoreCancellation(Request $request)
     {
+        $this->authorizeApplicant($request->sn);
         if (Applicant::withTrashed()->find($request->sn)->restore()) {
             $applicant = Applicant::find($request->sn);
             return view('camps.' . $this->camp_table . '.restore_successful', compact('applicant'));
@@ -751,6 +853,8 @@ class CampController extends Controller
         // try-catch已處理applicant是否存在
         // 但仍需確認：1.applicant是否取消報名；2.applicant是否報名本營隊(可能找到之前營隊)
         if ($applicant && !$applicant->deleted_at && $applicant->camp_id == $this->camp_id) {
+            // 姓名＋報名序號相符：錄取結果頁上的修改交通、住宿、下載繳費單等操作才會放行
+            $this->rememberVerifiedApplicant($applicant->id);
             //使用報名者的報名日期來計算費率，避免修改資料後費率變動的問題
             $fare_room = $this->lodgingService->getLodgingFare($this->camp_info, $applicant->created_at);
             [$fare_depart_from, $fare_back_to] = $this->trafficService->getTrafficFare($this->camp_info);
@@ -785,6 +889,7 @@ class CampController extends Controller
 
     public function downloadPaymentForm(Request $request)
     {
+        $this->authorizeApplicant($request->applicant_id);
         ini_set('memory_limit', -1);
         $applicant = Applicant::find($request->applicant_id);
         $applicant = $this->applicantService->checkIfPaidEarlyBird($applicant);
@@ -798,12 +903,14 @@ class CampController extends Controller
 
     public function downloadCheckInNotification(Request $request)
     {
+        $this->authorizeApplicant($request->applicant_id);
         $applicant = Applicant::find($request->applicant_id);
         return \PDF::loadView('camps.' . $this->camp_table . '.checkInMail', compact('applicant'))->download(\Carbon\Carbon::now()->format('YmdHis') . $this->camp_table . $applicant->id . '報到通知單.pdf');
     }
 
     public function downloadCheckInQRcode(Request $request)
     {
+        $this->authorizeApplicant($request->applicant_id);
         $applicant = Applicant::find($request->applicant_id);
         $qr_code = \DNS2D::getBarcodePNG('{"applicant_id":' . $applicant->id . '}', 'QRCODE');
         $pdf = \App::make('dompdf.wrapper');
@@ -820,6 +927,7 @@ class CampController extends Controller
     public function toggleAttend(Request $request)
     {
         $applicant_id = $request->applicant_id ?? $request->id;
+        $this->authorizeApplicant($applicant_id);
         $applicant = Applicant::findOrFail($applicant_id);
         //other camps
         if ($request->camp == "ycamp") {
@@ -860,6 +968,7 @@ class CampController extends Controller
     public function modifyTraffic(Request $request)
     {
         $applicant_id = $request->applicant_id ?? $request->id;
+        $this->authorizeApplicant($applicant_id);
         $applicant = Applicant::findOrFail($applicant_id);
         $camp_table = $this->camp_table;
 
@@ -882,6 +991,7 @@ class CampController extends Controller
     public function modifyLodging(Request $request)
     {
         $applicant_id = $request->applicant_id ?? $request->id;
+        $this->authorizeApplicant($applicant_id);
         $applicant = Applicant::findOrFail($applicant_id);
         $camp_table = $this->camp_table;
 
@@ -903,6 +1013,7 @@ class CampController extends Controller
     }
     public function modifyAfterAdmitted(Request $request)
     {
+        $this->authorizeApplicant($request->applicant_id);
         $applicant = Applicant::findOrFail($request->applicant_id);
         $campTable = $this->camp_table;
         $campId = $this->camp_id;
