@@ -115,15 +115,20 @@ Route::middleware(["auth", "admin"])->group(function () {
 });
 
 Route::group(["prefix" => "checkin", ], function () {
+    // 選擇營隊只列出自己有職務的營隊；首頁沒有 camp_id 時會轉到選擇營隊
     Route::get("/selectCamp", [CheckInController::class, "selectCamp"])->name("selectCamp");
     Route::get("/", [CheckInController::class, "index"]);
-    Route::get("/query", [CheckInController::class, "query"])->name("checkInPage");
-    Route::post("/checkin", [CheckInController::class, "checkIn"]);
-    Route::post("/mass-checkin", [CheckInController::class, "massCheckIn"])->name("massCheckIn");
-    Route::post("/un-checkin", [CheckInController::class, "uncheckIn"]);
-    Route::post("/by_QR", [CheckInController::class, "by_QR"]);
-    Route::get("/realtimeStat", [CheckInController::class, "realtimeStat"]);
-    Route::get("/detailedStat", [CheckInController::class, "detailedStatOptimized"]);
+    // 2026-11-13：原本只靠 Permitted（永遠放行），任何登入者都能查整營名單、操作報到
+    // 存取規則見 App\Http\Middleware\CampMember（camp_id 從查詢字串或表單欄位取得）
+    Route::middleware(["auth", "camp.member"])->group(function () {
+        Route::get("/query", [CheckInController::class, "query"])->name("checkInPage");
+        Route::post("/checkin", [CheckInController::class, "checkIn"]);
+        Route::post("/mass-checkin", [CheckInController::class, "massCheckIn"])->name("massCheckIn");
+        Route::post("/un-checkin", [CheckInController::class, "uncheckIn"]);
+        Route::post("/by_QR", [CheckInController::class, "by_QR"]);
+        Route::get("/realtimeStat", [CheckInController::class, "realtimeStat"]);
+        Route::get("/detailedStat", [CheckInController::class, "detailedStatOptimized"]);
+    });
 });
 
 // 存取規則見 App\Http\Middleware\Admin
