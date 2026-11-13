@@ -19,9 +19,15 @@ class SignBackendController extends BackendController
      *
      * @return \Illuminate\Http\Response
      */
+    /**
+     * 2026-11-14：原本整個 controller 沒有權限檢查，匯入簽到與刪除時段也不驗證屬於本營隊。
+     * 比照名單頁的進入門檻（能讀取任一學員／義工），操作對象須屬於本營隊
+     */
     public function index()
     {
-        //
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
         $instant = false;
 
         $batches = $this->camp_info->batches;
@@ -73,7 +79,10 @@ class SignBackendController extends BackendController
      */
     public function store(Request $request)
     {
-        //
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
+        $this->batchInCampOrFail($request->batch_id);
         if($request->end && $request->duration) {
             return redirect()->back()->withErrors(["結束時間或持續時間只能擇一填寫。"])->withInput();
         }
@@ -148,25 +157,40 @@ class SignBackendController extends BackendController
      */
     public function destroy($camp_id, $id)
     {
-        //
-        BatchSignInAvailibility::destroy($id);
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
+        $availability = BatchSignInAvailibility::find($id);
+        if (!$availability) {
+            abort(404, '找不到此簽到時段。');
+        }
+        $this->batchInCampOrFail($availability->batch_id);
+        $availability->delete();
         \Session::flash('message', "刪除成功。");
         return redirect()->back();
     }
 
     public function sign_upload(Request $request)
     {
-        //
-        $camp_id = $request->camp_id;
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
+        $camp_id = $this->camp_id;
         return view('backend.in_camp.signUpload', compact('camp_id'));
     }
     public function sign_update(Request $request)
     {
-        //availability records
-        $camp_id = $request->camp_id;
-        $camp = Camp::find($request->camp_id);
-        $signAvailabilities = $camp->allSignAvailabilities;  
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
+        //availability records（營隊一律用網址的 camp_id，不用表單欄位）
+        $camp_id = $this->camp_id;
+        $camp = Camp::find($camp_id);
+        $signAvailabilities = $camp->allSignAvailabilities;
         $avail_ids = $signAvailabilities->pluck('id');
+        $request->validate(['fn_sign_update' => 'required|file|mimes:xlsx,xls,csv']);
+        // 只處理屬於本營隊（含義工營、學員營）的報名者
+        $campApplicantIds = \App\Models\Applicant::withTrashed()->whereIn('camp_id', $this->relatedCampIds())->pluck('id')->flip();
         //sign_in_sign_out records
         $signRecords = SignInSignOut::whereIn('availability_id', $avail_ids)->orderBy("applicant_id")->get();
         
@@ -199,6 +223,9 @@ class SignBackendController extends BackendController
             for ($idxrow = 1; $idxrow<$numrows; $idxrow++) {
                 $row = $sheet[$idxrow]; 
                 $appl_id = $row[$idxid];
+                if (!is_numeric($appl_id) || !$campApplicantIds->has((int) $appl_id)) {
+                    continue;
+                }
                 for ($idxsign = $idxsign_start; $idxsign<$numcols; $idxsign++) {
                     $avail_id = $avail_ids[$idxsign-$idxsign_start];    //should be the same order
                     $attendornot = $row[$idxsign];

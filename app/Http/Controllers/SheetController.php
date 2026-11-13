@@ -98,7 +98,18 @@ class SheetController extends Controller
             ]);
         }
 
+        // 2026-11-14：原本可查任一營隊任一報名者。報名者須屬於網址的營隊，且登入者可讀取他
+        $camp = Camp::find($request->route('camp_id'));
         $applicant = Applicant::find($request->applicant_id);
+        $campIds = collect([$camp?->id, $camp?->vcamp?->id, $camp?->mainCamp?->id])->filter()->all();
+        if (!$applicant || !in_array($applicant->camp_id, $campIds)) {
+            abort(404, '找不到此報名者，或不屬於此營隊。');
+        }
+        $user = $request->user();
+        if (!$user->isSuperuser && !app(\App\Services\CampManageAccessService::class)->canManage($user, $camp)
+            && !$user->canAccessResource($applicant, 'read', Camp::find($applicant->camp_id), target: $applicant)) {
+            abort(403, '您沒有存取此報名者的權限。');
+        }
         $name_tg = $applicant->name;    //target name
 
         $sheets = $this->gsheetservice->Get(config('google.post_spreadsheet_id'), config('google.post_sheet_id'));
@@ -423,6 +434,10 @@ class SheetController extends Controller
 
     public function exportGSApplicants(Request $request)
     {
+        // 由網址進入時（backend/{camp_id}/gsExport）一律用網址的營隊，避免以表單欄位指定別的營隊；指令呼叫時沒有路由
+        if ($request->route('camp_id')) {
+            $request->merge(['camp_id' => $request->route('camp_id')]);
+        }
         $camp = Camp::find($request->camp_id);
         $table = $camp->table;
         $mainCampId = $this->getMainCampId($camp, $request->camp_id);

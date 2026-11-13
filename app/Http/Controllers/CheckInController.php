@@ -60,6 +60,20 @@ class CheckInController extends Controller {
         });
     }
 
+    /**
+     * 報名者須屬於目前報到的營隊（含義工營、學員營）
+     * 2026-11-14：原本報到、批次報到、取消報到都不驗證，可對任何營隊的報名者操作
+     */
+    private function applicantInCampOrFail($id): Applicant
+    {
+        $applicant = is_numeric($id) ? Applicant::find($id) : null;
+        $campIds = collect([$this->camp?->id, $this->camp?->vcamp?->id, $this->camp?->mainCamp?->id])->filter()->all();
+        if (!$applicant || !in_array($applicant->camp_id, $campIds)) {
+            abort(404, '找不到此報名者，或不屬於目前報到的營隊。');
+        }
+        return $applicant;
+    }
+
     public function index() {
         return view('checkIn.home');
     }
@@ -193,6 +207,7 @@ class CheckInController extends Controller {
     }
 
     public function checkIn(Request $request) {
+        $this->applicantInCampOrFail($request->applicant_id);
         if(CheckIn::where('applicant_id', $request->applicant_id)->where('check_in_date', Carbon::today()->format('Y-m-d'))->first()){
             return back()->withErrors(['無法重複報到。']);
         }
@@ -219,6 +234,9 @@ class CheckInController extends Controller {
         }
         $bag = $errors->getBags()['default'] ?? new MessageBag;
         $succeded = "";
+        foreach ((array) $request->applicant_multi_values as $applicant_id) {
+            $this->applicantInCampOrFail($applicant_id);
+        }
         foreach($request->applicant_multi_values as $key => $applicant_id) {
             if(CheckIn::where('applicant_id', $applicant_id)->where('check_in_date', Carbon::today()->format('Y-m-d'))->first()){
                 $bag->add('default', $applicant_id . "已報到過，無法重複報到。");
@@ -237,7 +255,7 @@ class CheckInController extends Controller {
                 $checkin->checker_id = \Auth()->user()->id;
                 $checkin->check_in_date = Carbon::today()->format('Y-m-d');
                 $checkin->save();
-                $succeded .= $applicant->name . "報到成功。";
+                $succeded .= e($applicant->name) . "報到成功。";
                 if ($key != count($request->applicant_multi_values) - 1 && count($request->applicant_multi_values) != 1) {
                     $succeded .= "<br>";
                 }
@@ -270,10 +288,11 @@ class CheckInController extends Controller {
             }
             if ($applicant->camp->id != $this->camp->id) {
                 return response()->json([
-                    'msg' => '<h4 class="text-danger">該學員 / 義工報名的是' . $applicant->camp->abbreviation ?? $applicant->camp->fullName . '，非屬本營隊，請檢查後重試</h4>'
+                    'msg' => '<h4 class="text-danger">該學員 / 義工報名的是' . e($applicant->camp->abbreviation ?? $applicant->camp->fullName) . '，非屬本營隊，請檢查後重試</h4>'
                 ]);
             }
-            $str = $resultStr[$pivot][0] . '：' . $applicant->batch->name . '<br>' . $dataStr[$pivot][2] . '：' . $applicant->group . $applicant->number . '<br>' . $dataStr[$pivot][3] . '：' . $applicant->name;
+            // 姓名等是報名者自填的內容，前端以 HTML 顯示，須跳脫（2026-11 曾有姓名 XSS）
+            $str = $resultStr[$pivot][0] . '：' . e($applicant->batch->name) . '<br>' . $dataStr[$pivot][2] . '：' . e($applicant->group . $applicant->number) . '<br>' . $dataStr[$pivot][3] . '：' . e($applicant->name);
             if($applicant->deposit - $applicant->fee < 0){
                 //
                 /*return response()->json([
@@ -476,7 +495,8 @@ class CheckInController extends Controller {
     }
 
     public function uncheckIn(Request $request) {
-        $record = CheckIn::where('applicant_id', $request->applicant_id)->where('check_in_date', $request->check_in_date)->first();
+        $this->applicantInCampOrFail($request->applicant_id);
+        $record =CheckIn::where('applicant_id', $request->applicant_id)->where('check_in_date', $request->check_in_date)->first();
         try {
             if($record) {
                 $record->delete();

@@ -271,7 +271,7 @@ class BackendController extends Controller
         $message = null;
         $error = null;
         if ($request->isMethod('POST')) {
-            $candidate = Applicant::find($request->id);
+            $candidate = $this->applicantInCampOrFail($request->id);
             if ($request->get("clear") == "清除錄取序號") {
                 $this->backendService->setAdmitted($candidate, 0);
                 $this->backendService->removeAdmittedNumber($candidate);
@@ -322,7 +322,7 @@ class BackendController extends Controller
 
     public function showPaymentForm($camp_id, $applicant_id)
     {
-        $applicant = Applicant::find($applicant_id);
+        $applicant = $this->applicantInCampOrFail($applicant_id);
         $applicant = $this->applicantService->checkIfPaidEarlyBird($applicant);
         $applicant->save();
         $camp_info = $this->camp_info;
@@ -373,7 +373,7 @@ class BackendController extends Controller
                 })
                 ->first();
                 
-                $candidate = Applicant::withTrashed()->find($id);
+                $candidate = $this->applicantInCampOrFail($id, withTrashed: true);
                 if ($check) {
                     array_push($error, $candidate->name . "，錄取序號" . $request->admittedSN[$key] . "重複，沒有針對此人執行任何動作。");
                     $skip = true;
@@ -655,15 +655,23 @@ class BackendController extends Controller
 
     public function registrationUpload(Request $request)
     {
+        // 2026-11-14：原本沒有任何檢查，梯次也可指定成別的營隊
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
         $camp = $this->camp_info;
         $batches = $this->camp_info->batches;
         $batch_id = $request->batch_id;
+        if (!$batches->contains('id', (int) $batch_id)) {
+            abort(404, '找不到此梯次，或不屬於此營隊。');
+        }
         $table = $camp->table;
 
         $titles_map = array_merge(config('camps_fields.general'), config('camps_fields.' . $table) ?? []);
         $titles_flip = array_flip($titles_map);
 
         //imported information, all sheets
+        $request->validate(['fn_registration_upload' => 'required|file|mimes:xlsx,xls,csv']);
         $allsheets = Excel::toCollection(new ApplicantsImport(), $request->fn_registration_upload);
         $sheet = $allsheets[0];     //1st sheet
         $titles_chn = $sheet[0];    //title row
@@ -1042,7 +1050,8 @@ class BackendController extends Controller
             return "<h3>沒有權限：瀏覽任何義工</h3>";
         }
         if ($request->isMethod('POST')) {
-            $candidate = Applicant::find($request->id);
+            $candidate = $this->applicantInCampOrFail($request->id);
+            $this->batchInCampOrFail($request->batch);
             $candidate->batch_id = $request->batch;
             $candidate->region_id = $request->region_id;
             $candidate->region = Region::find($request->region_id)?->name;
@@ -1068,9 +1077,17 @@ class BackendController extends Controller
         if ($request->isMethod('POST')) {
             $message = "";
             $result = [];
+            // 先全部檢查（報名者與新梯次都須屬於本營隊），避免改到一半才被擋下
+            $candidates = [];
+            foreach ((array) $request->applicant_id as $key => $a_id) {
+                $candidates[$key] = $this->applicantInCampOrFail($a_id);
+                if (isset($request->batch_id_new[$key])) {
+                    $this->batchInCampOrFail($request->batch_id_new[$key]);
+                }
+            }
             foreach ($request->applicant_id as $key => $a_id) {
                 $notChanged = false;
-                $candidate = Applicant::find($a_id);
+                $candidate = $candidates[$key];
                 if ($candidate->batch_id == $request->batch_id_new[$key] && $candidate->region_id == $request->region_id_new[$key]) {
                     $notChanged = true;
                 }
@@ -1102,6 +1119,7 @@ class BackendController extends Controller
             \Session::flash('error', "未選取任何被錄取者。");
             return back();
         }
+        $this->authorizeApplicantIds($request->sns);
         foreach ($request->sns as $sn) {
             \App\Jobs\SendAdmittedMail::dispatch($sn, $this->camp_info);
         }
@@ -1115,6 +1133,7 @@ class BackendController extends Controller
             \Session::flash('error', "未選取任何人。");
             return back();
         }
+        $this->authorizeApplicantIds($request->sns);
         foreach ($request->sns as $sn) {
             \App\Jobs\SendNotAdmittedMail::dispatch($sn, $this->batch, $this->camp_info, $request->mailType);
         }
@@ -1135,6 +1154,7 @@ class BackendController extends Controller
             \Session::flash('error', "未選取任何被錄取者。");
             return back();
         }
+        $this->authorizeApplicantIds($request->sns);
         foreach ($request->sns as $sn) {
             \App\Jobs\SendCheckInMail::dispatch($sn, $org_id);
         }
@@ -1546,6 +1566,7 @@ class BackendController extends Controller
             \Session::flash('error', "未選取任何被錄取者。");
             return back();
         }
+        $this->authorizeApplicantIds($request->sns);
         foreach ($request->sns as $sn) {
             \App\Jobs\SendAdmittedMail::dispatch($sn, $this->camp_info);
         }
@@ -1555,6 +1576,13 @@ class BackendController extends Controller
 
     public function showTrafficList(Request $request, $camp_id)
     {
+        // 2026-11-14：原本沒有權限檢查（含姓名、車資的 CSV 被外洩），比照 showTrafficListLoc
+        if ($this->camp_info->access_end && Carbon::now()->gt($this->camp_info->access_end) && !$this->user->isSuperuser) {
+            return "<h3>權限已關閉。</h3>";
+        }
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
         $batch_id = $request->get('batch_id');  //用在download裡篩而已
         $download = $request->get('download');
 
@@ -1788,16 +1816,9 @@ class BackendController extends Controller
                         ->join($this->camp_table, 'applicants.id', '=', $this->camp_table . '.applicant_id')
                         ->where('applicants.camp_id', $this->camp_id)->withTrashed();
         $applicants = $query->get();
-        if (auth()->user()->getPermission(false)->role->level <= 2) {
-        } elseif (auth()->user()->getPermission(true, $this->camp_id)->level > 2) {
-            $constraint = auth()->user()->getPermission(true, $this->camp_id)->region;
-            $batch = Batch::where('camp_id', $this->camp_id)->where('name', 'like', '%' . $constraint . '%')->first();
-            $applicants = $applicants->filter(function ($applicant) use ($constraint, $batch) {
-                if ($batch) {
-                    return $applicant->region == $constraint || $applicant->batch_id == $batch->id;
-                }
-                return $applicant->region == $constraint;
-            });
+        // 2026-11-14：原本依舊的 getPermission() 篩選（已不適用），改為逐一檢查讀取權限
+        if (!$this->canManageThisCamp()) {
+            $applicants = $applicants->filter(fn ($applicant) => $this->user->canAccessResource($applicant, 'read', $this->camp_info, target: $applicant));
         }
 
         return view('backend.in_camp.queryAttendee')
@@ -1816,6 +1837,12 @@ class BackendController extends Controller
             $request->snORadmittedSN,
         );
         if ($request->isMethod("POST")) {
+            // 2026-11-14：原本先存檔才檢查權限；上傳照片前先確認可存取此報名者，且只接受圖片
+            if (!$applicant) {
+                abort(404, '找不到此報名者。');
+            }
+            $this->applicantInCampOrFail($applicant->applicant_id);
+            $request->validate(['file1' => 'nullable|image|max:20480', 'file2' => 'nullable|image|max:20480']);
             try {
                 $disk = \Storage::disk('local');
                 $path = 'media/';
@@ -2033,8 +2060,15 @@ class BackendController extends Controller
 
     public function deleteUserRole(Request $request)
     {
+        // 2026-11-14：原本沒有檢查，可拔掉任何人在任何營隊的職務。比照畫面上刪除連結的條件（OrgUser 的 delete）
+        $this->authorizeResourceAction(\App\Models\OrgUser::class, ['delete']);
+        $this->applicantInCampOrFail($request->applicant_id, withTrashed: true);
         $user = User::find($request->user_id);
-        $user->roles()->detach($request->role_id);
+        $role = \App\Models\CampOrg::find($request->role_id);
+        if (!$user || !$role || !in_array($role->camp_id, $this->relatedCampIds())) {
+            abort(404, '找不到此職務，或不屬於此營隊。');
+        }
+        $user->roles()->detach($role->id);
         $camp = Vcamp::find($request->camp_id)->mainCamp;
         if ($user->roles()->where('camp_id', $camp->id)->count() == 0) {
             $user->applicants()->detach($request->applicant_id);
@@ -2046,7 +2080,9 @@ class BackendController extends Controller
 
     public function deleteApplicantGroupAndNumber(Request $request)
     {
-        $applicant = Applicant::find($request->applicant_id);
+        // 比照畫面上刪除連結的條件（ApplicantsGroup 的 delete）
+        $this->authorizeResourceAction(\App\Models\ApplicantsGroup::class, ['delete']);
+        $applicant = $this->applicantInCampOrFail($request->applicant_id);
         $applicant->groupRelation()->dissociate();
         $applicant->numberRelation()->dissociate();
         $applicant->save();
@@ -2056,6 +2092,9 @@ class BackendController extends Controller
 
     public function deleteApplicantCarer(Request $request)
     {
+        // 比照畫面上刪除連結的條件（CarerApplicantXref 的 delete）
+        $applicant = $this->applicantInCampOrFail($request->applicant_id);
+        $this->authorizeResourceAction(CarerApplicantXref::class, ['delete'], $applicant);
         if (CarerApplicantXref::query()->where("applicant_id", $request->applicant_id)->where("user_id", $request->carer_id)->delete()) {
             $request->session()->flash('message', '已刪除該關懷員');
         } else {
@@ -2609,7 +2648,7 @@ private function getCarersData($user, Request $request): array
 
     public function getAvatar($camp_id, $id)
     {
-        $applicant = Applicant::find($id);
+        $applicant = $this->applicantInCampOrFail($id, withTrashed: true);
         if ($applicant && $applicant->avatar && file_exists(base_path(\Storage::disk('local')->url($applicant->avatar)))) {
             return response()->file(base_path(\Storage::disk('local')->url($applicant->avatar)));
         }
@@ -2702,7 +2741,7 @@ private function getCarersData($user, Request $request): array
     public function modifyAccounting(Request $request)
     {
         if ($request->isMethod('POST')) {
-            $applicant = Applicant::find($request->id);
+            $applicant = $this->applicantInCampOrFail($request->id);
             $admitted_sn = $applicant->group.$applicant->number;
             $camp_table = $this->camp_table;
 
@@ -2790,7 +2829,7 @@ private function getCarersData($user, Request $request): array
     public function modifyAttend(Request $request)
     {
         if ($request->isMethod('POST')) {
-            $applicant = Applicant::find($request->id);
+            $applicant = $this->applicantInCampOrFail($request->id);
             $admitted_sn = $applicant->group.$applicant->number;
             //dd($request->cash);
             if ($this->camp_table == 'ycamp' && $request->cash > 0) {
@@ -2826,11 +2865,17 @@ private function getCarersData($user, Request $request): array
 
     public function customMail(Request $request)
     {
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
         return view("backend.other.customMail");
     }
 
     public function selectMailTarget()
     {
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
         $batches = Batch::where('camp_id', $this->camp_id)->get()->all();
         foreach ($batches as &$batch) {
             $batch->regions = Applicant::select('region')->where('batch_id', $batch->id)->where('is_admitted', 1)->groupBy('region')->get();
@@ -2844,12 +2889,23 @@ private function getCarersData($user, Request $request): array
 
     public function writeCustomMail(Request $request)
     {
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
         return view("backend.other.writeMail");
     }
 
     public function sendCustomMail(Request $request)
     {
-        $camp = Camp::find($request->camp_id);
+        // 2026-11-14：原本沒有權限檢查，且營隊取自表單的 camp_id（可用任一營隊的寄件身分寄給其錄取者）
+        if ($error = $this->checkReadAnyApplicant()) {
+            return $error;
+        }
+        $camp = Camp::find($this->camp_id);
+        if ($request->target == 'batch' || $request->target == 'group') {
+            $this->batchInCampOrFail($request->batch_id);
+        }
+        $receivers = collect();
         if ($request->target == 'all') { // 全體錄取人士
             $batch_ids = $camp->batches()->pluck('id')->toArray();
             $receivers = Applicant::select('batch_id', 'email')->where('is_admitted', 1)->whereNotNull(['group_id', 'number_id'])->where([['group_id', '<>', ''], ['number_id', '<>', '']])->whereIn('batch_id', $batch_ids)->get();
@@ -2882,7 +2938,7 @@ private function getCarersData($user, Request $request): array
             return "<h1>找不到報名序號</h1>";
         }
         $applicant_id = $formData['applicant_id'];
-        $applicant = Applicant::find($applicant_id);
+        $applicant = $this->applicantInCampOrFail($applicant_id, withTrashed: true);
         $applicant->remark = $formData['remark'];
         //dd($applicant->remark);
         $applicant->save();
@@ -2954,6 +3010,129 @@ private function getCarersData($user, Request $request): array
     private function validContactLogTagIds(Applicant $applicant, $tagIds): array
     {
         return $this->contactLogTagsFor($applicant)->pluck('id')->intersect(array_map('intval', (array) $tagIds))->values()->all();
+    }
+
+    /**
+     * 本營隊、其義工營與學員營的 id（報名者、職務、梯次可能在任一邊）
+     */
+    protected function relatedCampIds(): array
+    {
+        $camp = Camp::find($this->camp_id);
+        return collect([$camp?->id, $camp?->vcamp?->id, $camp?->mainCamp?->id])->filter()->unique()->values()->all();
+    }
+
+    /**
+     * 與名單頁相同的進入門檻：能讀取任一學員（義工營則為任一義工）；不符合時回傳錯誤訊息
+     */
+    protected function checkReadAnyApplicant(): ?string
+    {
+        if ($this->user->isSuperuser) {
+            return null;
+        }
+        if (!$this->isVcamp && !$this->user->canAccessResource(new Applicant(), 'read', $this->camp_info, 'onlyCheckAvailability')) {
+            return "<h3>沒有權限：瀏覽任何學員</h3>";
+        }
+        if ($this->isVcamp && !$this->user->canAccessResource(new Volunteer(), 'read', Vcamp::find($this->camp_id)->mainCamp, 'onlyCheckAvailability')) {
+            return "<h3>沒有權限：瀏覽任何義工</h3>";
+        }
+        return null;
+    }
+
+    /**
+     * 是否可管理整個營隊（superuser、範圍內的 event_admin）
+     */
+    protected function canManageThisCamp(): bool
+    {
+        return $this->user->isSuperuser
+            || app(\App\Services\CampManageAccessService::class)->canManage($this->user, Camp::find($this->camp_id));
+    }
+
+    /**
+     * 以報名序號取得報名者：須屬於本營隊（含義工營、學員營），且登入者有讀取他的權限
+     *
+     * 2026-11-14：原本各 method 直接 Applicant::find($request->id)，只要在任一營隊有職務，
+     * 就能取消、修改其他營隊任何人的報名資料
+     */
+    protected function applicantInCampOrFail($id, bool $withTrashed = false): Applicant
+    {
+        $applicant = is_numeric($id)
+            ? Applicant::query()->when($withTrashed, fn ($query) => $query->withTrashed())->find($id)
+            : null;
+        if (!$applicant || !in_array($applicant->camp_id, $this->relatedCampIds())) {
+            abort(404, '找不到此報名者，或不屬於此營隊。');
+        }
+        if (!$this->canManageThisCamp()) {
+            $applicantCamp = Camp::find($applicant->camp_id);
+            if ($applicantCamp->isVcamp) {
+                $target = Volunteer::withTrashed()->find($applicant->id);
+                $permissionCamp = $applicantCamp->mainCamp;
+            } else {
+                $target = $applicant;
+                $permissionCamp = $applicantCamp;
+            }
+            if (!$this->user->canAccessResource($target, 'read', $permissionCamp, target: $target)) {
+                abort(403, '您沒有存取此報名者的權限。');
+            }
+        }
+        return $applicant;
+    }
+
+    /**
+     * 寄信等批次操作：全部報名者都須屬於本營隊且可讀取，否則整批不執行
+     */
+    protected function authorizeApplicantIds($ids): void
+    {
+        if ($error = $this->checkReadAnyApplicant()) {
+            abort(403, strip_tags($error));
+        }
+        foreach ((array) $ids as $id) {
+            $this->applicantInCampOrFail($id, withTrashed: true);
+        }
+    }
+
+    /**
+     * 帳號須與本營隊有關（在本營隊有職務，或連結了本營隊的報名資料）
+     */
+    protected function userInCampOrFail($id): User
+    {
+        $user = is_numeric($id) ? User::find($id) : null;
+        $campIds = $this->relatedCampIds();
+        if (!$user
+            || (!$user->roles()->whereIn('camp_id', $campIds)->exists()
+                && !$user->applicants()->whereIn('applicants.camp_id', $campIds)->exists())) {
+            abort(404, '找不到此帳號，或與此營隊無關。');
+        }
+        return $user;
+    }
+
+    /**
+     * 梯次須屬於本營隊（含義工營、學員營）
+     */
+    protected function batchInCampOrFail($batchId): Batch
+    {
+        $batch = is_numeric($batchId) ? Batch::find($batchId) : null;
+        if (!$batch || !in_array($batch->camp_id, $this->relatedCampIds())) {
+            abort(404, '找不到此梯次，或不屬於此營隊。');
+        }
+        return $batch;
+    }
+
+    /**
+     * 比照畫面上的按鈕：superuser、範圍內的 event_admin，或該資源有任一指定動作的權限
+     */
+    protected function authorizeResourceAction(string $resourceClass, array $actions, $target = null): void
+    {
+        if ($this->canManageThisCamp()) {
+            return;
+        }
+        $camp = Camp::find($this->camp_id);
+        $mainCamp = $camp->isVcamp ? $camp->mainCamp : $camp;
+        foreach ($actions as $action) {
+            if ($this->user->canAccessResource(new $resourceClass(), $action, $mainCamp, target: $target ?? $mainCamp->vcamp)) {
+                return;
+            }
+        }
+        abort(403, '您沒有此項操作的權限。');
     }
 
     /**
@@ -3092,6 +3271,12 @@ private function getCarersData($user, Request $request): array
 
     public function connectVolunteerToUser(Request $request)
     {
+        // 2026-11-14：原本沒有檢查，可把任何營隊的職務指派給任何人。比照畫面上「設定組別/職務」按鈕的條件
+        $this->authorizeResourceAction(\App\Models\OrgUser::class, ['create', 'assign']);
+        $org = $request->group_id ? \App\Models\CampOrg::find($request->group_id) : null;
+        if ($request->group_id && (!$org || !in_array($org->camp_id, $this->relatedCampIds()))) {
+            abort(404, '找不到此職務，或不屬於此營隊。');
+        }
         if ($request->isMethod("GET")) {
             $list = [];
             $errors = [];
@@ -3108,16 +3293,24 @@ private function getCarersData($user, Request $request): array
                 $type = substr($applicant_id, 0, 1);
                 $id = substr($applicant_id, 1);
                 if ($type == 'U') {
-                    $list[] = ["type" => "登入帳號", "data" => \App\Models\User::find($id), "action" => "直接指派職務"];
+                    $list[] = ["type" => "登入帳號", "data" => $this->userInCampOrFail($id), "action" => "直接指派職務"];
                 }
                 if ($type == 'A') {
-                    $list[] = ["type" => "報名義工", "data" => Applicant::find($id), "action" => null];
+                    $list[] = ["type" => "報名義工", "data" => $this->applicantInCampOrFail($id), "action" => null];
                 }
             }
             $group = \App\Models\CampOrg::find($request->group_id);
             return view("backend.integrated_operating_interface.connectVolunteerToUser", compact('list', 'group'));
         }
         if ($request->isMethod("POST")) {
+            if (!$org) {
+                abort(404, '未選擇任何職務組別。');
+            }
+            foreach ((array) $request->candidates as $entity) {
+                if (($entity['type'] ?? null) == 'applicant') {
+                    $this->applicantInCampOrFail($entity['id'] ?? null);
+                }
+            }
             $processedlist = $this->backendService->setGroupOrg($request->candidates, $request->group_id);
             if (is_string($processedlist)) {
                 return $processedlist;
@@ -3137,14 +3330,14 @@ private function getCarersData($user, Request $request): array
 
     public function cancelRegistration(Request $request)
     {
-        $applicant = Applicant::find($request->id);
+        $applicant = $this->applicantInCampOrFail($request->id);
         $applicant->delete();
         return redirect()->route("showAttendeeInfoGET", ["camp_id" => $request->camp_id, "snORadmittedSN" => $applicant->id]);
     }
 
     public function revertCancellation(Request $request)
     {
-        $applicant = Applicant::withTrashed()->find($request->id);
+        $applicant = $this->applicantInCampOrFail($request->id, withTrashed: true);
         $applicant->restore();
         return redirect()->route("showAttendeeInfoGET", ["camp_id" => $request->camp_id, "snORadmittedSN" => $applicant->id]);
     }
