@@ -63,12 +63,12 @@
                 <b>報名序號</b>：{{$applicant->applicant_id}}<br>
                 <b>所屬組別</b>：@if($applicant->groupRelation)
                     {{ $applicant->groupRelation->alias }}
-                    @if($currentUser->canAccessResource(new \App\Models\ApplicantsGroup, 'delete', $applicant->camp))（<a href="{{ route('deleteApplicantGroupAndNumber', [$camp->id, "applicant_id" => $applicant->id, "group_id" => $applicant->groupRelation->id]) }}" class="text-danger">刪除</a>）@endif
+                    @if($currentUser->canAccessResource(new \App\Models\ApplicantsGroup, 'delete', $applicant->camp))（<form action="{{ route('deleteApplicantGroupAndNumber', [$camp->id, "applicant_id" => $applicant->id, "group_id" => $applicant->groupRelation->id]) }}" method="POST" class="d-inline">@csrf<button type="submit" class="btn btn-link text-danger p-0 border-0 align-baseline">刪除</button></form>）@endif
                 @else
                     此學員尚未分入任何組別
                 @endif<br>
                 <b>帶組老師</b>：@forelse($applicant->carers as $carer)
-                    {{ $carer->name }}@if($currentUser->canAccessResource(new \App\Models\CarerApplicantXref, 'delete', $applicant->camp, target: $applicant))（<a href="{{ route('deleteApplicantCarer', [$camp->id, "applicant_id" => $applicant->id, "carer_id" => $carer->id]) }}" class="text-danger">刪除</a>）@endif
+                    {{ $carer->name }}@if($currentUser->canAccessResource(new \App\Models\CarerApplicantXref, 'delete', $applicant->camp, target: $applicant))（<form action="{{ route('deleteApplicantCarer', [$camp->id, "applicant_id" => $applicant->id, "carer_id" => $carer->id]) }}" method="POST" class="d-inline">@csrf<button type="submit" class="btn btn-link text-danger p-0 border-0 align-baseline">刪除</button></form>）@endif
                     @if(!$loop->last) {{ "、" }} @endif
                 @empty
                     {{ '-' }}
